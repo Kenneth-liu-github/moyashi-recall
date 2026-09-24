@@ -389,6 +389,7 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertEqual(documents[0].id, "root")
         XCTAssertEqual(documents[0].title, "Learning Home")
         XCTAssertNil(documents[0].parentExternalID)
+        XCTAssertEqual(documents[0].rootExternalID, "root")
         XCTAssertEqual(
             documents[0].sourcePath,
             ["Learning Home"]
@@ -404,6 +405,7 @@ final class NotionAPIClientTests: XCTestCase {
             documents[1].parentExternalID,
             "root"
         )
+        XCTAssertEqual(documents[1].rootExternalID, "root")
         XCTAssertEqual(
             documents[1].sourcePath,
             ["Learning Home", "办公室日语学习"]
