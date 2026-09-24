@@ -26,6 +26,7 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
 public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let title: String
+    public let content: String
     public let sourceKind: String
     public let externalSourceID: String
     public let parentExternalSourceID: String
@@ -41,6 +42,7 @@ public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
     public init(entity: KnowledgeItemEntity) {
         self.id = entity.id
         self.title = entity.title
+        self.content = entity.content
         self.sourceKind = entity.sourceKind
         self.externalSourceID = entity.externalSourceID
         self.parentExternalSourceID = entity.parentExternalSourceID
