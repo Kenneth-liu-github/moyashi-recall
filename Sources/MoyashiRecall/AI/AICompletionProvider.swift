@@ -4,15 +4,18 @@ public struct AICompletionRequest: Equatable, Sendable {
     public let systemPrompt: String
     public let userPrompt: String
     public let responseSchemaName: String
+    public let responseSchemaJSON: String
 
     public init(
         systemPrompt: String,
         userPrompt: String,
-        responseSchemaName: String
+        responseSchemaName: String,
+        responseSchemaJSON: String
     ) {
         self.systemPrompt = systemPrompt
         self.userPrompt = userPrompt
         self.responseSchemaName = responseSchemaName
+        self.responseSchemaJSON = responseSchemaJSON
     }
 }
 
@@ -44,4 +47,6 @@ public protocol AICompletionProvider: Sendable {
 public enum AIProviderError: Error, Equatable {
     case invalidResponse
     case decodingFailed
+    case http(statusCode: Int, message: String)
+    case missingConfiguration(String)
 }
