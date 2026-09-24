@@ -8,6 +8,7 @@ public struct ReviewQueueService {
     public func dueCards(
         in context: ModelContext,
         now: Date = .now,
+        sourceTitles: Set<String>? = nil,
         limit: Int? = nil
     ) throws -> [FlashcardEntity] {
         let cards = try context.fetch(
@@ -24,6 +25,13 @@ public struct ReviewQueueService {
         let stateByCard = Dictionary(uniqueKeysWithValues: states.map { ($0.cardID, $0) })
 
         let due = cards.filter { card in
+            if let sourceTitles, !sourceTitles.isEmpty {
+                let matchesSource = sourceTitles.contains { title in
+                    card.sourceReference.hasPrefix(title)
+                }
+                guard matchesSource else { return false }
+            }
+
             guard let state = stateByCard[card.id] else { return true }
             return state.due <= now
         }
