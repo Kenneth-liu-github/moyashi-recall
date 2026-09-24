@@ -53,6 +53,31 @@ final class AIProviderConfigurationTests: XCTestCase {
         )
     }
 
+    func testFactoryBuildsSelectedProviderWithoutNetworkCall() throws {
+        let openAI = try AIProviderFactory.makeProvider(
+            configuration: AIProviderConfiguration(
+                provider: .openAI,
+                modelID: "model-openai"
+            ),
+            secret: "secret"
+        )
+        XCTAssertEqual(openAI.providerID, "openai")
+        XCTAssertEqual(openAI.modelID, "model-openai")
+
+        let anthropic = try AIProviderFactory.makeProvider(
+            configuration: AIProviderConfiguration(
+                provider: .anthropic,
+                modelID: "model-anthropic"
+            ),
+            secret: "secret"
+        )
+        XCTAssertEqual(anthropic.providerID, "anthropic")
+        XCTAssertEqual(
+            anthropic.modelID,
+            "model-anthropic"
+        )
+    }
+
     func testProviderKindsHaveIndependentCredentialAccounts() {
         XCTAssertNotEqual(
             AICredential.account(for: .openAI),
