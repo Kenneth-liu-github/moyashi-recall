@@ -338,11 +338,8 @@ public struct ImportedPageDetailView: View {
                     "今回AIが知識を抽出できなかったため、既存の学習履歴を保護し、古いカードは無効化していません。"
                 )
             }
-        } catch is KnowledgeExtractionError {
-            aiStatusMessage = language.text(
-                "AI 返回的知识结构不一致，已停止写入。请重试。",
-                "AIの知識構造に不整合があるため、保存を中止しました。再試行してください。"
-            )
+        } catch let error as KnowledgeExtractionError {
+            aiStatusMessage = extractionErrorMessage(error)
         } catch {
             aiStatusMessage = language.text(
                 "AI 处理失败。",
@@ -370,6 +367,45 @@ public struct ImportedPageDetailView: View {
                 cardCount: 0
             )
             generatedKnowledge = []
+        }
+    }
+
+    private func extractionErrorMessage(
+        _ error: KnowledgeExtractionError
+    ) -> String {
+        switch error {
+        case .invalidVersion:
+            return language.text(
+                "AI 返回了不兼容的数据版本，请重试。",
+                "AIが互換性のないデータバージョンを返しました。再試行してください。"
+            )
+        case .tooManyItems, .tooManyCards:
+            return language.text(
+                "AI 生成内容超过安全上限，本次结果没有保存。",
+                "AI生成内容が安全上限を超えたため、結果は保存されませんでした。"
+            )
+        case .emptyKnowledgeKey,
+             .emptyKnowledgeContent,
+             .emptyCardKey,
+             .emptyCardContent:
+            return language.text(
+                "AI 返回了不完整的知识或卡片，本次结果没有保存。",
+                "AIが不完全な知識またはカードを返したため、結果は保存されませんでした。"
+            )
+        case .duplicateKnowledgeKey,
+             .duplicateCardKey,
+             .duplicateSemanticItem,
+             .duplicateCardContent:
+            return language.text(
+                "AI 返回了重复内容，本次结果没有保存，请重新生成。",
+                "AIが重複内容を返したため、結果は保存されませんでした。再生成してください。"
+            )
+        case .conflictingKnowledgeKey,
+             .conflictingCardKey:
+            return language.text(
+                "多个 AI 分块产生了相互冲突的内容，本次结果没有保存。",
+                "複数のAIチャンクで内容が競合したため、結果は保存されませんでした。"
+            )
         }
     }
 
