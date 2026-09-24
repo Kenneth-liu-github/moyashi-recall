@@ -6,7 +6,7 @@ public struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var counts: [String: Int] = [:]
-    @State private var importedItems: [ImportedKnowledgeSummary] = []
+    @State private var importedItems: [ImportedDocumentSummary] = []
     @State private var loadError: String?
 
     public init() {}
@@ -82,7 +82,7 @@ public struct LibraryView: View {
     }
 
     private func importedRow(
-        _ item: ImportedKnowledgeSummary
+        _ item: ImportedDocumentSummary
     ) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Color.clear
@@ -120,7 +120,7 @@ public struct LibraryView: View {
             )
             try repository.seedDemoIfNeeded()
             counts = try repository.cardCountsBySourceKey()
-            importedItems = try repository.importedKnowledgeItems(
+            importedItems = try repository.importedDocuments(
                 sourceKind: "notion"
             )
             loadError = nil
