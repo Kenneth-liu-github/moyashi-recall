@@ -9,7 +9,14 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
     public let explanation: String
     public let naturalEnglish: String
     public let sourceKey: String
+    public let sourceDisplayPath: String
     public let sourceReference: String
+
+    public var sourceDisplay: String {
+        sourceDisplayPath.isEmpty
+            ? sourceReference
+            : sourceDisplayPath
+    }
 
     public init(entity: FlashcardEntity) {
         self.id = entity.id
@@ -19,6 +26,7 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
         self.explanation = entity.explanation
         self.naturalEnglish = entity.naturalEnglish
         self.sourceKey = entity.sourceKey
+        self.sourceDisplayPath = entity.sourceDisplayPath
         self.sourceReference = entity.sourceReference
     }
 }
@@ -495,6 +503,7 @@ public struct LearningRepository {
                     && existing.sourceDocumentID == sourceDocumentID
                     && existing.sourceKind == source.sourceKind
                     && existing.sourceKey == source.sourceKey
+                    && existing.sourceDisplayPath == source.sourcePath
                     && existing.sourceReference == source.sourceReference
                     && existing.isActive
 
@@ -513,6 +522,7 @@ public struct LearningRepository {
                     existing.sourceDocumentID = sourceDocumentID
                     existing.sourceKind = source.sourceKind
                     existing.sourceKey = source.sourceKey
+                    existing.sourceDisplayPath = source.sourcePath
                     existing.sourceReference = source.sourceReference
                     existing.isActive = true
                     existing.updatedAt = now
@@ -537,6 +547,7 @@ public struct LearningRepository {
                     tags: generated.tags.joined(separator: "|"),
                     sourceKind: source.sourceKind,
                     sourceKey: source.sourceKey,
+                    sourceDisplayPath: source.sourcePath,
                     sourceReference: source.sourceReference,
                     aiProvider: providerID,
                     aiModel: modelID,
@@ -573,6 +584,7 @@ public struct LearningRepository {
                         && existing.naturalEnglish == generatedCard.naturalEnglish
                         && existing.sourceDocumentID == sourceDocumentID
                         && existing.sourceKey == source.sourceKey
+                        && existing.sourceDisplayPath == source.sourcePath
                         && existing.sourceReference == source.sourceReference
                         && existing.isActive
 
@@ -587,6 +599,7 @@ public struct LearningRepository {
                         existing.naturalEnglish = generatedCard.naturalEnglish
                         existing.sourceDocumentID = sourceDocumentID
                         existing.sourceKey = source.sourceKey
+                        existing.sourceDisplayPath = source.sourcePath
                         existing.sourceReference = source.sourceReference
                         existing.isActive = true
                         existing.updatedAt = now
@@ -604,6 +617,7 @@ public struct LearningRepository {
                             explanation: generatedCard.explanation,
                             naturalEnglish: generatedCard.naturalEnglish,
                             sourceKey: source.sourceKey,
+                            sourceDisplayPath: source.sourcePath,
                             sourceReference: source.sourceReference,
                             isActive: true,
                             createdAt: now,
@@ -694,6 +708,7 @@ public struct LearningRepository {
                 $0.prompt.localizedCaseInsensitiveContains(normalized)
                     || $0.answer.localizedCaseInsensitiveContains(normalized)
                     || $0.explanation.localizedCaseInsensitiveContains(normalized)
+                    || $0.sourceDisplayPath.localizedCaseInsensitiveContains(normalized)
                     || $0.sourceReference.localizedCaseInsensitiveContains(normalized)
             }
         }
