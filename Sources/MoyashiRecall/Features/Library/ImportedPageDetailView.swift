@@ -70,10 +70,15 @@ public struct ImportedPageDetailView: View {
                             }
 
                             Text(
-                                language.text(
-                                    "AI 提取知识并生成卡片",
-                                    "AIで知識とカードを生成"
-                                )
+                                isAIUpToDate
+                                    ? language.text(
+                                        "重新生成 AI 知识与卡片",
+                                        "AI知識とカードを再生成"
+                                    )
+                                    : language.text(
+                                        "AI 提取知识并生成卡片",
+                                        "AIで知識とカードを生成"
+                                    )
                             )
                         }
                         .frame(maxWidth: .infinity)
