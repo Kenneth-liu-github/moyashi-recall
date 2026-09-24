@@ -438,6 +438,7 @@ public struct LearningRepository {
             ) ?? existingKnowledge.first(
                 where: {
                     $0.knowledgeType == generated.kind.rawValue
+                        && $0.title == generated.title
                         && $0.canonicalExpression
                             == generated.canonicalExpression
                         && $0.meaning == generated.meaning
