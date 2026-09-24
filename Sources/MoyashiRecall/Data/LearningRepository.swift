@@ -67,6 +67,36 @@ public struct LearningRepository {
             .map(ReviewSessionCard.init)
     }
 
+    public func allSessionCards(
+        searchText: String = ""
+    ) throws -> [ReviewSessionCard] {
+        let entities = try context.fetch(
+            FetchDescriptor<FlashcardEntity>(
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+        )
+        let normalized = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let filtered: [FlashcardEntity]
+        if normalized.isEmpty {
+            filtered = entities
+        } else {
+            filtered = entities.filter {
+                $0.prompt.localizedCaseInsensitiveContains(normalized)
+                    || $0.answer.localizedCaseInsensitiveContains(normalized)
+                    || $0.explanation.localizedCaseInsensitiveContains(normalized)
+                    || $0.sourceReference.localizedCaseInsensitiveContains(normalized)
+            }
+        }
+        return filtered.map(ReviewSessionCard.init)
+    }
+
+    public func cardCountsBySourceKey() throws -> [String: Int] {
+        let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
+        return cards.reduce(into: [String: Int]()) { result, card in
+            result[card.sourceKey, default: 0] += 1
+        }
+    }
+
     @discardableResult
     public func recordReview(
         cardID: UUID,
