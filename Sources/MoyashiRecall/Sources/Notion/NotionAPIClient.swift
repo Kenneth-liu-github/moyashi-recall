@@ -299,7 +299,12 @@ public struct NotionAPIClient: LearningContentSource {
             )
 
             for dto in page.results {
-                let children = dto.hasChildren
+                let shouldRecurse =
+                    dto.hasChildren
+                    && dto.type != "child_page"
+                    && dto.type != "child_database"
+
+                let children = shouldRecurse
                     ? try await retrieveAllBlockChildren(
                         parentID: dto.id,
                         depth: depth + 1
