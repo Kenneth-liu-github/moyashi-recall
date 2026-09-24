@@ -298,6 +298,25 @@ public struct ImportedPageDetailView: View {
                     "このページにはAI抽出に使えるテキストがありません。"
                 )
             }
+        } catch let error as LearningRepositoryError {
+            switch error {
+            case .sourceDocumentNotFound:
+                aiStatusMessage = language.text(
+                    "找不到该本地资料，请返回资料库后重试。",
+                    "ローカル資料が見つかりません。ライブラリから再試行してください。"
+                )
+
+            case .emptyExtractionWouldDeactivateExisting:
+                aiStatusMessage = language.text(
+                    "AI 本次没有提取到知识点。为保护已有学习记录，旧卡片已保留且未被停用。",
+                    "今回AIが知識を抽出できなかったため、既存の学習履歴を保護し、古いカードは無効化していません。"
+                )
+            }
+        } catch is KnowledgeExtractionError {
+            aiStatusMessage = language.text(
+                "AI 返回的知识结构不一致，已停止写入。请重试。",
+                "AIの知識構造に不整合があるため、保存を中止しました。再試行してください。"
+            )
         } catch {
             aiStatusMessage = language.text(
                 "AI 处理失败。",
