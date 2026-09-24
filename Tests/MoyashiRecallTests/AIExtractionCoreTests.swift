@@ -69,6 +69,42 @@ final class AIExtractionCoreTests: XCTestCase {
         )
     }
 
+    func testValidationRejectsDuplicateSemanticItemsWithDifferentKeys() {
+        let first = ExtractedKnowledgeItem(
+            key: "one",
+            kind: .grammar,
+            title: "～について",
+            canonicalExpression: "～について",
+            meaning: "关于……",
+            explanation: "A"
+        )
+        let second = ExtractedKnowledgeItem(
+            key: "two",
+            kind: .grammar,
+            title: "～について",
+            canonicalExpression: "～について",
+            meaning: "关于……",
+            explanation: "B"
+        )
+
+        XCTAssertThrowsError(
+            try KnowledgeExtractionService.validate(
+                KnowledgeExtractionBundle(
+                    version: "v1",
+                    items: [first, second]
+                )
+            )
+        ) { error in
+            guard case .duplicateSemanticItem =
+                error as? KnowledgeExtractionError
+            else {
+                return XCTFail(
+                    "Expected duplicate semantic item"
+                )
+            }
+        }
+    }
+
     func testValidationRejectsDuplicateKnowledgeKeys() {
         let item = ExtractedKnowledgeItem(
             key: "duplicate",
