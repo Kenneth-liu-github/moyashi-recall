@@ -335,6 +335,83 @@ final class AIExtractionTests: XCTestCase {
     }
 
     @MainActor
+    func testProcessingRejectsDocumentsBeyondChunkLimit() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "Long",
+            content: String(repeating: "あ", count: 2_500),
+            sourceKind: "notion",
+            externalSourceID: "long-page",
+            sourceReference: "notion://long"
+        )
+        context.insert(source)
+        try context.save()
+
+        let service = AIProcessingService(
+            repository: LearningRepository(context: context),
+            provider: StaticAIProvider(
+                providerID: "fixture",
+                modelID: "fixture-1",
+                response: #"{"version":"v1","items":[]}"#
+            ),
+            chunker: DocumentChunker(
+                maximumCharacters: 1_000
+            ),
+            maximumChunks: 2
+        )
+
+        do {
+            _ = try await service.process(
+                sourceDocumentID: source.id
+            )
+            XCTFail("Expected chunk-limit error")
+        } catch let error as AIProcessingError {
+            XCTAssertEqual(
+                error,
+                .tooManyChunks(actual: 3, maximum: 2)
+            )
+        }
+    }
+
+    @MainActor
+    func testProcessingRejectsProviderIdentityChangesAcrossChunks() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "Multi",
+            content: String(repeating: "あ", count: 1_500),
+            sourceKind: "notion",
+            externalSourceID: "multi-page",
+            sourceReference: "notion://multi"
+        )
+        context.insert(source)
+        try context.save()
+
+        let provider = ChangingIdentityAIProvider()
+        let service = AIProcessingService(
+            repository: LearningRepository(context: context),
+            provider: provider,
+            chunker: DocumentChunker(
+                maximumCharacters: 1_000
+            ),
+            maximumChunks: 5
+        )
+
+        do {
+            _ = try await service.process(
+                sourceDocumentID: source.id
+            )
+            XCTFail("Expected provider consistency error")
+        } catch let error as AIProcessingError {
+            XCTAssertEqual(
+                error,
+                .providerChangedDuringRun
+            )
+        }
+    }
+
+    @MainActor
     func testStableKeyDriftPreservesKnowledgeAndCardIDs() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -733,6 +810,24 @@ private struct StaticAIProvider: AICompletionProvider {
             text: response,
             providerID: providerID,
             modelID: modelID
+        )
+    }
+}
+
+
+private actor ChangingIdentityAIProvider: AICompletionProvider {
+    nonisolated let providerID = "fixture"
+    nonisolated let modelID = "advertised-model"
+    private var calls = 0
+
+    func complete(
+        request: AICompletionRequest
+    ) async throws -> AICompletionResponse {
+        calls += 1
+        return AICompletionResponse(
+            text: #"{"version":"v1","items":[]}"#,
+            providerID: providerID,
+            modelID: calls == 1 ? "model-a" : "model-b"
         )
     }
 }
