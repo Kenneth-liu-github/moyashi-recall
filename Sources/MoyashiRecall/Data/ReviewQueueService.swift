@@ -9,6 +9,7 @@ public struct ReviewQueueService {
         in context: ModelContext,
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
+        cardTypes: Set<String>? = nil,
         limit: Int? = nil
     ) throws -> [FlashcardEntity] {
         let cards = try context.fetch(
@@ -33,7 +34,15 @@ public struct ReviewQueueService {
         let due = cards.filter { card in
             guard card.isActive else { return false }
 
-            if let sourceKeys, !sourceKeys.isEmpty, !sourceKeys.contains(card.sourceKey) {
+            if let sourceKeys,
+               !sourceKeys.isEmpty,
+               !sourceKeys.contains(card.sourceKey) {
+                return false
+            }
+
+            if let cardTypes,
+               !cardTypes.isEmpty,
+               !cardTypes.contains(card.cardType) {
                 return false
             }
 
