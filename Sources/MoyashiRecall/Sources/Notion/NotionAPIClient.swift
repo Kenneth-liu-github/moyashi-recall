@@ -53,6 +53,57 @@ public struct NotionAPIClient: LearningContentSource {
         )
     }
 
+    public func searchPages(
+        query: String,
+        pageSize: Int = 50
+    ) async throws -> [NotionPageSummary] {
+        let url = baseURL
+            .appendingPathComponent("v1")
+            .appendingPathComponent("search")
+
+        let body: [String: Any] = [
+            "query": query,
+            "page_size": min(max(pageSize, 1), 100),
+            "filter": [
+                "property": "object",
+                "value": "page"
+            ]
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: body
+        )
+        applyHeaders(to: &request)
+
+        let data = try await execute(request)
+        let object = try JSONSerialization.jsonObject(with: data)
+
+        guard let json = object as? [String: Any],
+              let results = json["results"] as? [[String: Any]]
+        else {
+            throw NotionAPIError.malformedPayload
+        }
+
+        return results.compactMap { page in
+            guard page["object"] as? String == "page",
+                  let id = page["id"] as? String
+            else {
+                return nil
+            }
+
+            return NotionPageSummary(
+                id: id,
+                title: Self.extractPageTitle(from: page),
+                url: page["url"] as? String,
+                lastEditedAt: Self.parseISODate(
+                    page["last_edited_time"] as? String
+                )
+            )
+        }
+    }
+
     public func retrievePage(id: String) async throws -> NotionPageSummary {
         let url = baseURL
             .appendingPathComponent("v1")
