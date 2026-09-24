@@ -1,7 +1,20 @@
 import Foundation
 
+public enum KnowledgeExtractionError: Error, Equatable {
+    case invalidVersion(String)
+    case tooManyItems(Int)
+    case tooManyCards(itemKey: String, count: Int)
+    case emptyKnowledgeKey
+    case duplicateKnowledgeKey(String)
+    case emptyCardKey(itemKey: String)
+    case duplicateCardKey(itemKey: String, cardKey: String)
+    case emptyCardContent(itemKey: String, cardKey: String)
+}
+
 public struct KnowledgeExtractionService {
     public static let extractionVersion = "v1"
+    public static let maximumItems = 100
+    public static let maximumCardsPerItem = 10
 
     private let provider: any AICompletionProvider
 
@@ -28,18 +41,96 @@ public struct KnowledgeExtractionService {
             throw AIProviderError.invalidResponse
         }
 
+        let bundle: KnowledgeExtractionBundle
         do {
-            let bundle = try JSONDecoder().decode(
+            bundle = try JSONDecoder().decode(
                 KnowledgeExtractionBundle.self,
                 from: data
             )
-            return (
-                bundle,
-                response.providerID,
-                response.modelID
-            )
         } catch {
             throw AIProviderError.decodingFailed
+        }
+
+        try Self.validate(bundle)
+
+        return (
+            bundle,
+            response.providerID,
+            response.modelID
+        )
+    }
+
+    public static func validate(
+        _ bundle: KnowledgeExtractionBundle
+    ) throws {
+        guard bundle.version == extractionVersion else {
+            throw KnowledgeExtractionError.invalidVersion(
+                bundle.version
+            )
+        }
+
+        guard bundle.items.count <= maximumItems else {
+            throw KnowledgeExtractionError.tooManyItems(
+                bundle.items.count
+            )
+        }
+
+        var knowledgeKeys = Set<String>()
+
+        for item in bundle.items {
+            let itemKey = item.key.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            guard !itemKey.isEmpty else {
+                throw KnowledgeExtractionError.emptyKnowledgeKey
+            }
+            guard knowledgeKeys.insert(itemKey).inserted else {
+                throw KnowledgeExtractionError
+                    .duplicateKnowledgeKey(itemKey)
+            }
+
+            guard item.cards.count <= maximumCardsPerItem else {
+                throw KnowledgeExtractionError.tooManyCards(
+                    itemKey: itemKey,
+                    count: item.cards.count
+                )
+            }
+
+            var cardKeys = Set<String>()
+            for card in item.cards {
+                let cardKey = card.key.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                guard !cardKey.isEmpty else {
+                    throw KnowledgeExtractionError.emptyCardKey(
+                        itemKey: itemKey
+                    )
+                }
+                guard cardKeys.insert(cardKey).inserted else {
+                    throw KnowledgeExtractionError.duplicateCardKey(
+                        itemKey: itemKey,
+                        cardKey: cardKey
+                    )
+                }
+
+                guard
+                    !card.prompt
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .isEmpty,
+                    !card.answer
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .isEmpty
+                else {
+                    throw KnowledgeExtractionError.emptyCardContent(
+                        itemKey: itemKey,
+                        cardKey: cardKey
+                    )
+                }
+            }
         }
     }
 
