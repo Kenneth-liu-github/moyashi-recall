@@ -11,7 +11,13 @@ public struct HomeView: View {
 
     private var dueCount: Int {
         let now = Date()
-        let stateByCard = Dictionary(uniqueKeysWithValues: reviewStates.map { ($0.cardID, $0) })
+        let stateByCard = reviewStates.reduce(into: [UUID: ReviewStateEntity]()) { result, state in
+            if let existing = result[state.cardID] {
+                if state.due < existing.due { result[state.cardID] = state }
+            } else {
+                result[state.cardID] = state
+            }
+        }
         return cards.reduce(0) { count, card in
             guard let state = stateByCard[card.id] else { return count + 1 }
             return count + (state.due <= now ? 1 : 0)
