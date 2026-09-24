@@ -172,10 +172,8 @@ final class AnthropicMessagesProviderTests: XCTestCase {
         )
 
         XCTAssertEqual(result.providerID, "anthropic")
-        XCTAssertEqual(
-            await transport.attemptCount(),
-            2
-        )
+        let attempts = await transport.attemptCount()
+        XCTAssertEqual(attempts, 2)
     }
 
     private static func response(
