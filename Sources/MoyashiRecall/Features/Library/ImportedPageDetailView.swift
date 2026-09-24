@@ -170,6 +170,12 @@ public struct ImportedPageDetailView: View {
                     "找不到该本地资料，请返回资料库后重试。",
                     "ローカル資料が見つかりません。ライブラリから再試行してください。"
                 )
+
+            case .emptySourceDocument:
+                aiStatusMessage = language.text(
+                    "此页面没有可供 AI 提取的文本内容。",
+                    "このページにはAI抽出に使えるテキストがありません。"
+                )
             }
         } catch {
             aiStatusMessage = language.text(
