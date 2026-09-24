@@ -38,6 +38,21 @@ final class SourceKeyResolverTests: XCTestCase {
         )
     }
 
+    func testUnknownNonLatinCategoriesDoNotCollide() {
+        let grammar = SourceKeyResolver.resolve(
+            sourceKind: "notion",
+            sourcePath: ["Learning Home", "语法笔记"]
+        )
+        let vocabulary = SourceKeyResolver.resolve(
+            sourceKind: "notion",
+            sourcePath: ["Learning Home", "词汇笔记"]
+        )
+
+        XCTAssertNotEqual(grammar, vocabulary)
+        XCTAssertTrue(grammar.hasPrefix("notion-u"))
+        XCTAssertTrue(vocabulary.hasPrefix("notion-u"))
+    }
+
     func testUnknownCategoryGetsDeterministicFallback() {
         XCTAssertEqual(
             SourceKeyResolver.resolve(
