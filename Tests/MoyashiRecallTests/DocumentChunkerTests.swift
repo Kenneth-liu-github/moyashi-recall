@@ -40,6 +40,45 @@ final class DocumentChunkerTests: XCTestCase {
         )
     }
 
+    func testBundleMergerRejectsConflictingStableKey() {
+        let first = ExtractedKnowledgeItem(
+            key: "same-key",
+            kind: .grammar,
+            title: "A",
+            canonicalExpression: "～について",
+            meaning: "关于……",
+            explanation: "A"
+        )
+        let conflicting = ExtractedKnowledgeItem(
+            key: "same-key",
+            kind: .grammar,
+            title: "B",
+            canonicalExpression: "～に関して",
+            meaning: "关于……",
+            explanation: "B"
+        )
+
+        XCTAssertThrowsError(
+            try KnowledgeBundleMerger.merge(
+                [
+                    KnowledgeExtractionBundle(
+                        version: "v1",
+                        items: [first]
+                    ),
+                    KnowledgeExtractionBundle(
+                        version: "v1",
+                        items: [conflicting]
+                    )
+                ]
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? KnowledgeExtractionError,
+                .conflictingKnowledgeKey("same-key")
+            )
+        }
+    }
+
     func testBundleMergerDeduplicatesKnowledgeAndCards() throws {
         let first = ExtractedKnowledgeItem(
             key: "grammar-ni-tsuite",
