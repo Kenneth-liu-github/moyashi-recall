@@ -79,7 +79,6 @@ public struct ReviewView: View {
             .background(AppTheme.surface)
         }
         .navigationTitle(language.text("复习", "復習"))
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func rating(_ text: String) -> some View {
