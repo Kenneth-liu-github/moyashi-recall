@@ -108,6 +108,27 @@ public struct LibraryView: View {
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .lineLimit(2)
+
+                Label(
+                    item.needsAIRefresh
+                        ? language.text(
+                            "待 AI 生成/更新",
+                            "AI生成・更新待ち"
+                        )
+                        : language.text(
+                            "AI 已同步",
+                            "AI同期済み"
+                        ),
+                    systemImage: item.needsAIRefresh
+                        ? "sparkles"
+                        : "checkmark.circle"
+                )
+                .font(.caption2)
+                .foregroundStyle(
+                    item.needsAIRefresh
+                        ? AppTheme.accent
+                        : AppTheme.muted
+                )
             }
         }
         .accessibilityElement(children: .combine)
