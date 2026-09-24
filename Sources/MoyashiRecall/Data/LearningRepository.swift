@@ -235,6 +235,86 @@ public struct LearningRepository {
     }
 
     @discardableResult
+    public func migrateLegacyImportedKnowledgeIfNeeded(
+        now: Date = .now
+    ) throws -> Int {
+        let legacyItems = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        .filter {
+            $0.sourceDocumentID == nil
+                && !$0.externalSourceID.isEmpty
+        }
+
+        guard !legacyItems.isEmpty else {
+            return 0
+        }
+
+        let sourceDocuments = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+
+        var migrated = 0
+
+        for legacy in legacyItems {
+            let existingSource = sourceDocuments.first {
+                $0.sourceKind == legacy.sourceKind
+                    && $0.externalSourceID
+                        == legacy.externalSourceID
+            }
+
+            let source: SourceDocumentEntity
+            if let existingSource {
+                source = existingSource
+            } else {
+                source = SourceDocumentEntity(
+                    title: legacy.title,
+                    content: legacy.content,
+                    sourceKind: legacy.sourceKind,
+                    externalSourceID: legacy.externalSourceID,
+                    parentExternalSourceID:
+                        legacy.parentExternalSourceID,
+                    rootExternalSourceID:
+                        legacy.rootExternalSourceID,
+                    sourcePath: legacy.sourcePath,
+                    sourceKey: legacy.sourceKey,
+                    hierarchyDepth: legacy.hierarchyDepth,
+                    isSourceActive: legacy.isSourceActive,
+                    sourceLastEditedAt:
+                        legacy.sourceLastEditedAt,
+                    lastSyncedAt: legacy.lastSyncedAt,
+                    sourceReference: legacy.sourceReference,
+                    createdAt: legacy.createdAt,
+                    updatedAt: legacy.updatedAt
+                )
+                context.insert(source)
+            }
+
+            for card in cards where
+                card.knowledgeItemID == legacy.id
+                && card.sourceDocumentID == nil
+            {
+                card.sourceDocumentID = source.id
+                if card.sourceDisplayPath.isEmpty {
+                    card.sourceDisplayPath = legacy.sourcePath
+                }
+                card.updatedAt = now
+            }
+
+            legacy.isActive = false
+            legacy.isSourceActive = false
+            legacy.updatedAt = now
+            migrated += 1
+        }
+
+        try context.save()
+        return migrated
+    }
+
+    @discardableResult
     public func upsertImportedDocument(
         _ document: ImportedDocument,
         now: Date = .now
