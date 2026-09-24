@@ -8,6 +8,7 @@ public struct AIProviderSettingsView: View {
     @State private var apiKeyDraft = ""
     @State private var hasStoredCredential = false
     @State private var statusMessage: String?
+    @State private var isTestingConnection = false
 
     private let configurationStore = AIConfigurationStore()
     private let credentialStore = KeychainCredentialStore()
@@ -110,6 +111,31 @@ public struct AIProviderSettingsView: View {
                         )
                         .isEmpty
                 )
+
+                Button {
+                    Task {
+                        await testConnection()
+                    }
+                } label: {
+                    HStack {
+                        if isTestingConnection {
+                            ProgressView()
+                        }
+                        Text(
+                            language.text(
+                                "测试 AI 连接",
+                                "AI接続をテスト"
+                            )
+                        )
+                    }
+                }
+                .disabled(
+                    isTestingConnection
+                        || !hasStoredCredential
+                        || modelID.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ).isEmpty
+                )
             } footer: {
                 Text(
                     language.text(
@@ -203,6 +229,84 @@ public struct AIProviderSettingsView: View {
         }
     }
 
+    @MainActor
+    private func testConnection() async {
+        isTestingConnection = true
+        statusMessage = language.text(
+            "正在测试 AI 连接…",
+            "AI接続をテスト中…"
+        )
+        defer {
+            isTestingConnection = false
+        }
+
+        do {
+            let provider = try AIProviderFactory
+                .makeConfiguredProvider()
+
+            let response = try await provider.complete(
+                request: AICompletionRequest(
+                    systemPrompt: "Return the requested JSON only.",
+                    userPrompt: "Set ok to true.",
+                    responseSchemaName: "connection_probe",
+                    responseSchemaJSON: """
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["ok"],
+                      "additionalProperties": false
+                    }
+                    """
+                )
+            )
+
+            guard
+                let data = response.text.data(
+                    using: .utf8
+                ),
+                let probe = try? JSONDecoder().decode(
+                    AIConnectionProbe.self,
+                    from: data
+                ),
+                probe.ok
+            else {
+                throw AIProviderError.invalidResponse
+            }
+
+            statusMessage = language.text(
+                "连接成功：\(response.providerID) · \(response.modelID)",
+                "接続成功：\(response.providerID) · \(response.modelID)"
+            )
+        } catch let error as AIProviderError {
+            switch error {
+            case let .missingConfiguration(field):
+                statusMessage = language.text(
+                    "AI 配置不完整：\(field)。",
+                    "AI設定が不完全です：\(field)。"
+                )
+            case let .http(statusCode, message):
+                statusMessage = language.text(
+                    "AI Provider 返回错误 \(statusCode)：\(message)",
+                    "AI Provider エラー \(statusCode)：\(message)"
+                )
+            case .invalidResponse, .decodingFailed:
+                statusMessage = language.text(
+                    "AI 返回的数据格式无效。",
+                    "AIの応答形式が無効です。"
+                )
+            }
+        } catch {
+            statusMessage = language.text(
+                "AI 连接测试失败。",
+                "AI接続テストに失敗しました。"
+            )
+        }
+    }
+
     private func deleteCredential() {
         do {
             try credentialStore.delete(
@@ -223,4 +327,9 @@ public struct AIProviderSettingsView: View {
             )
         }
     }
+}
+
+
+private struct AIConnectionProbe: Decodable {
+    let ok: Bool
 }
