@@ -822,6 +822,7 @@ public struct LearningRepository {
     public func dueSessionCards(
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
+        cardTypes: Set<String>? = nil,
         limit: Int? = nil
     ) throws -> [ReviewSessionCard] {
         try queueService
@@ -829,6 +830,7 @@ public struct LearningRepository {
                 in: context,
                 now: now,
                 sourceKeys: sourceKeys,
+                cardTypes: cardTypes,
                 limit: limit
             )
             .map(ReviewSessionCard.init)
