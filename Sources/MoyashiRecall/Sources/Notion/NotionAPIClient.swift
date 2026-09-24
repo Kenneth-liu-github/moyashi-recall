@@ -39,18 +39,43 @@ public struct NotionAPIClient: LearningContentSource {
     }
 
     public func fetchDocument(id: String) async throws -> ImportedDocument {
-        let page = try await retrievePage(id: id)
-        let blocks = try await retrieveAllBlockChildren(parentID: id)
-        let content = render(blocks: blocks)
+        let result = try await fetchDocumentAndBlocks(id: id)
+        return result.document
+    }
 
-        return ImportedDocument(
-            id: page.id,
-            sourceKind: kind,
-            title: page.title,
-            sourceReference: page.url ?? "notion://page/\(page.id)",
-            content: content,
-            lastEditedAt: page.lastEditedAt
-        )
+    public func fetchDocumentTree(
+        rootID: String,
+        maxDepth: Int = 8,
+        maxPages: Int = 200
+    ) async throws -> [ImportedDocument] {
+        let safeDepth = max(0, maxDepth)
+        let safePageLimit = max(1, maxPages)
+
+        var queue: [(id: String, depth: Int)] = [(rootID, 0)]
+        var visited = Set<String>()
+        var documents: [ImportedDocument] = []
+
+        while !queue.isEmpty && documents.count < safePageLimit {
+            let next = queue.removeFirst()
+
+            guard visited.insert(next.id).inserted else {
+                continue
+            }
+
+            let result = try await fetchDocumentAndBlocks(id: next.id)
+            documents.append(result.document)
+
+            guard next.depth < safeDepth else {
+                continue
+            }
+
+            let children = childPageIDs(in: result.blocks)
+            for childID in children where !visited.contains(childID) {
+                queue.append((childID, next.depth + 1))
+            }
+        }
+
+        return documents
     }
 
     public func searchPages(
@@ -120,6 +145,27 @@ public struct NotionAPIClient: LearningContentSource {
         } while cursor != nil
 
         return pages
+    }
+
+    private func fetchDocumentAndBlocks(
+        id: String
+    ) async throws -> (
+        document: ImportedDocument,
+        blocks: [NotionContentBlock]
+    ) {
+        let page = try await retrievePage(id: id)
+        let blocks = try await retrieveAllBlockChildren(parentID: id)
+
+        let document = ImportedDocument(
+            id: page.id,
+            sourceKind: kind,
+            title: page.title,
+            sourceReference: page.url ?? "notion://page/\(page.id)",
+            content: render(blocks: blocks),
+            lastEditedAt: page.lastEditedAt
+        )
+
+        return (document, blocks)
     }
 
     public func retrievePage(id: String) async throws -> NotionPageSummary {
@@ -244,6 +290,19 @@ public struct NotionAPIClient: LearningContentSource {
         }
 
         return data
+    }
+
+    private func childPageIDs(
+        in blocks: [NotionContentBlock]
+    ) -> [String] {
+        blocks.flatMap { block in
+            var ids: [String] = []
+            if block.type == "child_page" {
+                ids.append(block.id)
+            }
+            ids.append(contentsOf: childPageIDs(in: block.children))
+            return ids
+        }
     }
 
     private func render(
