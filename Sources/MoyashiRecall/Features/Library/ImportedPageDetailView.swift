@@ -425,6 +425,18 @@ public struct ImportedPageDetailView: View {
                 "AI Provider エラー \(statusCode)：\(message)"
             )
 
+        case let .refused(message):
+            return language.text(
+                "AI 拒绝处理此内容：\(message)",
+                "AIがこの内容の処理を拒否しました：\(message)"
+            )
+
+        case let .incomplete(reason):
+            return language.text(
+                "AI 输出未完成（\(reason)），本次结果没有保存。请重试或缩小资料范围。",
+                "AI出力が未完了です（\(reason)）。結果は保存されませんでした。再試行するか資料範囲を縮小してください。"
+            )
+
         case .invalidResponse, .decodingFailed:
             return language.text(
                 "AI 返回的数据格式无效。",
