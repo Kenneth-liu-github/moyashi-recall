@@ -10,21 +10,23 @@ public enum ReviewCardType: String, Codable, CaseIterable, Identifiable, Hashabl
     public var id: String { rawValue }
 }
 
-public struct StudySource: Identifiable, Hashable {
-    public let id: UUID
+public struct StudySource: Identifiable, Hashable, Sendable {
     public let key: String
     public let title: String
     public let detail: String
+    public let cardCount: Int
+
+    public var id: String { key }
 
     public init(
-        id: UUID = UUID(),
         key: String,
         title: String,
-        detail: String
+        detail: String,
+        cardCount: Int
     ) {
-        self.id = id
         self.key = key
         self.title = title
         self.detail = detail
+        self.cardCount = cardCount
     }
 }
