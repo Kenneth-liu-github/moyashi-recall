@@ -26,10 +26,10 @@ public enum SourceKeyResolver {
         case "日语口语 私教":
             return "japanese-speaking"
         default:
-            let slug = categoryTitle
+            let asciiSlug = categoryTitle
                 .folding(
                     options: [.diacriticInsensitive, .caseInsensitive],
-                    locale: .current
+                    locale: Locale(identifier: "en_US_POSIX")
                 )
                 .lowercased()
                 .replacingOccurrences(
@@ -41,9 +41,22 @@ public enum SourceKeyResolver {
                     in: CharacterSet(charactersIn: "-")
                 )
 
-            return slug.isEmpty
+            if !asciiSlug.isEmpty {
+                return "\(sourceKind)-\(asciiSlug)"
+            }
+
+            let unicodeKey = categoryTitle.unicodeScalars
+                .map {
+                    String(
+                        format: "u%04x",
+                        $0.value
+                    )
+                }
+                .joined(separator: "-")
+
+            return unicodeKey.isEmpty
                 ? "\(sourceKind)-uncategorized"
-                : "\(sourceKind)-\(slug)"
+                : "\(sourceKind)-\(unicodeKey)"
         }
     }
 }
