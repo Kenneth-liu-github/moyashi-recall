@@ -220,6 +220,19 @@ final class AIExtractionTests: XCTestCase {
         )
         XCTAssertTrue(cards.allSatisfy(\.isActive))
 
+        let previews = try repository.generatedKnowledgeItems(
+            sourceDocumentID: source.id
+        )
+        XCTAssertEqual(previews.count, 1)
+        XCTAssertEqual(
+            previews.first?.cardCount,
+            2
+        )
+        XCTAssertEqual(
+            previews.first?.canonicalExpression,
+            "進（すす）め方（かた）について"
+        )
+
         let sourceDocuments = try context.fetch(
             FetchDescriptor<SourceDocumentEntity>()
         )
