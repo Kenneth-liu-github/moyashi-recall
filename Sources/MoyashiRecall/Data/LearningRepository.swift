@@ -244,6 +244,7 @@ public struct LearningRepository {
         .filter {
             $0.sourceDocumentID == nil
                 && !$0.externalSourceID.isEmpty
+                && $0.isSourceActive
         }
 
         guard !legacyItems.isEmpty else {
