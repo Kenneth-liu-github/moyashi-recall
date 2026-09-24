@@ -81,6 +81,25 @@ final class NotionAPIClientTests: XCTestCase {
                               {"plain_text": "重点语法"}
                             ]
                           }
+                        },
+                        {
+                          "id": "row1",
+                          "type": "table_row",
+                          "has_children": false,
+                          "table_row": {
+                            "cells": [
+                              [{"plain_text": "日语"}],
+                              [{"plain_text": "中文"}]
+                            ]
+                          }
+                        },
+                        {
+                          "id": "eq1",
+                          "type": "equation",
+                          "has_children": false,
+                          "equation": {
+                            "expression": "S=R"
+                          }
                         }
                       ],
                       "next_cursor": null,
@@ -139,6 +158,9 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertTrue(document.content.contains("展开内容"))
         XCTAssertTrue(document.content.contains("～について"))
         XCTAssertTrue(document.content.contains("## 重点语法"))
+        XCTAssertTrue(document.content.contains("| 日语 | 中文 |"))
+        XCTAssertTrue(document.content.contains("S=R"))
+        XCTAssertNotNil(document.lastEditedAt)
 
         let requests = transport.requests
         XCTAssertEqual(requests.count, 4)
@@ -211,6 +233,7 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertEqual(pages.count, 1)
         XCTAssertEqual(pages.first?.id, "page-1")
         XCTAssertEqual(pages.first?.title, "Learning Home")
+        XCTAssertNotNil(pages.first?.lastEditedAt)
     }
 
     func testHTTPErrorSurfacesNotionMessage() async throws {
