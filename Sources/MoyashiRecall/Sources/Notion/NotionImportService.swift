@@ -38,11 +38,20 @@ public struct NotionImportService {
             maxPages: maxPages
         )
 
-        return try documents.map { document in
+        let items = try documents.map { document in
             try repository.upsertImportedDocument(
                 document,
                 now: now
             )
         }
+
+        _ = try repository.reconcileImportedTree(
+            sourceKind: client.kind,
+            rootExternalID: rootID,
+            activeExternalIDs: Set(documents.map(\.id)),
+            now: now
+        )
+
+        return items
     }
 }
