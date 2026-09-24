@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 
 public struct MoyashiRecallRootView: View {
     @StateObject private var language = LanguageStore()
+    @Environment(\.modelContext) private var modelContext
 
     public init() {}
 
@@ -21,5 +23,8 @@ public struct MoyashiRecallRootView: View {
         .tint(AppTheme.accent)
         .environmentObject(language)
         .environment(\.locale, language.language.locale)
+        .task {
+            try? DemoDataSeeder.seedIfNeeded(in: modelContext)
+        }
     }
 }
