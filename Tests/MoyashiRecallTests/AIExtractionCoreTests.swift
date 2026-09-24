@@ -67,6 +67,39 @@ final class AIExtractionCoreTests: XCTestCase {
             normalized.items.first?.cards.first?.key,
             "card-key"
         )
+        XCTAssertEqual(
+            normalized.items.first?.title,
+            "T"
+        )
+        XCTAssertEqual(
+            normalized.items.first?.tags,
+            []
+        )
+    }
+
+    func testValidationRejectsEmptyKnowledgeContent() {
+        let item = ExtractedKnowledgeItem(
+            key: "empty-item",
+            kind: .other,
+            title: " ",
+            canonicalExpression: "",
+            meaning: "",
+            explanation: "   "
+        )
+
+        XCTAssertThrowsError(
+            try KnowledgeExtractionService.validate(
+                KnowledgeExtractionBundle(
+                    version: "v1",
+                    items: [item]
+                )
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? KnowledgeExtractionError,
+                .emptyKnowledgeContent("empty-item")
+            )
+        }
     }
 
     func testValidationRejectsDuplicateSemanticItemsWithDifferentKeys() {
