@@ -308,7 +308,7 @@ final class NotionAPIClientTests: XCTestCase {
                         {
                           "id": "child-1",
                           "type": "child_page",
-                          "has_children": false,
+                          "has_children": true,
                           "child_page": {
                             "title": "办公室日语学习"
                           }
@@ -395,6 +395,9 @@ final class NotionAPIClientTests: XCTestCase {
             ["Learning Home"]
         )
         XCTAssertEqual(documents[0].hierarchyDepth, 0)
+        XCTAssertFalse(
+            documents[0].content.contains("第二课内容")
+        )
 
         XCTAssertEqual(documents[1].id, "child-1")
         XCTAssertEqual(
@@ -413,6 +416,14 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertEqual(documents[1].hierarchyDepth, 1)
         XCTAssertTrue(
             documents[1].content.contains("第二课内容")
+        )
+
+        XCTAssertEqual(
+            transport.requests.filter {
+                $0.url?.path
+                    == "/v1/blocks/child-1/children"
+            }.count,
+            1
         )
     }
 
