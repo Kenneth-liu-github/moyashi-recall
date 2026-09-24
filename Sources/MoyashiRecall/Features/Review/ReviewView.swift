@@ -4,32 +4,31 @@ import SwiftData
 public struct ReviewView: View {
     private let sourceKeys: Set<String>?
     private let sessionLimit: Int
+
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
-    @Query private var allCards: [FlashcardEntity]
 
     @State private var revealed = false
     @State private var reviewed = 0
-    @State private var sessionCardIDs: [UUID] = []
+    @State private var sessionCards: [ReviewSessionCard] = []
     @State private var currentIndex = 0
     @State private var saveError: String?
     @State private var didLoadSession = false
 
     public init(sourceKeys: Set<String>? = nil, sessionLimit: Int = 20) {
         self.sourceKeys = sourceKeys
-        self.sessionLimit = sessionLimit
+        self.sessionLimit = max(1, sessionLimit)
     }
 
-    private var currentCard: FlashcardEntity? {
-        guard currentIndex < sessionCardIDs.count else { return nil }
-        let id = sessionCardIDs[currentIndex]
-        return allCards.first { $0.id == id }
+    private var currentCard: ReviewSessionCard? {
+        guard currentIndex < sessionCards.count else { return nil }
+        return sessionCards[currentIndex]
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            if !sessionCardIDs.isEmpty {
-                ProgressView(value: Double(reviewed), total: Double(sessionCardIDs.count))
+            if !sessionCards.isEmpty {
+                ProgressView(value: Double(reviewed), total: Double(sessionCards.count))
                     .tint(AppTheme.accent)
                     .padding(.horizontal)
                     .padding(.top, 10)
@@ -44,7 +43,7 @@ public struct ReviewView: View {
                         systemImage: "exclamationmark.triangle",
                         description: Text(saveError)
                     )
-                } else if sessionCardIDs.isEmpty {
+                } else if sessionCards.isEmpty {
                     emptyState
                 } else {
                     completeState
@@ -52,13 +51,13 @@ public struct ReviewView: View {
             }
         }
         .navigationTitle(language.text("复习", "復習"))
-        .task(id: allCards.count) {
+        .task {
             loadSessionIfNeeded()
         }
     }
 
     @ViewBuilder
-    private func reviewContent(_ card: FlashcardEntity) -> some View {
+    private func reviewContent(_ card: ReviewSessionCard) -> some View {
         ScrollView {
             VStack(spacing: 22) {
                 HStack {
@@ -66,7 +65,7 @@ public struct ReviewView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                     Spacer()
-                    Text("\(min(currentIndex + 1, sessionCardIDs.count)) / \(sessionCardIDs.count)")
+                    Text("\(min(currentIndex + 1, sessionCards.count)) / \(sessionCards.count)")
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                 }
@@ -138,7 +137,12 @@ public struct ReviewView: View {
         ContentUnavailableView(
             language.text("今天没有到期卡片", "今日は期限のカードがありません"),
             systemImage: "checkmark.circle",
-            description: Text(language.text("完成得很好。新的卡片或到期卡片出现后会显示在这里。", "新しいカードまたは期限のカードがここに表示されます。"))
+            description: Text(
+                language.text(
+                    "完成得很好。新的卡片或到期卡片出现后会显示在这里。",
+                    "新しいカードまたは期限のカードがここに表示されます。"
+                )
+            )
         )
     }
 
@@ -146,24 +150,36 @@ public struct ReviewView: View {
         ContentUnavailableView(
             language.text("本次复习完成", "今回の復習が完了しました"),
             systemImage: "checkmark.circle.fill",
-            description: Text(language.text("已完成 \(reviewed) 张卡片。", "\(reviewed)枚のカードを完了しました。"))
+            description: Text(
+                language.text(
+                    "已完成 \(reviewed) 张卡片。",
+                    "\(reviewed)枚のカードを完了しました。"
+                )
+            )
         )
     }
 
-    private func rating(_ text: String, _ value: ReviewRating, card: FlashcardEntity) -> some View {
+    private func rating(
+        _ text: String,
+        _ value: ReviewRating,
+        card: ReviewSessionCard
+    ) -> some View {
         Button(text) {
             do {
-                _ = try ReviewRecorder().record(
+                let repository = LearningRepository(context: modelContext)
+                _ = try repository.recordReview(
                     cardID: card.id,
-                    rating: value,
-                    in: modelContext
+                    rating: value
                 )
                 reviewed += 1
                 currentIndex += 1
                 revealed = false
                 saveError = nil
             } catch {
-                saveError = language.text("保存复习记录失败。", "復習記録の保存に失敗しました。")
+                saveError = language.text(
+                    "保存复习记录失败。",
+                    "復習記録の保存に失敗しました。"
+                )
             }
         }
         .buttonStyle(.bordered)
@@ -172,19 +188,24 @@ public struct ReviewView: View {
     }
 
     private func loadSessionIfNeeded() {
-        guard !didLoadSession, sessionCardIDs.isEmpty, !allCards.isEmpty else { return }
+        guard !didLoadSession else { return }
+
         do {
-            let cards = try ReviewQueueService().dueCards(
-                in: modelContext,
+            let repository = LearningRepository(context: modelContext)
+            try repository.seedDemoIfNeeded()
+            sessionCards = try repository.dueSessionCards(
                 sourceKeys: sourceKeys,
                 limit: sessionLimit
             )
-            sessionCardIDs = cards.map(\.id)
             currentIndex = 0
             reviewed = 0
             didLoadSession = true
+            saveError = nil
         } catch {
-            saveError = language.text("无法读取待复习卡片。", "復習待ちカードを読み込めませんでした。")
+            saveError = language.text(
+                "无法读取待复习卡片。",
+                "復習待ちカードを読み込めませんでした。"
+            )
         }
     }
 
