@@ -1,6 +1,6 @@
 import Foundation
 
-public enum ReviewCardType: String, Codable, CaseIterable, Identifiable, Sendable {
+public enum ReviewCardType: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case zhToJa = "zh-to-ja"
     case jaToZh = "ja-to-zh"
     case cloze
