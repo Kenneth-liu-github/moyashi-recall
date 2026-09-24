@@ -87,6 +87,7 @@ public struct NotionAPIClient: LearningContentSource {
                 content: result.document.content,
                 lastEditedAt: result.document.lastEditedAt,
                 parentExternalID: next.parentID,
+                rootExternalID: rootID,
                 sourcePath: path,
                 hierarchyDepth: next.depth
             )
@@ -196,7 +197,8 @@ public struct NotionAPIClient: LearningContentSource {
             title: page.title,
             sourceReference: page.url ?? "notion://page/\(page.id)",
             content: render(blocks: blocks),
-            lastEditedAt: page.lastEditedAt
+            lastEditedAt: page.lastEditedAt,
+            rootExternalID: page.id
         )
 
         return (document, blocks)
