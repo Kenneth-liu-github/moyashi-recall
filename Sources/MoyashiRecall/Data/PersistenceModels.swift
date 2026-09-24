@@ -6,6 +6,17 @@ public final class SourceDocumentEntity {
     @Attribute(.unique) public var id: UUID
     public var title: String
     public var content: String
+    public var sourceDocumentID: UUID?
+    public var extractionKey: String = ""
+    public var knowledgeType: String = ""
+    public var canonicalExpression: String = ""
+    public var meaning: String = ""
+    public var explanation: String = ""
+    public var naturalEnglish: String = ""
+    public var tags: String = ""
+    public var aiProvider: String = ""
+    public var aiModel: String = ""
+    public var extractionVersion: String = ""
     public var sourceKind: String
     public var externalSourceID: String
     public var parentExternalSourceID: String
@@ -17,13 +28,26 @@ public final class SourceDocumentEntity {
     public var sourceLastEditedAt: Date?
     public var lastSyncedAt: Date?
     public var sourceReference: String
+    public var isActive: Bool = true
     public var createdAt: Date
+    public var updatedAt: Date
     public var updatedAt: Date
 
     public init(
         id: UUID = UUID(),
         title: String,
         content: String,
+        sourceDocumentID: UUID? = nil,
+        extractionKey: String = "",
+        knowledgeType: String = "",
+        canonicalExpression: String = "",
+        meaning: String = "",
+        explanation: String = "",
+        naturalEnglish: String = "",
+        tags: String = "",
+        aiProvider: String = "",
+        aiModel: String = "",
+        extractionVersion: String = "",
         sourceKind: String,
         externalSourceID: String,
         parentExternalSourceID: String = "",
@@ -41,6 +65,17 @@ public final class SourceDocumentEntity {
         self.id = id
         self.title = title
         self.content = content
+        self.sourceDocumentID = sourceDocumentID
+        self.extractionKey = extractionKey
+        self.knowledgeType = knowledgeType
+        self.canonicalExpression = canonicalExpression
+        self.meaning = meaning
+        self.explanation = explanation
+        self.naturalEnglish = naturalEnglish
+        self.tags = tags
+        self.aiProvider = aiProvider
+        self.aiModel = aiModel
+        self.extractionVersion = extractionVersion
         self.sourceKind = sourceKind
         self.externalSourceID = externalSourceID
         self.parentExternalSourceID = parentExternalSourceID
@@ -117,6 +152,8 @@ public final class KnowledgeItemEntity {
 public final class FlashcardEntity {
     @Attribute(.unique) public var id: UUID
     public var knowledgeItemID: UUID
+    public var sourceDocumentID: UUID?
+    public var generationKey: String = ""
     public var cardType: String
     public var prompt: String
     public var answer: String
@@ -129,6 +166,8 @@ public final class FlashcardEntity {
     public init(
         id: UUID = UUID(),
         knowledgeItemID: UUID,
+        sourceDocumentID: UUID? = nil,
+        generationKey: String = "",
         cardType: String,
         prompt: String,
         answer: String,
@@ -136,10 +175,14 @@ public final class FlashcardEntity {
         naturalEnglish: String = "",
         sourceKey: String = "",
         sourceReference: String,
-        createdAt: Date = .now
+        isActive: Bool = true,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
     ) {
         self.id = id
         self.knowledgeItemID = knowledgeItemID
+        self.sourceDocumentID = sourceDocumentID
+        self.generationKey = generationKey
         self.cardType = cardType
         self.prompt = prompt
         self.answer = answer
@@ -147,7 +190,9 @@ public final class FlashcardEntity {
         self.naturalEnglish = naturalEnglish
         self.sourceKey = sourceKey
         self.sourceReference = sourceReference
+        self.isActive = isActive
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
     }
 }
 
