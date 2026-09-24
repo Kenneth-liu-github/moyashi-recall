@@ -318,6 +318,12 @@ public struct LearningRepository {
         let items = try context.fetch(
             FetchDescriptor<SourceDocumentEntity>()
         )
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
 
         var deactivated = 0
         for item in items where
@@ -330,6 +336,22 @@ public struct LearningRepository {
             item.lastSyncedAt = now
             item.updatedAt = now
             deactivated += 1
+
+            for knowledgeItem in knowledge where
+                knowledgeItem.sourceDocumentID == item.id
+                && knowledgeItem.isActive
+            {
+                knowledgeItem.isActive = false
+                knowledgeItem.updatedAt = now
+            }
+
+            for card in cards where
+                card.sourceDocumentID == item.id
+                && card.isActive
+            {
+                card.isActive = false
+                card.updatedAt = now
+            }
         }
 
         if deactivated > 0 {
