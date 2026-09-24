@@ -104,6 +104,51 @@ final class AnthropicMessagesProviderTests: XCTestCase {
         )
     }
 
+    func testProviderSurfacesRefusal() async throws {
+        let transport = AnthropicTestTransport { request in
+            Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "stop_reason": "refusal",
+                  "stop_details": {
+                    "type": "refusal",
+                    "category": "policy",
+                    "explanation": "Cannot process this content."
+                  },
+                  "content": []
+                }
+                """
+            )
+        }
+
+        let provider = AnthropicMessagesProvider(
+            apiKey: "secret_test",
+            modelID: "configured-model",
+            transport: transport,
+            baseURL: URL(
+                string: "https://api.anthropic.test"
+            )!
+        )
+
+        do {
+            _ = try await provider.complete(
+                request: AICompletionRequest(
+                    systemPrompt: "system",
+                    userPrompt: "user",
+                    responseSchemaName: "schema",
+                    responseSchemaJSON: #"{"type":"object"}"#
+                )
+            )
+            XCTFail("Expected refusal")
+        } catch let error as AIProviderError {
+            XCTAssertEqual(
+                error,
+                .refused("Cannot process this content.")
+            )
+        }
+    }
+
     func testProviderSurfacesTruncatedGeneration() async throws {
         let transport = AnthropicTestTransport { request in
             Self.response(
