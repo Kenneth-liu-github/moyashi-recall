@@ -218,7 +218,17 @@ final class AIExtractionTests: XCTestCase {
             cards.first?.sourceDocumentID,
             source.id
         )
+        XCTAssertEqual(
+            cards.first?.sourceDisplayPath,
+            "Learning Home / 办公室日语学习 / 第二课"
+        )
         XCTAssertTrue(cards.allSatisfy(\.isActive))
+
+        let sessionCards = try repository.dueSessionCards()
+        XCTAssertEqual(
+            sessionCards.first?.sourceDisplay,
+            "Learning Home / 办公室日语学习 / 第二课"
+        )
 
         let previews = try repository.generatedKnowledgeItems(
             sourceDocumentID: source.id
