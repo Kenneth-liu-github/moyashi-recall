@@ -13,6 +13,7 @@ public struct ImportedPageDetailView: View {
         knowledgeCount: 0,
         cardCount: 0
     )
+    @State private var generatedKnowledge: [GeneratedKnowledgeSummary] = []
 
     private let item: ImportedDocumentSummary
 
@@ -137,6 +138,60 @@ public struct ImportedPageDetailView: View {
                         .foregroundStyle(AppTheme.muted)
                 }
 
+                if !generatedKnowledge.isEmpty {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(
+                            language.text(
+                                "AI 提取的知识",
+                                "AIが抽出した知識"
+                            )
+                        )
+                        .font(.headline)
+
+                        ForEach(generatedKnowledge) { knowledge in
+                            VStack(
+                                alignment: .leading,
+                                spacing: 5
+                            ) {
+                                HStack {
+                                    Text(knowledge.title)
+                                        .font(.subheadline.bold())
+
+                                    Spacer()
+
+                                    Text(
+                                        "\(knowledge.cardCount) "
+                                            + language.text(
+                                                "卡",
+                                                "枚"
+                                            )
+                                    )
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.muted)
+                                }
+
+                                if !knowledge.canonicalExpression.isEmpty {
+                                    Text(
+                                        knowledge.canonicalExpression
+                                    )
+                                    .font(.subheadline)
+                                }
+
+                                if !knowledge.meaning.isEmpty {
+                                    Text(knowledge.meaning)
+                                        .font(.caption)
+                                        .foregroundStyle(
+                                            AppTheme.muted
+                                        )
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+
                 Divider()
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -248,17 +303,23 @@ public struct ImportedPageDetailView: View {
 
     private func loadGeneratedSummary() {
         do {
-            generatedSummary = try LearningRepository(
+            let repository = LearningRepository(
                 context: modelContext
             )
-            .generatedContentSummary(
-                sourceDocumentID: item.id
-            )
+            generatedSummary = try repository
+                .generatedContentSummary(
+                    sourceDocumentID: item.id
+                )
+            generatedKnowledge = try repository
+                .generatedKnowledgeItems(
+                    sourceDocumentID: item.id
+                )
         } catch {
             generatedSummary = GeneratedContentSummary(
                 knowledgeCount: 0,
                 cardCount: 0
             )
+            generatedKnowledge = []
         }
     }
 
