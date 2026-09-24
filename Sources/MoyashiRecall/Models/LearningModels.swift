@@ -1,12 +1,21 @@
 import Foundation
 
 public struct StudySource: Identifiable, Hashable {
-    public let id = UUID()
+    public let id: UUID
+    public let key: String
     public let title: String
     public let detail: String
     public let itemCount: Int
 
-    public init(title: String, detail: String, itemCount: Int) {
+    public init(
+        id: UUID = UUID(),
+        key: String,
+        title: String,
+        detail: String,
+        itemCount: Int
+    ) {
+        self.id = id
+        self.key = key
         self.title = title
         self.detail = detail
         self.itemCount = itemCount
