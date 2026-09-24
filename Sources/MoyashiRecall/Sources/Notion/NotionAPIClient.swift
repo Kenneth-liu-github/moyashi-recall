@@ -54,7 +54,19 @@ public struct NotionAPIClient: LearningContentSource {
         let safeDepth = max(0, maxDepth)
         let safePageLimit = max(1, maxPages)
 
-        var queue: [(id: String, depth: Int)] = [(rootID, 0)]
+        var queue: [(
+            id: String,
+            depth: Int,
+            parentID: String?,
+            parentPath: [String]
+        )] = [
+            (
+                id: rootID,
+                depth: 0,
+                parentID: nil,
+                parentPath: []
+            )
+        ]
         var visited = Set<String>()
         var documents: [ImportedDocument] = []
 
@@ -66,15 +78,34 @@ public struct NotionAPIClient: LearningContentSource {
             }
 
             let result = try await fetchDocumentAndBlocks(id: next.id)
-            documents.append(result.document)
+            let path = next.parentPath + [result.document.title]
+            let document = ImportedDocument(
+                id: result.document.id,
+                sourceKind: result.document.sourceKind,
+                title: result.document.title,
+                sourceReference: result.document.sourceReference,
+                content: result.document.content,
+                lastEditedAt: result.document.lastEditedAt,
+                parentExternalID: next.parentID,
+                sourcePath: path,
+                hierarchyDepth: next.depth
+            )
+            documents.append(document)
 
             guard next.depth < safeDepth else {
                 continue
             }
 
-            let children = childPageIDs(in: result.blocks)
-            for childID in children where !visited.contains(childID) {
-                queue.append((childID, next.depth + 1))
+            let children = childPageReferences(in: result.blocks)
+            for child in children where !visited.contains(child.id) {
+                queue.append(
+                    (
+                        id: child.id,
+                        depth: next.depth + 1,
+                        parentID: document.id,
+                        parentPath: path
+                    )
+                )
             }
         }
 
@@ -295,16 +326,20 @@ public struct NotionAPIClient: LearningContentSource {
         return data
     }
 
-    private func childPageIDs(
+    private func childPageReferences(
         in blocks: [NotionContentBlock]
-    ) -> [String] {
+    ) -> [(id: String, title: String)] {
         blocks.flatMap { block in
-            var ids: [String] = []
+            var references: [(id: String, title: String)] = []
             if block.type == "child_page" {
-                ids.append(block.id)
+                references.append(
+                    (id: block.id, title: block.text)
+                )
             }
-            ids.append(contentsOf: childPageIDs(in: block.children))
-            return ids
+            references.append(
+                contentsOf: childPageReferences(in: block.children)
+            )
+            return references
         }
     }
 
