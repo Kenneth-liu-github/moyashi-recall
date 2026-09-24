@@ -38,6 +38,12 @@ public struct ReviewView: View {
             Group {
                 if let card = currentCard {
                     reviewContent(card)
+                } else if let saveError, !didLoadSession {
+                    ContentUnavailableView(
+                        language.text("无法读取复习队列", "復習キューを読み込めません"),
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(saveError)
+                    )
                 } else if sessionCardIDs.isEmpty {
                     emptyState
                 } else {
