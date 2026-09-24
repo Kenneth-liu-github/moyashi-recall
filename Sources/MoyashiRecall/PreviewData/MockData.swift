@@ -1,0 +1,17 @@
+import Foundation
+
+public enum MockData {
+    public static let sources = [
+        StudySource(title: "办公室日语学习", detail: "Notion · 第二课", itemCount: 86),
+        StudySource(title: "日语训练营", detail: "Notion · 综合语法", itemCount: 124),
+        StudySource(title: "日语口语 私教", detail: "Notion · 口语表达", itemCount: 72)
+    ]
+
+    public static let reviewCard = ReviewCard(
+        prompt: "“关于推进方式”用自然的商务日语怎么说？",
+        answer: "進（すす）め方（かた）について",
+        meaning: "关于推进方式 / 关于如何推进",
+        naturalEnglish: "regarding how to proceed",
+        source: "办公室日语学习 · 第二课"
+    )
+}
