@@ -61,47 +61,65 @@ public struct NotionAPIClient: LearningContentSource {
             .appendingPathComponent("v1")
             .appendingPathComponent("search")
 
-        let body: [String: Any] = [
-            "query": query,
-            "page_size": min(max(pageSize, 1), 100),
-            "filter": [
-                "property": "object",
-                "value": "page"
+        var pages: [NotionPageSummary] = []
+        var cursor: String?
+
+        repeat {
+            var body: [String: Any] = [
+                "query": query,
+                "page_size": min(max(pageSize, 1), 100),
+                "filter": [
+                    "property": "object",
+                    "value": "page"
+                ]
             ]
-        ]
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = try JSONSerialization.data(
-            withJSONObject: body
-        )
-        applyHeaders(to: &request)
-
-        let data = try await execute(request)
-        let object = try JSONSerialization.jsonObject(with: data)
-
-        guard let json = object as? [String: Any],
-              let results = json["results"] as? [[String: Any]]
-        else {
-            throw NotionAPIError.malformedPayload
-        }
-
-        return results.compactMap { page in
-            guard page["object"] as? String == "page",
-                  let id = page["id"] as? String
-            else {
-                return nil
+            if let cursor {
+                body["start_cursor"] = cursor
             }
 
-            return NotionPageSummary(
-                id: id,
-                title: Self.extractPageTitle(from: page),
-                url: page["url"] as? String,
-                lastEditedAt: Self.parseISODate(
-                    page["last_edited_time"] as? String
-                )
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = try JSONSerialization.data(
+                withJSONObject: body
             )
-        }
+            applyHeaders(to: &request)
+
+            let data = try await execute(request)
+            let object = try JSONSerialization.jsonObject(with: data)
+
+            guard let json = object as? [String: Any],
+                  let results = json["results"] as? [[String: Any]]
+            else {
+                throw NotionAPIError.malformedPayload
+            }
+
+            pages.append(
+                contentsOf: results.compactMap { page in
+                    guard page["object"] as? String == "page",
+                          let id = page["id"] as? String
+                    else {
+                        return nil
+                    }
+
+                    return NotionPageSummary(
+                        id: id,
+                        title: Self.extractPageTitle(from: page),
+                        url: page["url"] as? String,
+                        lastEditedAt: Self.parseISODate(
+                            page["last_edited_time"] as? String
+                        )
+                    )
+                }
+            )
+
+            let hasMore = json["has_more"] as? Bool ?? false
+            cursor = hasMore
+                ? json["next_cursor"] as? String
+                : nil
+        } while cursor != nil
+
+        return pages
     }
 
     public func retrievePage(id: String) async throws -> NotionPageSummary {
