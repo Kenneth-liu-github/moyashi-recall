@@ -477,6 +477,65 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testLegacyImportedKnowledgeMigratesToSourceDocumentWithoutDeletion() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let legacy = KnowledgeItemEntity(
+            title: "第二课",
+            content: "旧导入内容",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "https://notion.so/page-1",
+            externalSourceID: "page-1",
+            parentExternalSourceID: "office-root",
+            rootExternalSourceID: "root",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            hierarchyDepth: 2,
+            isSourceActive: true
+        )
+        context.insert(legacy)
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let migrated = try repository
+            .migrateLegacyImportedKnowledgeIfNeeded()
+
+        XCTAssertEqual(migrated, 1)
+
+        let sources = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        XCTAssertEqual(sources.count, 1)
+        XCTAssertEqual(
+            sources.first?.externalSourceID,
+            "page-1"
+        )
+        XCTAssertEqual(
+            sources.first?.sourcePath,
+            "Learning Home / 办公室日语学习 / 第二课"
+        )
+
+        let legacyItems = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        XCTAssertEqual(legacyItems.count, 1)
+        XCTAssertEqual(
+            legacyItems.first?.isActive,
+            false
+        )
+        XCTAssertEqual(
+            legacyItems.first?.isSourceActive,
+            false
+        )
+
+        XCTAssertEqual(
+            try repository
+                .migrateLegacyImportedKnowledgeIfNeeded(),
+            0
+        )
+    }
+
+    @MainActor
     func testRepositoryReturnsValueTypeSessionCards() throws {
         let container = try makeContainer()
         let context = container.mainContext
