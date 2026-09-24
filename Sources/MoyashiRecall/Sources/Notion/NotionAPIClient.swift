@@ -248,14 +248,18 @@ public struct NotionAPIClient: LearningContentSource {
             case "numbered_list_item":
                 line = "\(prefix)1. \(block.text)"
             case "to_do":
-                line = "\(prefix)- [ ] \(block.text)"
+                line = "\(prefix)- \(block.text)"
+            case "table_row":
+                line = "| \(block.text) |"
+            case "equation":
+                line = block.text
             case "quote":
                 line = "> \(block.text)"
             case "code":
                 line = "CODE:\n\(block.text)"
             case "divider":
                 line = "---"
-            case "child_page":
+            case "child_page", "child_database":
                 line = "## \(block.text)"
             default:
                 line = block.text
@@ -319,6 +323,16 @@ public struct NotionAPIClient: LearningContentSource {
         _ value: String?
     ) -> Date? {
         guard let value else { return nil }
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds
+        ]
+        if let date = fractional.date(from: value) {
+            return date
+        }
+
         return ISO8601DateFormatter().date(from: value)
     }
 }
@@ -389,7 +403,10 @@ private struct NotionBlockDTO: Decodable {
     let quote: NotionTextContainer?
     let callout: NotionTextContainer?
     let code: NotionTextContainer?
+    let tableRow: NotionTableRow?
+    let equation: NotionEquation?
     let childPage: NotionChildPage?
+    let childDatabase: NotionChildPage?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -406,12 +423,28 @@ private struct NotionBlockDTO: Decodable {
         case quote
         case callout
         case code
+        case tableRow = "table_row"
+        case equation
         case childPage = "child_page"
+        case childDatabase = "child_database"
     }
 
     var plainText: String {
         if let childPage {
             return childPage.title
+        }
+        if let childDatabase {
+            return childDatabase.title
+        }
+        if let tableRow {
+            return tableRow.cells
+                .map { cell in
+                    cell.map(\.plainText).joined()
+                }
+                .joined(separator: " | ")
+        }
+        if let equation {
+            return equation.expression
         }
 
         let container: NotionTextContainer?
@@ -466,4 +499,12 @@ private struct NotionRichText: Decodable {
 
 private struct NotionChildPage: Decodable {
     let title: String
+}
+
+private struct NotionTableRow: Decodable {
+    let cells: [[NotionRichText]]
+}
+
+private struct NotionEquation: Decodable {
+    let expression: String
 }
