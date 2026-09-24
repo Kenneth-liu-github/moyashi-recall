@@ -7,7 +7,8 @@ final class DataLayerTests: XCTestCase {
     private func makeContainer() throws -> ModelContainer {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(
-            for: KnowledgeItemEntity.self,
+            for: SourceDocumentEntity.self,
+            KnowledgeItemEntity.self,
             FlashcardEntity.self,
             ReviewStateEntity.self,
             ReviewHistoryEntity.self,
@@ -346,7 +347,7 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(secondResult.mutation, .updated)
 
         let items = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>()
+            FetchDescriptor<SourceDocumentEntity>()
         )
 
         XCTAssertEqual(items.count, 1)
@@ -431,7 +432,7 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(deactivated, 1)
 
         let allItems = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>()
+            FetchDescriptor<SourceDocumentEntity>()
         )
         XCTAssertEqual(
             allItems.first {
