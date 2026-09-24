@@ -95,6 +95,18 @@ final class DataLayerTests: XCTestCase {
         let context = container.mainContext
         let cardID = UUID()
         let now = Date(timeIntervalSince1970: 1_700_000_000)
+        context.insert(
+            FlashcardEntity(
+                id: cardID,
+                knowledgeItemID: UUID(),
+                cardType: "zh-to-ja",
+                prompt: "Q",
+                answer: "A",
+                sourceKey: "office-japanese",
+                sourceReference: "办公室日语学习"
+            )
+        )
+        try context.save()
 
         let result = try ReviewRecorder().record(
             cardID: cardID,
@@ -111,6 +123,76 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(states.first?.cardID, cardID)
         XCTAssertEqual(history.first?.ratingRawValue, ReviewRating.good.rawValue)
         XCTAssertEqual(states.first?.scheduledDays, result.scheduledDays)
+    }
+
+    @MainActor
+    func testReviewRecorderRejectsMissingCardWithoutCreatingOrphans() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let missingID = UUID()
+
+        XCTAssertThrowsError(
+            try ReviewRecorder().record(
+                cardID: missingID,
+                rating: .good,
+                in: context
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? ReviewRecordingError,
+                ReviewRecordingError.cardNotFound(missingID)
+            )
+        }
+
+        XCTAssertTrue(
+            try context.fetch(FetchDescriptor<ReviewStateEntity>()).isEmpty
+        )
+        XCTAssertTrue(
+            try context.fetch(FetchDescriptor<ReviewHistoryEntity>()).isEmpty
+        )
+    }
+
+    @MainActor
+    func testReviewQueuePrioritizesOverdueReviewsBeforeNewCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let newCard = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: "zh-to-ja",
+            prompt: "new",
+            answer: "new",
+            sourceKey: "office-japanese",
+            sourceReference: "办公室日语学习",
+            createdAt: now.addingTimeInterval(-86_400)
+        )
+        let overdueCard = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: "zh-to-ja",
+            prompt: "overdue",
+            answer: "overdue",
+            sourceKey: "office-japanese",
+            sourceReference: "办公室日语学习",
+            createdAt: now
+        )
+        context.insert(newCard)
+        context.insert(overdueCard)
+        context.insert(
+            ReviewStateEntity(
+                cardID: overdueCard.id,
+                due: now.addingTimeInterval(-3_600)
+            )
+        )
+        try context.save()
+
+        let result = try ReviewQueueService().dueCards(
+            in: context,
+            now: now
+        )
+
+        XCTAssertEqual(result.first?.id, overdueCard.id)
+        XCTAssertEqual(result.last?.id, newCard.id)
     }
 
     @MainActor
