@@ -241,8 +241,14 @@ public struct AIProviderSettingsView: View {
         }
 
         do {
-            let provider = try AIProviderFactory
-                .makeConfiguredProvider()
+            let configuration = AIProviderConfiguration(
+                provider: provider,
+                modelID: modelID
+            )
+            let provider = try AIProviderFactory.makeProvider(
+                configuration: configuration,
+                secret: try activeSecret()
+            )
 
             let response = try await provider.complete(
                 request: AICompletionRequest(
@@ -305,6 +311,31 @@ public struct AIProviderSettingsView: View {
                 "AI接続テストに失敗しました。"
             )
         }
+    }
+
+    private func activeSecret() throws -> String {
+        let draft = apiKeyDraft.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        if !draft.isEmpty {
+            return draft
+        }
+
+        let account = AICredential.account(
+            for: provider
+        )
+        if let stored = try credentialStore.read(
+            account: account
+        ),
+        !stored.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ).isEmpty {
+            return stored
+        }
+
+        throw AIProviderError.missingConfiguration(
+            "\(provider.displayName) API key"
+        )
     }
 
     private func deleteCredential() {
