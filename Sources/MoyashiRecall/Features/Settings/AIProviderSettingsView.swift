@@ -110,6 +110,13 @@ public struct AIProviderSettingsView: View {
                         )
                         .isEmpty
                 )
+            } footer: {
+                Text(
+                    language.text(
+                        "使用 AI 生成功能时，所选资料页面的文本会发送给你配置的 AI Provider 进行处理。",
+                        "AI生成を使用すると、選択した資料ページのテキストが設定したAI Providerへ送信されます。"
+                    )
+                )
             }
 
             if let statusMessage {
