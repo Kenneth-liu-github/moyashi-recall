@@ -388,11 +388,27 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertEqual(documents.count, 2)
         XCTAssertEqual(documents[0].id, "root")
         XCTAssertEqual(documents[0].title, "Learning Home")
+        XCTAssertNil(documents[0].parentExternalID)
+        XCTAssertEqual(
+            documents[0].sourcePath,
+            ["Learning Home"]
+        )
+        XCTAssertEqual(documents[0].hierarchyDepth, 0)
+
         XCTAssertEqual(documents[1].id, "child-1")
         XCTAssertEqual(
             documents[1].title,
             "办公室日语学习"
         )
+        XCTAssertEqual(
+            documents[1].parentExternalID,
+            "root"
+        )
+        XCTAssertEqual(
+            documents[1].sourcePath,
+            ["Learning Home", "办公室日语学习"]
+        )
+        XCTAssertEqual(documents[1].hierarchyDepth, 1)
         XCTAssertTrue(
             documents[1].content.contains("第二课内容")
         )
