@@ -362,10 +362,17 @@ public struct NotionConnectionView: View {
                 rootID: rootPageID
             )
 
-            statusMessage = language.text(
-                "同步完成：共 \(report.totalPages) 个页面；新增 \(report.inserted)，更新 \(report.updated)，未变化 \(report.unchanged)，移出 \(report.deactivated)。",
-                "同期完了：合計 \(report.totalPages)ページ；追加 \(report.inserted)、更新 \(report.updated)、変更なし \(report.unchanged)、対象外 \(report.deactivated)。"
-            )
+            if report.isComplete {
+                statusMessage = language.text(
+                    "同步完成：共 \(report.totalPages) 个页面；新增 \(report.inserted)，更新 \(report.updated)，未变化 \(report.unchanged)，移出 \(report.deactivated)。",
+                    "同期完了：合計 \(report.totalPages)ページ；追加 \(report.inserted)、更新 \(report.updated)、変更なし \(report.unchanged)、対象外 \(report.deactivated)。"
+                )
+            } else {
+                statusMessage = language.text(
+                    "部分同步完成：已处理 \(report.totalPages) 个页面。达到同步范围限制，因此没有移出本地旧页面。",
+                    "部分同期完了：\(report.totalPages)ページを処理しました。同期範囲の上限に達したため、既存ページは対象外にしていません。"
+                )
+            }
         } catch {
             statusMessage = connectionErrorMessage(error)
         }
