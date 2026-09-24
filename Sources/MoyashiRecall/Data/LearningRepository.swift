@@ -68,6 +68,8 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
         self.needsAIRefresh =
             entity.lastAIProcessedAt == nil
             || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
+            || entity.lastAIExtractionVersion
+                != KnowledgeExtractionService.extractionVersion
     }
 }
 
@@ -805,6 +807,7 @@ public struct LearningRepository {
 
         sourceEntity.lastAIProcessedAt = now
         sourceEntity.aiProcessedSourceUpdatedAt = sourceEntity.updatedAt
+        sourceEntity.lastAIExtractionVersion = bundle.version
         try context.save()
 
         return ExtractionPersistenceReport(
