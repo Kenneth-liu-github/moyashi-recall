@@ -146,10 +146,3 @@ public final class ReviewHistoryEntity {
         self.difficultyAfter = difficultyAfter
     }
 }
-
-public enum ReviewLearningState: String, Codable, Sendable {
-    case new
-    case learning
-    case review
-    case relearning
-}
