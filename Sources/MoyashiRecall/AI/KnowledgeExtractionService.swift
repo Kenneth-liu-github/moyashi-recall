@@ -5,6 +5,7 @@ public enum KnowledgeExtractionError: Error, Equatable {
     case tooManyItems(Int)
     case tooManyCards(itemKey: String, count: Int)
     case emptyKnowledgeKey
+    case emptyKnowledgeContent(String)
     case duplicateKnowledgeKey(String)
     case emptyCardKey(itemKey: String)
     case duplicateCardKey(itemKey: String, cardKey: String)
@@ -65,34 +66,42 @@ public struct KnowledgeExtractionService {
         _ bundle: KnowledgeExtractionBundle
     ) -> KnowledgeExtractionBundle {
         KnowledgeExtractionBundle(
-            version: bundle.version
-                .trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                ),
+            version: trimmed(bundle.version),
             items: bundle.items.map { item in
-                ExtractedKnowledgeItem(
-                    key: item.key
-                        .trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        ),
+                let normalizedTags = Array(
+                    Set(
+                        item.tags
+                            .map(trimmed)
+                            .filter { !$0.isEmpty }
+                    )
+                )
+                .sorted()
+
+                return ExtractedKnowledgeItem(
+                    key: trimmed(item.key),
                     kind: item.kind,
-                    title: item.title,
-                    canonicalExpression: item.canonicalExpression,
-                    meaning: item.meaning,
-                    explanation: item.explanation,
-                    naturalEnglish: item.naturalEnglish,
-                    tags: item.tags,
+                    title: trimmed(item.title),
+                    canonicalExpression: trimmed(
+                        item.canonicalExpression
+                    ),
+                    meaning: trimmed(item.meaning),
+                    explanation: trimmed(item.explanation),
+                    naturalEnglish: trimmed(
+                        item.naturalEnglish
+                    ),
+                    tags: normalizedTags,
                     cards: item.cards.map { card in
                         GeneratedFlashcard(
-                            key: card.key
-                                .trimmingCharacters(
-                                    in: .whitespacesAndNewlines
-                                ),
+                            key: trimmed(card.key),
                             type: card.type,
-                            prompt: card.prompt,
-                            answer: card.answer,
-                            explanation: card.explanation,
-                            naturalEnglish: card.naturalEnglish
+                            prompt: trimmed(card.prompt),
+                            answer: trimmed(card.answer),
+                            explanation: trimmed(
+                                card.explanation
+                            ),
+                            naturalEnglish: trimmed(
+                                card.naturalEnglish
+                            )
                         )
                     }
                 )
@@ -125,6 +134,22 @@ public struct KnowledgeExtractionService {
             guard !itemKey.isEmpty else {
                 throw KnowledgeExtractionError.emptyKnowledgeKey
             }
+
+            let hasKnowledgeContent = [
+                item.title,
+                item.canonicalExpression,
+                item.meaning,
+                item.explanation
+            ].contains {
+                !$0.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ).isEmpty
+            }
+            guard hasKnowledgeContent else {
+                throw KnowledgeExtractionError
+                    .emptyKnowledgeContent(itemKey)
+            }
+
             guard knowledgeKeys.insert(itemKey).inserted else {
                 throw KnowledgeExtractionError
                     .duplicateKnowledgeKey(itemKey)
@@ -374,5 +399,13 @@ public struct KnowledgeExtractionService {
           ]
         }
         """
+    }
+
+    private static func trimmed(
+        _ value: String
+    ) -> String {
+        value.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
     }
 }
