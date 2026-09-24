@@ -28,7 +28,9 @@ public struct KeychainCredentialStore {
         ]
 
         let update: [String: Any] = [
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            kSecAttrAccessible as String:
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
         let updateStatus = SecItemUpdate(
@@ -48,6 +50,8 @@ public struct KeychainCredentialStore {
 
         var insert = query
         insert[kSecValueData as String] = data
+        insert[kSecAttrAccessible as String] =
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 
         let addStatus = SecItemAdd(
             insert as CFDictionary,
