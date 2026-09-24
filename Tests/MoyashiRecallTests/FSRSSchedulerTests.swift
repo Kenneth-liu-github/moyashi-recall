@@ -108,6 +108,38 @@ final class FSRSSchedulerTests: XCTestCase {
         XCTAssertGreaterThan(today, later)
     }
 
+    func testDueDatePreservesLocalClockAcrossDST() {
+        let scheduler = FSRSScheduler()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+
+        let start = calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: 2026,
+                month: 3,
+                day: 7,
+                hour: 12
+            )
+        )!
+
+        let result = scheduler.schedule(
+            FSRSCardState(due: start),
+            rating: .good,
+            now: start,
+            calendar: calendar
+        )
+
+        let components = calendar.dateComponents(
+            [.hour, .day],
+            from: result.state.due
+        )
+
+        XCTAssertEqual(result.scheduledDays, 2)
+        XCTAssertEqual(components.hour, 12)
+        XCTAssertEqual(components.day, 9)
+    }
+
     func testStabilityMeansNinetyPercentRetrievability() {
         let scheduler = FSRSScheduler()
         let retrievability = scheduler.retrievability(
