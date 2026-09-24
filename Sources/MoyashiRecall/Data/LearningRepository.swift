@@ -129,6 +129,31 @@ public struct SourceDocumentSnapshot: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct GeneratedKnowledgeSummary: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let kind: String
+    public let title: String
+    public let canonicalExpression: String
+    public let meaning: String
+    public let explanation: String
+    public let naturalEnglish: String
+    public let cardCount: Int
+
+    public init(
+        entity: KnowledgeItemEntity,
+        cardCount: Int
+    ) {
+        self.id = entity.id
+        self.kind = entity.knowledgeType
+        self.title = entity.title
+        self.canonicalExpression = entity.canonicalExpression
+        self.meaning = entity.meaning
+        self.explanation = entity.explanation
+        self.naturalEnglish = entity.naturalEnglish
+        self.cardCount = cardCount
+    }
+}
+
 public struct GeneratedContentSummary: Equatable, Sendable {
     public let knowledgeCount: Int
     public let cardCount: Int
@@ -393,6 +418,46 @@ public struct LearningRepository {
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
             .map(SourceDocumentSnapshot.init)
+    }
+
+    public func generatedKnowledgeItems(
+        sourceDocumentID: UUID
+    ) throws -> [GeneratedKnowledgeSummary] {
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.createdAt,
+                        order: .forward
+                    )
+                ]
+            )
+        )
+        .filter {
+            $0.sourceDocumentID == sourceDocumentID
+                && $0.isActive
+        }
+
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter {
+            $0.sourceDocumentID == sourceDocumentID
+                && $0.isActive
+        }
+
+        let counts = cards.reduce(
+            into: [UUID: Int]()
+        ) { result, card in
+            result[card.knowledgeItemID, default: 0] += 1
+        }
+
+        return knowledge.map {
+            GeneratedKnowledgeSummary(
+                entity: $0,
+                cardCount: counts[$0.id, default: 0]
+            )
+        }
     }
 
     public func generatedContentSummary(
