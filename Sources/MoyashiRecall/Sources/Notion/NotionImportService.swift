@@ -42,7 +42,7 @@ public struct NotionImportService {
     public func syncPage(
         id: String,
         now: Date = .now
-    ) async throws -> KnowledgeItemEntity {
+    ) async throws -> SourceDocumentEntity {
         let document = try await client.fetchDocument(id: id)
         return try repository.upsertImportedDocument(
             document,
@@ -56,7 +56,7 @@ public struct NotionImportService {
         maxDepth: Int = 8,
         maxPages: Int = 200,
         now: Date = .now
-    ) async throws -> [KnowledgeItemEntity] {
+    ) async throws -> [SourceDocumentEntity] {
         let tree = try await client.fetchDocumentTreeResult(
             rootID: rootID,
             maxDepth: maxDepth,
