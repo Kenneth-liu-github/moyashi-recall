@@ -2,9 +2,6 @@ name: Swift Validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/v0.4-ai-extraction
 
 concurrency:
   group: swift-validation-${{ github.workflow }}-${{ github.ref }}
