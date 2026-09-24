@@ -135,7 +135,11 @@ public struct AIProviderSettingsView: View {
         .onAppear {
             loadConfiguration()
         }
-        .onChange(of: provider) { _, _ in
+        .onChange(of: provider) { _, newProvider in
+            modelID = configurationStore.modelID(
+                for: newProvider
+            )
+            apiKeyDraft = ""
             refreshCredentialState()
         }
     }
