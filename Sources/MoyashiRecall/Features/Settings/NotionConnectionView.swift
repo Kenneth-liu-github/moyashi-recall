@@ -269,7 +269,7 @@ public struct NotionConnectionView: View {
         do {
             try credentialStore.save(
                 trimmed,
-                account: KeychainCredentialStore.notionTokenAccount
+                account: NotionCredential.tokenAccount
             )
             tokenDraft = ""
             hasStoredToken = true
@@ -288,7 +288,7 @@ public struct NotionConnectionView: View {
     private func deleteToken() {
         do {
             try credentialStore.delete(
-                account: KeychainCredentialStore.notionTokenAccount
+                account: NotionCredential.tokenAccount
             )
             tokenDraft = ""
             hasStoredToken = false
@@ -307,7 +307,7 @@ public struct NotionConnectionView: View {
     private func refreshCredentialState() {
         do {
             hasStoredToken = try credentialStore.read(
-                account: KeychainCredentialStore.notionTokenAccount
+                account: NotionCredential.tokenAccount
             ) != nil
         } catch {
             hasStoredToken = false
@@ -324,7 +324,7 @@ public struct NotionConnectionView: View {
         }
 
         if let stored = try credentialStore.read(
-            account: KeychainCredentialStore.notionTokenAccount
+            account: NotionCredential.tokenAccount
         ),
         !stored.isEmpty {
             return stored
