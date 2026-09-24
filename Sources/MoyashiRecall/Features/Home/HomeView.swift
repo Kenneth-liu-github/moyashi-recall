@@ -33,7 +33,7 @@ public struct HomeView: View {
                         }
                     }
                     .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color.gray.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
 
                     Text(language.text("需要加强", "要強化")).font(.headline)
@@ -53,7 +53,7 @@ public struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color.gray.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
     }
 }
