@@ -226,7 +226,6 @@ public struct StudyScopeView: View {
             let repository = LearningRepository(
                 context: modelContext
             )
-            try repository.seedDemoIfNeeded()
             sources = try repository.reviewSources()
 
             let availableKeys = Set(
