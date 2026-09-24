@@ -11,14 +11,14 @@ public final class SourceDocumentEntity {
     public var parentExternalSourceID: String
     public var rootExternalSourceID: String
     public var sourcePath: String
-    public var sourceKey: String
+    public var sourceKey: String = ""
     public var hierarchyDepth: Int
     public var isSourceActive: Bool
     public var sourceLastEditedAt: Date?
     public var lastSyncedAt: Date?
     public var sourceReference: String
     public var createdAt: Date
-    public var updatedAt: Date
+    public var updatedAt: Date = .distantPast
 
     public init(
         id: UUID = UUID(),
@@ -61,24 +61,24 @@ public final class SourceDocumentEntity {
 public final class KnowledgeItemEntity {
     @Attribute(.unique) public var id: UUID
     public var sourceDocumentID: UUID?
-    public var extractionKey: String
-    public var knowledgeType: String
+    public var extractionKey: String = ""
+    public var knowledgeType: String = ""
     public var title: String
-    public var canonicalExpression: String
-    public var meaning: String
-    public var explanation: String
-    public var naturalEnglish: String
+    public var canonicalExpression: String = ""
+    public var meaning: String = ""
+    public var explanation: String = ""
+    public var naturalEnglish: String = ""
     public var content: String
-    public var tags: String
+    public var tags: String = ""
     public var sourceKind: String
-    public var sourceKey: String
+    public var sourceKey: String = ""
     public var sourceReference: String
-    public var aiProvider: String
-    public var aiModel: String
-    public var extractionVersion: String
-    public var isActive: Bool
+    public var aiProvider: String = ""
+    public var aiModel: String = ""
+    public var extractionVersion: String = ""
+    public var isActive: Bool = true
     public var createdAt: Date
-    public var updatedAt: Date
+    public var updatedAt: Date = .distantPast
 
     public init(
         id: UUID = UUID(),
@@ -130,17 +130,17 @@ public final class FlashcardEntity {
     @Attribute(.unique) public var id: UUID
     public var knowledgeItemID: UUID
     public var sourceDocumentID: UUID?
-    public var generationKey: String
+    public var generationKey: String = ""
     public var cardType: String
     public var prompt: String
     public var answer: String
-    public var explanation: String
-    public var naturalEnglish: String
-    public var sourceKey: String
+    public var explanation: String = ""
+    public var naturalEnglish: String = ""
+    public var sourceKey: String = ""
     public var sourceReference: String
-    public var isActive: Bool
+    public var isActive: Bool = true
     public var createdAt: Date
-    public var updatedAt: Date
+    public var updatedAt: Date = .distantPast
 
     public init(
         id: UUID = UUID(),
