@@ -36,7 +36,7 @@
 		A40000000000000000000002 /* MoyashiRecallApp */ = {
 			isa = PBXGroup;
 			children = (A20000000000000000000002 /* MoyashiRecallApp.swift */,);
-			path = MoyashiRecallApp;
+			path = MoyashiRecall;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000003 /* Products */ = {
