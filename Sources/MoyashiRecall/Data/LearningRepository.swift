@@ -154,6 +154,7 @@ public struct ExtractionPersistenceReport: Equatable, Sendable {
 
 public enum LearningRepositoryError: Error, Equatable {
     case sourceDocumentNotFound(UUID)
+    case emptyExtractionWouldDeactivateExisting(UUID)
 }
 
 public struct HomeSnapshot: Equatable, Sendable {
@@ -397,6 +398,14 @@ public struct LearningRepository {
         var cardsUnchanged = 0
         var cardsDeactivated = 0
 
+        if bundle.items.isEmpty,
+           existingKnowledge.contains(where: \.isActive) {
+            throw LearningRepositoryError
+                .emptyExtractionWouldDeactivateExisting(
+                    sourceDocumentID
+                )
+        }
+
         let activeKeys = Set(bundle.items.map(\.key))
 
         for generated in bundle.items {
@@ -404,10 +413,18 @@ public struct LearningRepository {
 
             if let existing = existingKnowledge.first(
                 where: { $0.extractionKey == generated.key }
+            ) ?? existingKnowledge.first(
+                where: {
+                    $0.knowledgeType == generated.kind.rawValue
+                        && $0.canonicalExpression
+                            == generated.canonicalExpression
+                        && $0.meaning == generated.meaning
+                }
             ) {
                 let tags = generated.tags.joined(separator: "|")
                 let unchanged =
-                    existing.knowledgeType == generated.kind.rawValue
+                    existing.extractionKey == generated.key
+                    && existing.knowledgeType == generated.kind.rawValue
                     && existing.title == generated.title
                     && existing.canonicalExpression == generated.canonicalExpression
                     && existing.meaning == generated.meaning
@@ -423,6 +440,7 @@ public struct LearningRepository {
                 if unchanged {
                     knowledgeUnchanged += 1
                 } else {
+                    existing.extractionKey = generated.key
                     existing.knowledgeType = generated.kind.rawValue
                     existing.title = generated.title
                     existing.canonicalExpression = generated.canonicalExpression
@@ -478,9 +496,16 @@ public struct LearningRepository {
             for generatedCard in generated.cards {
                 if let existing = existingCards.first(
                     where: { $0.generationKey == generatedCard.key }
+                ) ?? existingCards.first(
+                    where: {
+                        $0.cardType == generatedCard.type.rawValue
+                            && $0.prompt == generatedCard.prompt
+                            && $0.answer == generatedCard.answer
+                    }
                 ) {
                     let unchanged =
-                        existing.cardType == generatedCard.type.rawValue
+                        existing.generationKey == generatedCard.key
+                        && existing.cardType == generatedCard.type.rawValue
                         && existing.prompt == generatedCard.prompt
                         && existing.answer == generatedCard.answer
                         && existing.explanation == generatedCard.explanation
@@ -493,6 +518,7 @@ public struct LearningRepository {
                     if unchanged {
                         cardsUnchanged += 1
                     } else {
+                        existing.generationKey = generatedCard.key
                         existing.cardType = generatedCard.type.rawValue
                         existing.prompt = generatedCard.prompt
                         existing.answer = generatedCard.answer
