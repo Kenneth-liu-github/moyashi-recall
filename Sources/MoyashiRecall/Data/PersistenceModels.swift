@@ -73,6 +73,17 @@ public final class KnowledgeItemEntity {
     public var sourceKind: String
     public var sourceKey: String = ""
     public var sourceReference: String
+
+    // V0.3 compatibility fields. Imported source pages now live in
+    // SourceDocumentEntity; these remain until an explicit versioned migration.
+    public var externalSourceID: String = ""
+    public var parentExternalSourceID: String = ""
+    public var rootExternalSourceID: String = ""
+    public var sourcePath: String = ""
+    public var hierarchyDepth: Int = 0
+    public var isSourceActive: Bool = true
+    public var sourceLastEditedAt: Date?
+    public var lastSyncedAt: Date?
     public var aiProvider: String = ""
     public var aiModel: String = ""
     public var extractionVersion: String = ""
@@ -95,6 +106,14 @@ public final class KnowledgeItemEntity {
         sourceKind: String,
         sourceKey: String = "",
         sourceReference: String,
+        externalSourceID: String = "",
+        parentExternalSourceID: String = "",
+        rootExternalSourceID: String = "",
+        sourcePath: String = "",
+        hierarchyDepth: Int = 0,
+        isSourceActive: Bool = true,
+        sourceLastEditedAt: Date? = nil,
+        lastSyncedAt: Date? = nil,
         aiProvider: String = "",
         aiModel: String = "",
         extractionVersion: String = "",
@@ -116,6 +135,14 @@ public final class KnowledgeItemEntity {
         self.sourceKind = sourceKind
         self.sourceKey = sourceKey
         self.sourceReference = sourceReference
+        self.externalSourceID = externalSourceID
+        self.parentExternalSourceID = parentExternalSourceID
+        self.rootExternalSourceID = rootExternalSourceID
+        self.sourcePath = sourcePath
+        self.hierarchyDepth = hierarchyDepth
+        self.isSourceActive = isSourceActive
+        self.sourceLastEditedAt = sourceLastEditedAt
+        self.lastSyncedAt = lastSyncedAt
         self.aiProvider = aiProvider
         self.aiModel = aiModel
         self.extractionVersion = extractionVersion
