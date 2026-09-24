@@ -174,6 +174,99 @@ final class OpenAIResponsesProviderTests: XCTestCase {
         XCTAssertEqual(attempts, 2)
     }
 
+    func testProviderSurfacesStructuredOutputRefusal() async throws {
+        let transport = OpenAITestTransport { request in
+            Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "status": "completed",
+                  "output": [
+                    {
+                      "type": "message",
+                      "content": [
+                        {
+                          "type": "refusal",
+                          "refusal": "Cannot process this content."
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """
+            )
+        }
+
+        let provider = OpenAIResponsesProvider(
+            apiKey: "secret_test",
+            modelID: "configured-model",
+            transport: transport,
+            baseURL: URL(
+                string: "https://api.openai.test"
+            )!
+        )
+
+        do {
+            _ = try await provider.complete(
+                request: AICompletionRequest(
+                    systemPrompt: "system",
+                    userPrompt: "user",
+                    responseSchemaName: "schema",
+                    responseSchemaJSON: #"{"type":"object"}"#
+                )
+            )
+            XCTFail("Expected refusal")
+        } catch let error as AIProviderError {
+            XCTAssertEqual(
+                error,
+                .refused("Cannot process this content.")
+            )
+        }
+    }
+
+    func testProviderSurfacesIncompleteResponse() async throws {
+        let transport = OpenAITestTransport { request in
+            Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "status": "incomplete",
+                  "incomplete_details": {
+                    "reason": "max_output_tokens"
+                  },
+                  "output": []
+                }
+                """
+            )
+        }
+
+        let provider = OpenAIResponsesProvider(
+            apiKey: "secret_test",
+            modelID: "configured-model",
+            transport: transport,
+            baseURL: URL(
+                string: "https://api.openai.test"
+            )!
+        )
+
+        do {
+            _ = try await provider.complete(
+                request: AICompletionRequest(
+                    systemPrompt: "system",
+                    userPrompt: "user",
+                    responseSchemaName: "schema",
+                    responseSchemaJSON: #"{"type":"object"}"#
+                )
+            )
+            XCTFail("Expected incomplete response")
+        } catch let error as AIProviderError {
+            XCTAssertEqual(
+                error,
+                .incomplete("max_output_tokens")
+            )
+        }
+    }
+
     func testProviderSurfacesHTTPErrorMessage() async throws {
         let transport = OpenAITestTransport { request in
             Self.response(
