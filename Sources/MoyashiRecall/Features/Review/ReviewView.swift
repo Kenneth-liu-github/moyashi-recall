@@ -229,8 +229,14 @@ public struct ReviewView: View {
         switch type {
         case "zh-to-ja": return language.text("中 → 日", "中 → 日")
         case "ja-to-zh": return language.text("日 → 中", "日 → 中")
-        case "cloze": return "Cloze"
-        default: return language.text("复习", "復習")
+        case "cloze":
+            return "Cloze"
+        case "contrast":
+            return language.text("对比", "比較")
+        case "application":
+            return language.text("应用", "応用")
+        default:
+            return language.text("复习", "復習")
         }
     }
 }
