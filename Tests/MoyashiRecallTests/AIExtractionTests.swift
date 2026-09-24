@@ -312,6 +312,162 @@ final class AIExtractionTests: XCTestCase {
     }
 
     @MainActor
+    func testStableKeyDriftPreservesKnowledgeAndCardIDs() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-1"
+        )
+        context.insert(source)
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let firstBundle = try JSONDecoder().decode(
+            KnowledgeExtractionBundle.self,
+            from: Data(Self.fixtureJSON.utf8)
+        )
+        _ = try repository.persistExtraction(
+            firstBundle,
+            sourceDocumentID: source.id,
+            providerID: "fixture",
+            modelID: "one"
+        )
+
+        let firstKnowledge = try XCTUnwrap(
+            context.fetch(
+                FetchDescriptor<KnowledgeItemEntity>()
+            ).first
+        )
+        let firstCard = try XCTUnwrap(
+            context.fetch(
+                FetchDescriptor<FlashcardEntity>()
+            ).first {
+                $0.generationKey == "card-zh-ja"
+            }
+        )
+
+        let drifted = KnowledgeExtractionBundle(
+            version: "v1",
+            items: [
+                ExtractedKnowledgeItem(
+                    key: "renamed-item-key",
+                    kind: .expression,
+                    title: "進（すす）め方（かた）について",
+                    canonicalExpression: "進（すす）め方（かた）について",
+                    meaning: "关于推进方式",
+                    explanation: "商务场景中用于讨论如何推进某项工作。",
+                    naturalEnglish: "regarding how to proceed",
+                    tags: ["商务", "について"],
+                    cards: [
+                        GeneratedFlashcard(
+                            key: "renamed-card-key",
+                            type: .zhToJa,
+                            prompt: "“关于推进方式”用日语怎么说？",
+                            answer: "進（すす）め方（かた）について",
+                            explanation: "用于引出推进方式这一讨论主题。",
+                            naturalEnglish: "regarding how to proceed"
+                        )
+                    ]
+                )
+            ]
+        )
+
+        _ = try repository.persistExtraction(
+            drifted,
+            sourceDocumentID: source.id,
+            providerID: "fixture",
+            modelID: "two"
+        )
+
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+
+        XCTAssertEqual(knowledge.count, 1)
+        XCTAssertEqual(knowledge.first?.id, firstKnowledge.id)
+        XCTAssertEqual(
+            knowledge.first?.extractionKey,
+            "renamed-item-key"
+        )
+
+        let activeCard = try XCTUnwrap(
+            cards.first { $0.isActive }
+        )
+        XCTAssertEqual(activeCard.id, firstCard.id)
+        XCTAssertEqual(
+            activeCard.generationKey,
+            "renamed-card-key"
+        )
+    }
+
+    @MainActor
+    func testEmptyExtractionCannotDeactivateExistingLearningData() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-1"
+        )
+        context.insert(source)
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let firstBundle = try JSONDecoder().decode(
+            KnowledgeExtractionBundle.self,
+            from: Data(Self.fixtureJSON.utf8)
+        )
+        _ = try repository.persistExtraction(
+            firstBundle,
+            sourceDocumentID: source.id,
+            providerID: "fixture",
+            modelID: "one"
+        )
+
+        XCTAssertThrowsError(
+            try repository.persistExtraction(
+                KnowledgeExtractionBundle(
+                    version: "v1",
+                    items: []
+                ),
+                sourceDocumentID: source.id,
+                providerID: "fixture",
+                modelID: "two"
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningRepositoryError,
+                .emptyExtractionWouldDeactivateExisting(
+                    source.id
+                )
+            )
+        }
+
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<KnowledgeItemEntity>()
+            ).allSatisfy(\.isActive)
+        )
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<FlashcardEntity>()
+            ).allSatisfy(\.isActive)
+        )
+    }
+
+    @MainActor
     func testRemovedGeneratedCardBecomesInactiveButHistorySurvives() async throws {
         let container = try makeContainer()
         let context = container.mainContext
