@@ -79,7 +79,6 @@ public struct HomeView: View {
                 .padding()
             }
             .navigationTitle("Moyashi Recall")
-            .task { loadSnapshot() }
             .onAppear { loadSnapshot() }
         }
     }
