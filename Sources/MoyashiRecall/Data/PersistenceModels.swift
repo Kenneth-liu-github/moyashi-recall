@@ -7,6 +7,7 @@ public final class KnowledgeItemEntity {
     public var title: String
     public var content: String
     public var sourceKind: String
+    public var externalSourceID: String = ""
     public var sourceReference: String
     public var createdAt: Date
     public var updatedAt: Date
@@ -16,6 +17,7 @@ public final class KnowledgeItemEntity {
         title: String,
         content: String,
         sourceKind: String,
+        externalSourceID: String = "",
         sourceReference: String,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -24,6 +26,7 @@ public final class KnowledgeItemEntity {
         self.title = title
         self.content = content
         self.sourceKind = sourceKind
+        self.externalSourceID = externalSourceID
         self.sourceReference = sourceReference
         self.createdAt = createdAt
         self.updatedAt = updatedAt
