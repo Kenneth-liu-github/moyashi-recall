@@ -2,13 +2,17 @@ import SwiftUI
 
 public struct SettingsView: View {
     @EnvironmentObject private var language: LanguageStore
+
     public init() {}
 
     public var body: some View {
         NavigationStack {
             Form {
                 Section(language.text("界面", "インターフェース")) {
-                    Picker(language.text("界面语言", "表示言語"), selection: $language.language) {
+                    Picker(
+                        language.text("界面语言", "表示言語"),
+                        selection: $language.language
+                    ) {
                         ForEach(AppLanguage.allCases) { item in
                             Text(item.displayName).tag(item)
                         }
@@ -16,12 +20,21 @@ public struct SettingsView: View {
                 }
 
                 Section(language.text("连接", "接続")) {
-                    LabeledContent("Notion", value: language.text("V0.2 接入", "V0.2 で接続"))
-                    LabeledContent("AI", value: language.text("尚未配置", "未設定"))
+                    LabeledContent(
+                        "Notion",
+                        value: language.text("V0.3 计划接入", "V0.3 で接続予定")
+                    )
+                    LabeledContent(
+                        "AI",
+                        value: language.text("V0.4 计划接入", "V0.4 で接続予定")
+                    )
                 }
 
                 Section(language.text("复习算法", "復習アルゴリズム")) {
-                    LabeledContent("FSRS", value: language.text("计划接入", "導入予定"))
+                    LabeledContent(
+                        "FSRS",
+                        value: "FSRS-6 · 90%"
+                    )
                 }
             }
             .navigationTitle(language.text("设置", "設定"))
