@@ -42,8 +42,6 @@ public struct AIProviderSettingsView: View {
                     ),
                     text: $modelID
                 )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
             }
 
             Section(
