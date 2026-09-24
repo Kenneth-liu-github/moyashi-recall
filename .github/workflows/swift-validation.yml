@@ -17,3 +17,16 @@ jobs:
         run: swift build
       - name: Run unit tests
         run: swift test
+
+  ios-simulator-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build iOS app for Simulator
+        run: |
+          xcodebuild -project App/MoyashiRecall.xcodeproj \
+            -scheme MoyashiRecall \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
