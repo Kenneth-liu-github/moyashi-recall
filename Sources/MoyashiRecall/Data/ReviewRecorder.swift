@@ -16,8 +16,14 @@ public struct ReviewRecorder {
         in context: ModelContext,
         now: Date = .now
     ) throws -> FSRSScheduleResult {
-        let states = try context.fetch(FetchDescriptor<ReviewStateEntity>())
-        let stored = states.first { $0.cardID == cardID }
+        let targetCardID = cardID
+        var descriptor = FetchDescriptor<ReviewStateEntity>(
+            predicate: #Predicate { state in
+                state.cardID == targetCardID
+            }
+        )
+        descriptor.fetchLimit = 1
+        let stored = try context.fetch(descriptor).first
 
         let current = stored.map {
             FSRSCardState(
