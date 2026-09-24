@@ -287,6 +287,48 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testImportedDocumentUpsertIsIdempotent() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let repository = LearningRepository(context: context)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let original = ImportedDocument(
+            id: "notion-page-1",
+            sourceKind: "notion",
+            title: "第二课",
+            sourceReference: "https://www.notion.so/page-1",
+            content: "原始内容"
+        )
+        let first = try repository.upsertImportedDocument(
+            original,
+            now: now
+        )
+
+        let updated = ImportedDocument(
+            id: "notion-page-1",
+            sourceKind: "notion",
+            title: "第二课（更新）",
+            sourceReference: "https://www.notion.so/page-1",
+            content: "更新后的内容"
+        )
+        let second = try repository.upsertImportedDocument(
+            updated,
+            now: now.addingTimeInterval(60)
+        )
+
+        let items = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(first.id, second.id)
+        XCTAssertEqual(items.first?.externalSourceID, "notion-page-1")
+        XCTAssertEqual(items.first?.title, "第二课（更新）")
+        XCTAssertEqual(items.first?.content, "更新后的内容")
+    }
+
+    @MainActor
     func testRepositoryReturnsValueTypeSessionCards() throws {
         let container = try makeContainer()
         let context = container.mainContext
