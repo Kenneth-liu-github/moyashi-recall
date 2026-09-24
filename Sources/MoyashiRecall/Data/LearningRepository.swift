@@ -214,7 +214,6 @@ public struct LearningRepository {
         let items = try context.fetch(
             FetchDescriptor<KnowledgeItemEntity>(
                 sortBy: [
-                    SortDescriptor(\.hierarchyDepth, order: .forward),
                     SortDescriptor(\.sourcePath, order: .forward)
                 ]
             )
