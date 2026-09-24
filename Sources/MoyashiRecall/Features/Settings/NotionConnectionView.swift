@@ -358,13 +358,13 @@ public struct NotionConnectionView: View {
                 repository: repository,
                 client: client
             )
-            let items = try await service.syncPageTree(
+            let report = try await service.syncPageTreeReport(
                 rootID: rootPageID
             )
 
             statusMessage = language.text(
-                "同步完成：\(items.count) 个页面。",
-                "同期完了：\(items.count)ページ。"
+                "同步完成：共 \(report.totalPages) 个页面；新增 \(report.inserted)，更新 \(report.updated)，未变化 \(report.unchanged)，移出 \(report.deactivated)。",
+                "同期完了：合計 \(report.totalPages)ページ；追加 \(report.inserted)、更新 \(report.updated)、変更なし \(report.unchanged)、対象外 \(report.deactivated)。"
             )
         } catch {
             statusMessage = connectionErrorMessage(error)
