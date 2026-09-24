@@ -31,7 +31,6 @@ public struct LibraryView: View {
                 }
             }
             .navigationTitle(language.text("资料库", "ライブラリ"))
-            .task { loadCounts() }
             .onAppear { loadCounts() }
         }
     }
