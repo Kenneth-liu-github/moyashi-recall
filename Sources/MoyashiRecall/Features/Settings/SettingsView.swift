@@ -32,13 +32,17 @@ public struct SettingsView: View {
                         )
                     }
 
-                    LabeledContent(
-                        "AI",
-                        value: language.text(
-                            "V0.4 计划接入",
-                            "V0.4 で接続予定"
+                    NavigationLink {
+                        AIProviderSettingsView()
+                    } label: {
+                        LabeledContent(
+                            "AI",
+                            value: language.text(
+                                "Provider 与模型",
+                                "Providerとモデル"
+                            )
                         )
-                    )
+                    }
                 }
 
                 Section(language.text("复习算法", "復習アルゴリズム")) {
