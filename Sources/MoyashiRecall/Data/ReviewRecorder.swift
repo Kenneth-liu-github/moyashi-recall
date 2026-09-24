@@ -3,6 +3,7 @@ import SwiftData
 
 public enum ReviewRecordingError: Error, Equatable {
     case cardNotFound(UUID)
+    case cardInactive(UUID)
 }
 
 @MainActor
@@ -28,8 +29,11 @@ public struct ReviewRecorder {
             }
         )
         cardDescriptor.fetchLimit = 1
-        guard try context.fetch(cardDescriptor).first != nil else {
+        guard let card = try context.fetch(cardDescriptor).first else {
             throw ReviewRecordingError.cardNotFound(cardID)
+        }
+        guard card.isActive else {
+            throw ReviewRecordingError.cardInactive(cardID)
         }
 
         var stateDescriptor = FetchDescriptor<ReviewStateEntity>(
