@@ -39,7 +39,7 @@ public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
     public let sourceLastEditedAt: Date?
     public let lastSyncedAt: Date?
 
-    public init(entity: KnowledgeItemEntity) {
+    public init(entity: SourceDocumentEntity) {
         self.id = entity.id
         self.title = entity.title
         self.content = entity.content
@@ -64,11 +64,11 @@ public enum ImportMutation: String, Equatable, Sendable {
 }
 
 public struct ImportedDocumentUpsertResult {
-    public let entity: KnowledgeItemEntity
+    public let entity: SourceDocumentEntity
     public let mutation: ImportMutation
 
     public init(
-        entity: KnowledgeItemEntity,
+        entity: SourceDocumentEntity,
         mutation: ImportMutation
     ) {
         self.entity = entity
@@ -111,7 +111,7 @@ public struct LearningRepository {
     public func upsertImportedDocument(
         _ document: ImportedDocument,
         now: Date = .now
-    ) throws -> KnowledgeItemEntity {
+    ) throws -> SourceDocumentEntity {
         try upsertImportedDocumentWithResult(
             document,
             now: now
@@ -124,7 +124,7 @@ public struct LearningRepository {
     ) throws -> ImportedDocumentUpsertResult {
         let sourceKind = document.sourceKind
         let externalID = document.id
-        var descriptor = FetchDescriptor<KnowledgeItemEntity>(
+        var descriptor = FetchDescriptor<SourceDocumentEntity>(
             predicate: #Predicate { item in
                 item.sourceKind == sourceKind
                     && item.externalSourceID == externalID
@@ -182,7 +182,7 @@ public struct LearningRepository {
             )
         }
 
-        let item = KnowledgeItemEntity(
+        let item = SourceDocumentEntity(
             title: document.title,
             content: document.content,
             sourceKind: document.sourceKind,
@@ -212,7 +212,7 @@ public struct LearningRepository {
         sourceKind: String? = nil
     ) throws -> [ImportedKnowledgeSummary] {
         let items = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>(
+            FetchDescriptor<SourceDocumentEntity>(
                 sortBy: [
                     SortDescriptor(\.sourcePath, order: .forward)
                 ]
@@ -235,7 +235,7 @@ public struct LearningRepository {
         now: Date = .now
     ) throws -> Int {
         let items = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>()
+            FetchDescriptor<SourceDocumentEntity>()
         )
 
         var deactivated = 0
@@ -280,7 +280,9 @@ public struct LearningRepository {
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
             )
         )
-        let normalized = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = searchText.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
         let filtered: [FlashcardEntity]
         if normalized.isEmpty {
             filtered = entities
@@ -321,39 +323,65 @@ public struct LearningRepository {
         let states = try context.fetch(FetchDescriptor<ReviewStateEntity>())
         let history = try context.fetch(
             FetchDescriptor<ReviewHistoryEntity>(
-                sortBy: [SortDescriptor(\.reviewedAt, order: .reverse)]
+                sortBy: [
+                    SortDescriptor(
+                        \.reviewedAt,
+                        order: .reverse
+                    )
+                ]
             )
         )
 
-        let stateByCard = states.reduce(into: [UUID: ReviewStateEntity]()) { result, state in
+        let stateByCard = states.reduce(
+            into: [UUID: ReviewStateEntity]()
+        ) { result, state in
             if let existing = result[state.cardID] {
-                if state.due < existing.due { result[state.cardID] = state }
+                if state.due < existing.due {
+                    result[state.cardID] = state
+                }
             } else {
                 result[state.cardID] = state
             }
         }
 
         let dueCount = cards.reduce(0) { count, card in
-            guard let state = stateByCard[card.id] else { return count + 1 }
+            guard let state = stateByCard[card.id] else {
+                return count + 1
+            }
             return count + (state.due <= now ? 1 : 0)
         }
 
         let calendar = Calendar.current
-        let reviewDays = Set(history.map { calendar.startOfDay(for: $0.reviewedAt) })
+        let reviewDays = Set(
+            history.map {
+                calendar.startOfDay(for: $0.reviewedAt)
+            }
+        )
         var streak = 0
 
         if !reviewDays.isEmpty {
             var cursor = calendar.startOfDay(for: now)
             if !reviewDays.contains(cursor) {
-                cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+                cursor = calendar.date(
+                    byAdding: .day,
+                    value: -1,
+                    to: cursor
+                ) ?? cursor
             }
 
             while reviewDays.contains(cursor) {
                 streak += 1
-                cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+                cursor = calendar.date(
+                    byAdding: .day,
+                    value: -1,
+                    to: cursor
+                ) ?? cursor
             }
         }
 
-        return HomeSnapshot(dueCount: dueCount, streakDays: streak)
+        return HomeSnapshot(
+            dueCount: dueCount,
+            streakDays: streak
+        )
     }
 }
