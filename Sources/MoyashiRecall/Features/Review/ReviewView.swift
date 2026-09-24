@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 public struct ReviewView: View {
-    private let sourceTitles: Set<String>?
+    private let sourceKeys: Set<String>?
     private let sessionLimit: Int
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
@@ -13,9 +13,10 @@ public struct ReviewView: View {
     @State private var sessionCardIDs: [UUID] = []
     @State private var currentIndex = 0
     @State private var saveError: String?
+    @State private var didLoadSession = false
 
-    public init(sourceTitles: Set<String>? = nil, sessionLimit: Int = 20) {
-        self.sourceTitles = sourceTitles
+    public init(sourceKeys: Set<String>? = nil, sessionLimit: Int = 20) {
+        self.sourceKeys = sourceKeys
         self.sessionLimit = sessionLimit
     }
 
@@ -45,7 +46,7 @@ public struct ReviewView: View {
             }
         }
         .navigationTitle(language.text("复习", "復習"))
-        .task {
+        .task(id: allCards.count) {
             loadSessionIfNeeded()
         }
     }
@@ -165,16 +166,17 @@ public struct ReviewView: View {
     }
 
     private func loadSessionIfNeeded() {
-        guard sessionCardIDs.isEmpty else { return }
+        guard !didLoadSession, sessionCardIDs.isEmpty, !allCards.isEmpty else { return }
         do {
             let cards = try ReviewQueueService().dueCards(
                 in: modelContext,
-                sourceTitles: sourceTitles,
+                sourceKeys: sourceKeys,
                 limit: sessionLimit
             )
             sessionCardIDs = cards.map(\.id)
             currentIndex = 0
             reviewed = 0
+            didLoadSession = true
         } catch {
             saveError = language.text("无法读取待复习卡片。", "復習待ちカードを読み込めませんでした。")
         }
