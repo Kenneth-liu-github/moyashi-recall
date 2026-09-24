@@ -32,6 +32,7 @@ public enum DemoDataSeeder {
                 answer: "進（すす）め方（かた）について",
                 explanation: "关于推进方式 / 关于如何推进",
                 naturalEnglish: "regarding how to proceed",
+                sourceKey: "office-japanese",
                 sourceReference: "办公室日语学习 · 第二课"
             )
         )
