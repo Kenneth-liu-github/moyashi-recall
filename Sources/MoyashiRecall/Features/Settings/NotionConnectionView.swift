@@ -27,7 +27,6 @@ public struct NotionConnectionView: View {
                     ),
                     text: $tokenDraft
                 )
-                .textContentType(.password)
 
                 HStack {
                     Text(
@@ -375,17 +374,15 @@ public struct NotionConnectionView: View {
     private func connectionErrorMessage(
         _ error: Error
     ) -> String {
-        if case NotionConnectionUIError.missingToken = error {
+        if error is NotionConnectionUIError {
             return language.text(
                 "请先输入或保存 Notion Token。",
                 "Notion Tokenを入力または保存してください。"
             )
         }
 
-        if case let NotionAPIError.http(
-            statusCode,
-            message
-        ) = error {
+        if let apiError = error as? NotionAPIError,
+           case let .http(statusCode, message) = apiError {
             return language.text(
                 "Notion 返回错误 \(statusCode)：\(message)",
                 "Notionエラー \(statusCode)：\(message)"
