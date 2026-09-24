@@ -166,6 +166,7 @@ public struct AIProviderSettingsView: View {
                 for: newProvider
             )
             apiKeyDraft = ""
+            statusMessage = nil
             refreshCredentialState()
         }
     }
