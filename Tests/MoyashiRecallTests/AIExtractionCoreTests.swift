@@ -95,8 +95,16 @@ final class AIExtractionCoreTests: XCTestCase {
                 )
             )
         ) { error in
-            guard case .duplicateSemanticItem =
+            guard let extractionError =
                 error as? KnowledgeExtractionError
+            else {
+                return XCTFail(
+                    "Expected KnowledgeExtractionError"
+                )
+            }
+
+            guard case .duplicateSemanticItem =
+                extractionError
             else {
                 return XCTFail(
                     "Expected duplicate semantic item"
