@@ -1,6 +1,10 @@
 import Foundation
 import SwiftData
 
+public enum ReviewRecordingError: Error, Equatable {
+    case cardNotFound(UUID)
+}
+
 @MainActor
 public struct ReviewRecorder {
     private let scheduler: FSRSScheduler
@@ -17,13 +21,24 @@ public struct ReviewRecorder {
         now: Date = .now
     ) throws -> FSRSScheduleResult {
         let targetCardID = cardID
-        var descriptor = FetchDescriptor<ReviewStateEntity>(
+
+        var cardDescriptor = FetchDescriptor<FlashcardEntity>(
+            predicate: #Predicate { card in
+                card.id == targetCardID
+            }
+        )
+        cardDescriptor.fetchLimit = 1
+        guard try context.fetch(cardDescriptor).first != nil else {
+            throw ReviewRecordingError.cardNotFound(cardID)
+        }
+
+        var stateDescriptor = FetchDescriptor<ReviewStateEntity>(
             predicate: #Predicate { state in
                 state.cardID == targetCardID
             }
         )
-        descriptor.fetchLimit = 1
-        let stored = try context.fetch(descriptor).first
+        stateDescriptor.fetchLimit = 1
+        let stored = try context.fetch(stateDescriptor).first
 
         let current = stored.map {
             FSRSCardState(
