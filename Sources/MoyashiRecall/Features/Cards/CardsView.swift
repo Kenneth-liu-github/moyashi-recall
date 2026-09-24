@@ -59,7 +59,6 @@ public struct CardsView: View {
     private func loadCards() {
         do {
             let repository = LearningRepository(context: modelContext)
-            try repository.seedDemoIfNeeded()
             cards = try repository.allSessionCards(searchText: searchText)
             loadError = nil
         } catch {
