@@ -47,6 +47,8 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let sourceLastEditedAt: Date?
     public let lastSyncedAt: Date?
     public let lastAIProcessedAt: Date?
+    public let lastAIProviderID: String
+    public let lastAIModelID: String
     public let needsAIRefresh: Bool
 
     public init(entity: SourceDocumentEntity) {
@@ -65,6 +67,8 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
         self.sourceLastEditedAt = entity.sourceLastEditedAt
         self.lastSyncedAt = entity.lastSyncedAt
         self.lastAIProcessedAt = entity.lastAIProcessedAt
+        self.lastAIProviderID = entity.lastAIProviderID
+        self.lastAIModelID = entity.lastAIModelID
         self.needsAIRefresh =
             entity.lastAIProcessedAt == nil
             || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
@@ -805,6 +809,8 @@ public struct LearningRepository {
         sourceEntity.lastAIProcessedAt = now
         sourceEntity.aiProcessedSourceUpdatedAt = sourceEntity.updatedAt
         sourceEntity.lastAIExtractionVersion = bundle.version
+        sourceEntity.lastAIProviderID = providerID
+        sourceEntity.lastAIModelID = modelID
         try context.save()
 
         return ExtractionPersistenceReport(
