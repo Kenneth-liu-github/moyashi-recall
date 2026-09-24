@@ -47,12 +47,52 @@ public struct KnowledgeExtractionService {
             throw AIProviderError.decodingFailed
         }
 
-        try Self.validate(bundle)
+        let normalized = Self.normalize(bundle)
+        try Self.validate(normalized)
 
         return (
-            bundle,
+            normalized,
             response.providerID,
             response.modelID
+        )
+    }
+
+    public static func normalize(
+        _ bundle: KnowledgeExtractionBundle
+    ) -> KnowledgeExtractionBundle {
+        KnowledgeExtractionBundle(
+            version: bundle.version
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+            items: bundle.items.map { item in
+                ExtractedKnowledgeItem(
+                    key: item.key
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ),
+                    kind: item.kind,
+                    title: item.title,
+                    canonicalExpression: item.canonicalExpression,
+                    meaning: item.meaning,
+                    explanation: item.explanation,
+                    naturalEnglish: item.naturalEnglish,
+                    tags: item.tags,
+                    cards: item.cards.map { card in
+                        GeneratedFlashcard(
+                            key: card.key
+                                .trimmingCharacters(
+                                    in: .whitespacesAndNewlines
+                                ),
+                            type: card.type,
+                            prompt: card.prompt,
+                            answer: card.answer,
+                            explanation: card.explanation,
+                            naturalEnglish: card.naturalEnglish
+                        )
+                    }
+                )
+            }
         )
     }
 
