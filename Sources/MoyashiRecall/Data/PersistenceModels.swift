@@ -2,6 +2,62 @@ import Foundation
 import SwiftData
 
 @Model
+public final class SourceDocumentEntity {
+    @Attribute(.unique) public var id: UUID
+    public var title: String
+    public var content: String
+    public var sourceKind: String
+    public var externalSourceID: String
+    public var parentExternalSourceID: String
+    public var rootExternalSourceID: String
+    public var sourcePath: String
+    public var sourceKey: String
+    public var hierarchyDepth: Int
+    public var isSourceActive: Bool
+    public var sourceLastEditedAt: Date?
+    public var lastSyncedAt: Date?
+    public var sourceReference: String
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        title: String,
+        content: String,
+        sourceKind: String,
+        externalSourceID: String,
+        parentExternalSourceID: String = "",
+        rootExternalSourceID: String = "",
+        sourcePath: String = "",
+        sourceKey: String = "",
+        hierarchyDepth: Int = 0,
+        isSourceActive: Bool = true,
+        sourceLastEditedAt: Date? = nil,
+        lastSyncedAt: Date? = nil,
+        sourceReference: String,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.sourceKind = sourceKind
+        self.externalSourceID = externalSourceID
+        self.parentExternalSourceID = parentExternalSourceID
+        self.rootExternalSourceID = rootExternalSourceID
+        self.sourcePath = sourcePath
+        self.sourceKey = sourceKey
+        self.hierarchyDepth = hierarchyDepth
+        self.isSourceActive = isSourceActive
+        self.sourceLastEditedAt = sourceLastEditedAt
+        self.lastSyncedAt = lastSyncedAt
+        self.sourceReference = sourceReference
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 public final class KnowledgeItemEntity {
     @Attribute(.unique) public var id: UUID
     public var title: String
