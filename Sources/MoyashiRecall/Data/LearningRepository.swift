@@ -23,7 +23,7 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
     }
 }
 
-public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
+public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let title: String
     public let content: String
@@ -208,9 +208,9 @@ public struct LearningRepository {
         )
     }
 
-    public func importedKnowledgeItems(
+    public func importedDocuments(
         sourceKind: String? = nil
-    ) throws -> [ImportedKnowledgeSummary] {
+    ) throws -> [ImportedDocumentSummary] {
         let items = try context.fetch(
             FetchDescriptor<SourceDocumentEntity>(
                 sortBy: [
@@ -224,7 +224,7 @@ public struct LearningRepository {
                 item.isSourceActive
                     && (sourceKind == nil || item.sourceKind == sourceKind)
             }
-            .map(ImportedKnowledgeSummary.init)
+            .map(ImportedDocumentSummary.init)
     }
 
     @discardableResult
