@@ -71,7 +71,7 @@ public struct KnowledgeExtractionService {
                 let normalizedTags = Array(
                     Set(
                         item.tags
-                            .map(trimmed)
+                            .map { trimmed($0) }
                             .filter { !$0.isEmpty }
                     )
                 )
