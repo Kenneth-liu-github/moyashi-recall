@@ -254,6 +254,14 @@ final class AIExtractionTests: XCTestCase {
             sourceDocuments.first?.aiProcessedSourceUpdatedAt,
             sourceDocuments.first?.updatedAt
         )
+        XCTAssertEqual(
+            sourceDocuments.first?.lastAIProviderID,
+            "fixture"
+        )
+        XCTAssertEqual(
+            sourceDocuments.first?.lastAIModelID,
+            "fixture-1"
+        )
 
         let summaries = try repository.importedDocuments(
             sourceKind: "notion"
