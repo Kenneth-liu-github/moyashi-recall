@@ -350,19 +350,54 @@ public struct NotionAPIClient: LearningContentSource {
     }
 
     private func execute(_ request: URLRequest) async throws -> Data {
-        let (data, response) = try await transport.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw NotionAPIError.invalidResponse
-        }
+        let maxRateLimitRetries = 2
 
-        guard (200..<300).contains(http.statusCode) else {
+        for attempt in 0...maxRateLimitRetries {
+            let (data, response) = try await transport.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw NotionAPIError.invalidResponse
+            }
+
+            if (200..<300).contains(http.statusCode) {
+                return data
+            }
+
+            if http.statusCode == 429,
+               attempt < maxRateLimitRetries {
+                let retryAfter = Self.retryAfterSeconds(
+                    from: http
+                )
+                let nanoseconds = UInt64(
+                    max(0, min(retryAfter, 60))
+                        * 1_000_000_000
+                )
+                try await Task.sleep(
+                    nanoseconds: nanoseconds
+                )
+                continue
+            }
+
             throw NotionAPIError.http(
                 statusCode: http.statusCode,
                 message: Self.extractErrorMessage(from: data)
             )
         }
 
-        return data
+        throw NotionAPIError.invalidResponse
+    }
+
+    private static func retryAfterSeconds(
+        from response: HTTPURLResponse
+    ) -> Double {
+        guard let raw = response.value(
+            forHTTPHeaderField: "Retry-After"
+        ),
+        let seconds = Double(raw)
+        else {
+            return 1
+        }
+
+        return seconds
     }
 
     private func childPageReferences(
