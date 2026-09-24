@@ -335,6 +335,31 @@ final class AIExtractionTests: XCTestCase {
     }
 
     @MainActor
+    func testSourcePathPreservesSlashInsidePageTitle() {
+        let entity = SourceDocumentEntity(
+            title: "A/B",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page",
+            sourcePath: "Learning Home / 办公室日语学习 / A/B",
+            sourceReference: "notion://page"
+        )
+
+        let snapshot = SourceDocumentSnapshot(
+            entity: entity
+        )
+
+        XCTAssertEqual(
+            snapshot.importedDocument.sourcePath,
+            [
+                "Learning Home",
+                "办公室日语学习",
+                "A/B"
+            ]
+        )
+    }
+
+    @MainActor
     func testProcessingRejectsDocumentsBeyondChunkLimit() async throws {
         let container = try makeContainer()
         let context = container.mainContext
