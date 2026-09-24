@@ -144,6 +144,10 @@ public struct ExtractionPersistenceReport: Equatable, Sendable {
     }
 }
 
+public enum LearningRepositoryError: Error, Equatable {
+    case sourceDocumentNotFound(UUID)
+}
+
 public struct HomeSnapshot: Equatable, Sendable {
     public let dueCount: Int
     public let streakDays: Int
@@ -347,7 +351,9 @@ public struct LearningRepository {
         now: Date = .now
     ) throws -> ExtractionPersistenceReport {
         guard let source = try sourceDocument(id: sourceDocumentID) else {
-            throw AIProviderError.invalidResponse
+            throw LearningRepositoryError.sourceDocumentNotFound(
+                sourceDocumentID
+            )
         }
 
         let allKnowledge = try context.fetch(
@@ -356,6 +362,9 @@ public struct LearningRepository {
         let existingKnowledge = allKnowledge.filter {
             $0.sourceDocumentID == sourceDocumentID
         }
+        let allCards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
 
         var knowledgeInserted = 0
         var knowledgeUpdated = 0
@@ -382,6 +391,10 @@ public struct LearningRepository {
                     && existing.explanation == generated.explanation
                     && existing.naturalEnglish == generated.naturalEnglish
                     && existing.tags == tags
+                    && existing.sourceDocumentID == sourceDocumentID
+                    && existing.sourceKind == source.sourceKind
+                    && existing.sourceKey == source.sourceKey
+                    && existing.sourceReference == source.sourceReference
                     && existing.isActive
 
                 if unchanged {
@@ -395,6 +408,10 @@ public struct LearningRepository {
                     existing.naturalEnglish = generated.naturalEnglish
                     existing.content = generated.explanation
                     existing.tags = tags
+                    existing.sourceDocumentID = sourceDocumentID
+                    existing.sourceKind = source.sourceKind
+                    existing.sourceKey = source.sourceKey
+                    existing.sourceReference = source.sourceReference
                     existing.isActive = true
                     existing.updatedAt = now
                     knowledgeUpdated += 1
@@ -430,9 +447,7 @@ public struct LearningRepository {
                 knowledgeInserted += 1
             }
 
-            let existingCards = try context.fetch(
-                FetchDescriptor<FlashcardEntity>()
-            ).filter {
+            let existingCards = allCards.filter {
                 $0.knowledgeItemID == knowledge.id
             }
             let activeCardKeys = Set(generated.cards.map(\.key))
@@ -447,6 +462,9 @@ public struct LearningRepository {
                         && existing.answer == generatedCard.answer
                         && existing.explanation == generatedCard.explanation
                         && existing.naturalEnglish == generatedCard.naturalEnglish
+                        && existing.sourceDocumentID == sourceDocumentID
+                        && existing.sourceKey == source.sourceKey
+                        && existing.sourceReference == source.sourceReference
                         && existing.isActive
 
                     if unchanged {
@@ -457,6 +475,7 @@ public struct LearningRepository {
                         existing.answer = generatedCard.answer
                         existing.explanation = generatedCard.explanation
                         existing.naturalEnglish = generatedCard.naturalEnglish
+                        existing.sourceDocumentID = sourceDocumentID
                         existing.sourceKey = source.sourceKey
                         existing.sourceReference = source.sourceReference
                         existing.isActive = true
@@ -504,9 +523,7 @@ public struct LearningRepository {
             item.updatedAt = now
             knowledgeDeactivated += 1
 
-            let cards = try context.fetch(
-                FetchDescriptor<FlashcardEntity>()
-            ).filter {
+            let cards = allCards.filter {
                 $0.knowledgeItemID == item.id && $0.isActive
             }
             for card in cards {
