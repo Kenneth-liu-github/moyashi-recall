@@ -15,6 +15,7 @@ let package = Package(
                 "Scheduling/ReviewLearningState.swift",
                 "Scheduling/FSRSScheduler.swift",
                 "Sources/LearningContentSource.swift",
+                "Sources/SourceKeyResolver.swift",
                 "Sources/Notion/NotionAPIClient.swift"
             ]
         ),
@@ -24,7 +25,8 @@ let package = Package(
             path: "Tests/MoyashiRecallTests",
             sources: [
                 "FSRSSchedulerTests.swift",
-                "NotionAPIClientTests.swift"
+                "NotionAPIClientTests.swift",
+                "SourceKeyResolverTests.swift"
             ]
         )
     ]
