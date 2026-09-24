@@ -298,7 +298,14 @@ final class DataLayerTests: XCTestCase {
             sourceKind: "notion",
             title: "第二课",
             sourceReference: "https://www.notion.so/page-1",
-            content: "原始内容"
+            content: "原始内容",
+            parentExternalID: "office-root",
+            sourcePath: [
+                "Learning Home",
+                "办公室日语学习",
+                "第二课"
+            ],
+            hierarchyDepth: 2
         )
         let first = try repository.upsertImportedDocument(
             original,
@@ -310,7 +317,14 @@ final class DataLayerTests: XCTestCase {
             sourceKind: "notion",
             title: "第二课（更新）",
             sourceReference: "https://www.notion.so/page-1",
-            content: "更新后的内容"
+            content: "更新后的内容",
+            parentExternalID: "office-root",
+            sourcePath: [
+                "Learning Home",
+                "办公室日语学习",
+                "第二课（更新）"
+            ],
+            hierarchyDepth: 2
         )
         let second = try repository.upsertImportedDocument(
             updated,
@@ -326,6 +340,19 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(items.first?.externalSourceID, "notion-page-1")
         XCTAssertEqual(items.first?.title, "第二课（更新）")
         XCTAssertEqual(items.first?.content, "更新后的内容")
+        XCTAssertEqual(
+            items.first?.parentExternalSourceID,
+            "office-root"
+        )
+        XCTAssertEqual(
+            items.first?.sourcePath,
+            "Learning Home / 办公室日语学习 / 第二课（更新）"
+        )
+        XCTAssertEqual(
+            items.first?.sourceKey,
+            "office-japanese"
+        )
+        XCTAssertEqual(items.first?.hierarchyDepth, 2)
     }
 
     @MainActor
