@@ -23,6 +23,34 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let sourceKind: String
+    public let externalSourceID: String
+    public let parentExternalSourceID: String
+    public let sourcePath: String
+    public let sourceKey: String
+    public let hierarchyDepth: Int
+    public let sourceReference: String
+    public let sourceLastEditedAt: Date?
+    public let lastSyncedAt: Date?
+
+    public init(entity: KnowledgeItemEntity) {
+        self.id = entity.id
+        self.title = entity.title
+        self.sourceKind = entity.sourceKind
+        self.externalSourceID = entity.externalSourceID
+        self.parentExternalSourceID = entity.parentExternalSourceID
+        self.sourcePath = entity.sourcePath
+        self.sourceKey = entity.sourceKey
+        self.hierarchyDepth = entity.hierarchyDepth
+        self.sourceReference = entity.sourceReference
+        self.sourceLastEditedAt = entity.sourceLastEditedAt
+        self.lastSyncedAt = entity.lastSyncedAt
+    }
+}
+
 public struct HomeSnapshot: Equatable, Sendable {
     public let dueCount: Int
     public let streakDays: Int
@@ -83,6 +111,8 @@ public struct LearningRepository {
             existing.sourcePath = sourcePath
             existing.sourceKey = sourceKey
             existing.hierarchyDepth = document.hierarchyDepth
+            existing.sourceLastEditedAt = document.lastEditedAt
+            existing.lastSyncedAt = now
             existing.sourceReference = document.sourceReference
             existing.updatedAt = now
             try context.save()
@@ -98,6 +128,8 @@ public struct LearningRepository {
             sourcePath: sourcePath,
             sourceKey: sourceKey,
             hierarchyDepth: document.hierarchyDepth,
+            sourceLastEditedAt: document.lastEditedAt,
+            lastSyncedAt: now,
             sourceReference: document.sourceReference,
             createdAt: now,
             updatedAt: now
@@ -105,6 +137,23 @@ public struct LearningRepository {
         context.insert(item)
         try context.save()
         return item
+    }
+
+    public func importedKnowledgeItems(
+        sourceKind: String? = nil
+    ) throws -> [ImportedKnowledgeSummary] {
+        let items = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>(
+                sortBy: [
+                    SortDescriptor(\.hierarchyDepth, order: .forward),
+                    SortDescriptor(\.sourcePath, order: .forward)
+                ]
+            )
+        )
+
+        return items
+            .filter { sourceKind == nil || $0.sourceKind == sourceKind }
+            .map(ImportedKnowledgeSummary.init)
     }
 
     public func dueSessionCards(
