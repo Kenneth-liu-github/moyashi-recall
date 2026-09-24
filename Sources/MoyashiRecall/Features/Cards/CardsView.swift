@@ -47,10 +47,10 @@ public struct CardsView: View {
                 text: $searchText,
                 prompt: language.text("搜索卡片", "カードを検索")
             )
-            .task(id: searchText) {
+            .onAppear {
                 loadCards()
             }
-            .onAppear {
+            .onChange(of: searchText) { _, _ in
                 loadCards()
             }
         }
