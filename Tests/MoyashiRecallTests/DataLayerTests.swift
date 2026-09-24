@@ -65,6 +65,45 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testReviewQueueFiltersByCardType() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let knowledgeID = UUID()
+
+        let zhToJa = FlashcardEntity(
+            knowledgeItemID: knowledgeID,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "中文",
+            answer: "日本語",
+            sourceKey: "office-japanese",
+            sourceReference: "test"
+        )
+        let contrast = FlashcardEntity(
+            knowledgeItemID: knowledgeID,
+            cardType: ReviewCardType.contrast.rawValue,
+            prompt: "A vs B",
+            answer: "difference",
+            sourceKey: "office-japanese",
+            sourceReference: "test"
+        )
+        context.insert(zhToJa)
+        context.insert(contrast)
+        try context.save()
+
+        let result = try ReviewQueueService().dueCards(
+            in: context,
+            cardTypes: [
+                ReviewCardType.contrast.rawValue
+            ]
+        )
+
+        XCTAssertEqual(
+            result.map(\.id),
+            [contrast.id]
+        )
+    }
+
+    @MainActor
     func testNewCardsAreImmediatelyDueAndLimitIsHonored() throws {
         let container = try makeContainer()
         let context = container.mainContext
