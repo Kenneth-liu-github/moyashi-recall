@@ -139,7 +139,6 @@ public struct LibraryView: View {
             let repository = LearningRepository(
                 context: modelContext
             )
-            try repository.seedDemoIfNeeded()
             reviewSources = try repository.reviewSources()
             importedItems = try repository.importedDocuments(
                 sourceKind: "notion"
