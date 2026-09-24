@@ -33,7 +33,13 @@ public struct LibraryView: View {
                                 )
                             ) {
                                 ForEach(importedItems) { item in
-                                    importedRow(item)
+                                    NavigationLink {
+                                        ImportedPageDetailView(
+                                            item: item
+                                        )
+                                    } label: {
+                                        importedRow(item)
+                                    }
                                 }
                             }
                         }
