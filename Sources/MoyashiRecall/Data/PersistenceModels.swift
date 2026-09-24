@@ -12,6 +12,8 @@ public final class KnowledgeItemEntity {
     public var sourcePath: String = ""
     public var sourceKey: String = ""
     public var hierarchyDepth: Int = 0
+    public var sourceLastEditedAt: Date?
+    public var lastSyncedAt: Date?
     public var sourceReference: String
     public var createdAt: Date
     public var updatedAt: Date
@@ -26,6 +28,8 @@ public final class KnowledgeItemEntity {
         sourcePath: String = "",
         sourceKey: String = "",
         hierarchyDepth: Int = 0,
+        sourceLastEditedAt: Date? = nil,
+        lastSyncedAt: Date? = nil,
         sourceReference: String,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -39,6 +43,8 @@ public final class KnowledgeItemEntity {
         self.sourcePath = sourcePath
         self.sourceKey = sourceKey
         self.hierarchyDepth = hierarchyDepth
+        self.sourceLastEditedAt = sourceLastEditedAt
+        self.lastSyncedAt = lastSyncedAt
         self.sourceReference = sourceReference
         self.createdAt = createdAt
         self.updatedAt = updatedAt
