@@ -31,6 +31,44 @@ final class AIExtractionCoreTests: XCTestCase {
         )
     }
 
+    func testNormalizationTrimsStableKeysBeforePersistence() {
+        let bundle = KnowledgeExtractionBundle(
+            version: " v1 ",
+            items: [
+                ExtractedKnowledgeItem(
+                    key: " item-key ",
+                    kind: .expression,
+                    title: "T",
+                    canonicalExpression: "T",
+                    meaning: "M",
+                    explanation: "E",
+                    cards: [
+                        GeneratedFlashcard(
+                            key: " card-key ",
+                            type: .zhToJa,
+                            prompt: "Q",
+                            answer: "A"
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let normalized = KnowledgeExtractionService.normalize(
+            bundle
+        )
+
+        XCTAssertEqual(normalized.version, "v1")
+        XCTAssertEqual(
+            normalized.items.first?.key,
+            "item-key"
+        )
+        XCTAssertEqual(
+            normalized.items.first?.cards.first?.key,
+            "card-key"
+        )
+    }
+
     func testValidationRejectsDuplicateKnowledgeKeys() {
         let item = ExtractedKnowledgeItem(
             key: "duplicate",
