@@ -38,6 +38,8 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let sourceReference: String
     public let sourceLastEditedAt: Date?
     public let lastSyncedAt: Date?
+    public let lastAIProcessedAt: Date?
+    public let needsAIRefresh: Bool
 
     public init(entity: SourceDocumentEntity) {
         self.id = entity.id
@@ -54,6 +56,10 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
         self.sourceReference = entity.sourceReference
         self.sourceLastEditedAt = entity.sourceLastEditedAt
         self.lastSyncedAt = entity.lastSyncedAt
+        self.lastAIProcessedAt = entity.lastAIProcessedAt
+        self.needsAIRefresh =
+            entity.lastAIProcessedAt == nil
+            || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
     }
 }
 
@@ -84,6 +90,7 @@ public struct SourceDocumentSnapshot: Identifiable, Equatable, Sendable {
     public let sourceKey: String
     public let sourcePath: String
     public let sourceReference: String
+    public let updatedAt: Date
 
     public init(entity: SourceDocumentEntity) {
         self.id = entity.id
@@ -93,6 +100,7 @@ public struct SourceDocumentSnapshot: Identifiable, Equatable, Sendable {
         self.sourceKey = entity.sourceKey
         self.sourcePath = entity.sourcePath
         self.sourceReference = entity.sourceReference
+        self.updatedAt = entity.updatedAt
     }
 
     public var importedDocument: ImportedDocument {
@@ -356,6 +364,21 @@ public struct LearningRepository {
             )
         }
 
+        let targetSourceID = sourceDocumentID
+        var sourceDescriptor = FetchDescriptor<SourceDocumentEntity>(
+            predicate: #Predicate { document in
+                document.id == targetSourceID
+            }
+        )
+        sourceDescriptor.fetchLimit = 1
+        guard let sourceEntity = try context.fetch(
+            sourceDescriptor
+        ).first else {
+            throw LearningRepositoryError.sourceDocumentNotFound(
+                sourceDocumentID
+            )
+        }
+
         let allKnowledge = try context.fetch(
             FetchDescriptor<KnowledgeItemEntity>()
         )
@@ -533,6 +556,8 @@ public struct LearningRepository {
             }
         }
 
+        sourceEntity.lastAIProcessedAt = now
+        sourceEntity.aiProcessedSourceUpdatedAt = sourceEntity.updatedAt
         try context.save()
 
         return ExtractionPersistenceReport(
