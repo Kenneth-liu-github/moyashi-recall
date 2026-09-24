@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 
 public struct ReviewView: View {
+    private let sourceTitles: Set<String>?
+    private let sessionLimit: Int
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
     @Query private var allCards: [FlashcardEntity]
@@ -12,7 +14,10 @@ public struct ReviewView: View {
     @State private var currentIndex = 0
     @State private var saveError: String?
 
-    public init() {}
+    public init(sourceTitles: Set<String>? = nil, sessionLimit: Int = 20) {
+        self.sourceTitles = sourceTitles
+        self.sessionLimit = sessionLimit
+    }
 
     private var currentCard: FlashcardEntity? {
         guard currentIndex < sessionCardIDs.count else { return nil }
@@ -162,7 +167,11 @@ public struct ReviewView: View {
     private func loadSessionIfNeeded() {
         guard sessionCardIDs.isEmpty else { return }
         do {
-            let cards = try ReviewQueueService().dueCards(in: modelContext, limit: 20)
+            let cards = try ReviewQueueService().dueCards(
+                in: modelContext,
+                sourceTitles: sourceTitles,
+                limit: sessionLimit
+            )
             sessionCardIDs = cards.map(\.id)
             currentIndex = 0
             reviewed = 0
