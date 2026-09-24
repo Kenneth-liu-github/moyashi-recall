@@ -8,6 +8,7 @@ public enum MockData {
     ]
 
     public static let reviewCard = ReviewCard(
+        id: UUID(uuidString: "7D4ED5E0-4E76-4C36-8D6B-9099F57A3101")!,
         prompt: "“关于推进方式”用自然的商务日语怎么说？",
         answer: "進（すす）め方（かた）について",
         meaning: "关于推进方式 / 关于如何推进",
