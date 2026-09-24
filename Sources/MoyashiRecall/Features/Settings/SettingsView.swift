@@ -20,13 +20,24 @@ public struct SettingsView: View {
                 }
 
                 Section(language.text("连接", "接続")) {
-                    LabeledContent(
-                        "Notion",
-                        value: language.text("V0.3 计划接入", "V0.3 で接続予定")
-                    )
+                    NavigationLink {
+                        NotionConnectionView()
+                    } label: {
+                        LabeledContent(
+                            "Notion",
+                            value: language.text(
+                                "配置与同步",
+                                "設定と同期"
+                            )
+                        )
+                    }
+
                     LabeledContent(
                         "AI",
-                        value: language.text("V0.4 计划接入", "V0.4 で接続予定")
+                        value: language.text(
+                            "V0.4 计划接入",
+                            "V0.4 で接続予定"
+                        )
                     )
                 }
 
