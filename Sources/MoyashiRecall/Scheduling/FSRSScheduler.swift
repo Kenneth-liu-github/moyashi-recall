@@ -47,93 +47,215 @@ public struct FSRSScheduleResult: Equatable, Sendable {
     }
 }
 
-/// V0.2 scheduling engine.
+/// Day-level FSRS-6 scheduler.
 ///
-/// This keeps the app's persistence/UI contract independent from the scheduling
-/// implementation. The parameters are deliberately centralized so we can later
-/// replace or calibrate them against a canonical FSRS implementation without
-/// migrating stored review history.
+/// This implements the canonical FSRS-6 memory-state equations with the
+/// published 21 default parameters. Moyashi Recall intentionally does not yet
+/// add sub-day learning steps or interval fuzzing; those are card-state UX
+/// policies layered on top of the FSRS core math.
 public struct FSRSScheduler: Sendable {
-    public var desiredRetention: Double
+    public static let defaultParameters: [Double] = [
+        0.212, 1.2931, 2.3065, 8.2956,
+        6.4133, 0.8334, 3.0194, 0.001,
+        1.8722, 0.1666, 0.796, 1.4835,
+        0.0614, 0.2629, 1.6483, 0.6014,
+        1.8729, 0.5425, 0.0912, 0.0658,
+        0.1542
+    ]
 
-    public init(desiredRetention: Double = 0.90) {
+    public let parameters: [Double]
+    public let desiredRetention: Double
+    public let maximumInterval: Int
+
+    private let decay: Double
+    private let factor: Double
+
+    public init(
+        parameters: [Double] = FSRSScheduler.defaultParameters,
+        desiredRetention: Double = 0.90,
+        maximumInterval: Int = 36_500
+    ) {
+        precondition(parameters.count == 21, "FSRS-6 requires exactly 21 parameters.")
+        self.parameters = parameters
         self.desiredRetention = min(max(desiredRetention, 0.70), 0.97)
+        self.maximumInterval = max(1, maximumInterval)
+        self.decay = -parameters[20]
+        self.factor = pow(0.9, 1.0 / self.decay) - 1.0
     }
 
     public func schedule(
         _ current: FSRSCardState,
         rating: ReviewRating,
-        now: Date = .now,
-        calendar: Calendar = .current
+        now: Date = .now
     ) -> FSRSScheduleResult {
-        let elapsed = max(0, current.lastReview.map { calendar.dateComponents([.day], from: $0, to: now).day ?? 0 } ?? 0)
-        let nextDifficulty = adjustedDifficulty(current.difficulty, rating: rating)
-        let nextStability: Double
-        let nextState: ReviewLearningState
-        var lapses = current.lapses
+        let elapsed = elapsedDays(since: current.lastReview, now: now)
+        let isNew = current.state == .new || current.lastReview == nil || current.stability <= 0
 
-        if current.state == .new {
+        let nextStability: Double
+        let nextDifficulty: Double
+
+        if isNew {
             nextStability = initialStability(for: rating)
-            nextState = rating == .again ? .learning : .review
-        } else if rating == .again {
-            nextStability = max(0.2, current.stability * 0.35)
-            nextState = .relearning
-            lapses += 1
+            nextDifficulty = initialDifficulty(for: rating, clamp: true)
+        } else if elapsed < 1 {
+            nextStability = shortTermStability(
+                stability: current.stability,
+                rating: rating
+            )
+            nextDifficulty = updatedDifficulty(
+                current.difficulty,
+                rating: rating
+            )
         } else {
-            let retrievability = self.retrievability(stability: max(current.stability, 0.1), elapsedDays: elapsed)
-            let ratingFactor: Double = rating == .hard ? 0.70 : (rating == .easy ? 1.35 : 1.0)
-            let difficultyFactor = max(0.35, (11.0 - nextDifficulty) / 6.0)
-            let growth = 1.0 + ratingFactor * difficultyFactor * (1.0 - retrievability + 0.12)
-            nextStability = max(current.stability + 0.1, current.stability * growth)
+            let r = retrievability(
+                stability: current.stability,
+                elapsedDays: elapsed
+            )
+            nextStability = rating == .again
+                ? forgetStability(
+                    difficulty: current.difficulty,
+                    stability: current.stability,
+                    retrievability: r
+                )
+                : recallStability(
+                    difficulty: current.difficulty,
+                    stability: current.stability,
+                    retrievability: r,
+                    rating: rating
+                )
+            nextDifficulty = updatedDifficulty(
+                current.difficulty,
+                rating: rating
+            )
+        }
+
+        let interval = intervalDays(forStability: nextStability)
+        let due = now.addingTimeInterval(TimeInterval(interval) * 86_400)
+
+        var nextLapses = current.lapses
+        if !isNew && rating == .again {
+            nextLapses += 1
+        }
+
+        let nextState: ReviewLearningState
+        if rating == .again {
+            nextState = isNew ? .learning : .relearning
+        } else {
             nextState = .review
         }
 
-        let interval = intervalDays(stability: nextStability, rating: rating, state: nextState)
-        let due = calendar.date(byAdding: .day, value: interval, to: now) ?? now
         let next = FSRSCardState(
             due: due,
-            stability: nextStability,
-            difficulty: nextDifficulty,
+            stability: max(nextStability, 0.001),
+            difficulty: clampDifficulty(nextDifficulty),
             repetitions: current.repetitions + 1,
-            lapses: lapses,
+            lapses: nextLapses,
             state: nextState,
             lastReview: now
         )
-        return FSRSScheduleResult(state: next, elapsedDays: elapsed, scheduledDays: interval)
+
+        return FSRSScheduleResult(
+            state: next,
+            elapsedDays: elapsed,
+            scheduledDays: interval
+        )
     }
 
     public func retrievability(stability: Double, elapsedDays: Int) -> Double {
         guard stability > 0 else { return 0 }
-        let t = Double(max(0, elapsedDays))
-        return pow(1.0 + t / (9.0 * stability), -1.0)
+        let days = Double(max(0, elapsedDays))
+        return pow(1.0 + factor * days / stability, decay)
+    }
+
+    public func intervalDays(forStability stability: Double) -> Int {
+        let raw = (max(stability, 0.001) / factor)
+            * (pow(desiredRetention, 1.0 / decay) - 1.0)
+        return min(maximumInterval, max(1, Int(raw.rounded())))
+    }
+
+    private func elapsedDays(since lastReview: Date?, now: Date) -> Int {
+        guard let lastReview else { return 0 }
+        return max(0, Int(floor(now.timeIntervalSince(lastReview) / 86_400)))
     }
 
     private func initialStability(for rating: ReviewRating) -> Double {
-        switch rating {
-        case .again: return 0.25
-        case .hard: return 1.2
-        case .good: return 3.0
-        case .easy: return 7.0
-        }
+        max(parameters[rating.rawValue - 1], 0.001)
     }
 
-    private func adjustedDifficulty(_ current: Double, rating: ReviewRating) -> Double {
-        let delta: Double
-        switch rating {
-        case .again: delta = 1.0
-        case .hard: delta = 0.45
-        case .good: delta = -0.15
-        case .easy: delta = -0.7
-        }
-        return min(10, max(1, current + delta))
+    private func initialDifficulty(for rating: ReviewRating, clamp: Bool) -> Double {
+        let value = parameters[4]
+            - exp(parameters[5] * Double(rating.rawValue - 1))
+            + 1.0
+        return clamp ? clampDifficulty(value) : value
     }
 
-    private func intervalDays(stability: Double, rating: ReviewRating, state: ReviewLearningState) -> Int {
-        if rating == .again || state == .learning || state == .relearning {
-            return 1
+    private func updatedDifficulty(
+        _ difficulty: Double,
+        rating: ReviewRating
+    ) -> Double {
+        let delta = -parameters[6] * Double(rating.rawValue - 3)
+        let damped = difficulty + (10.0 - difficulty) * delta / 9.0
+        let easyTarget = initialDifficulty(for: .easy, clamp: false)
+        let reverted = parameters[7] * easyTarget
+            + (1.0 - parameters[7]) * damped
+        return clampDifficulty(reverted)
+    }
+
+    private func shortTermStability(
+        stability: Double,
+        rating: ReviewRating
+    ) -> Double {
+        var increase = exp(
+            parameters[17]
+            * (Double(rating.rawValue - 3) + parameters[18])
+        ) * pow(stability, -parameters[19])
+
+        if rating != .again {
+            increase = max(increase, 1.0)
         }
-        let retentionScale = log(desiredRetention) / log(0.90)
-        let raw = stability * max(0.55, retentionScale)
-        return max(1, Int(raw.rounded()))
+        return max(0.001, stability * increase)
+    }
+
+    private func forgetStability(
+        difficulty: Double,
+        stability: Double,
+        retrievability: Double
+    ) -> Double {
+        let longTerm = parameters[11]
+            * pow(difficulty, -parameters[12])
+            * (pow(stability + 1.0, parameters[13]) - 1.0)
+            * exp(parameters[14] * (1.0 - retrievability))
+
+        let shortTermCap = stability
+            / exp(parameters[17] * parameters[18])
+
+        return max(0.001, min(longTerm, shortTermCap))
+    }
+
+    private func recallStability(
+        difficulty: Double,
+        stability: Double,
+        retrievability: Double,
+        rating: ReviewRating
+    ) -> Double {
+        let hardPenalty = rating == .hard ? parameters[15] : 1.0
+        let easyBonus = rating == .easy ? parameters[16] : 1.0
+
+        return max(
+            0.001,
+            stability * (
+                1.0
+                + exp(parameters[8])
+                * (11.0 - difficulty)
+                * pow(stability, -parameters[9])
+                * (exp(parameters[10] * (1.0 - retrievability)) - 1.0)
+                * hardPenalty
+                * easyBonus
+            )
+        )
+    }
+
+    private func clampDifficulty(_ value: Double) -> Double {
+        min(10.0, max(1.0, value))
     }
 }
