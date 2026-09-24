@@ -46,9 +46,9 @@ public struct ReviewQueueService {
             case (nil, nil):
                 return lhs.createdAt < rhs.createdAt
             case (nil, _):
-                return true
-            case (_, nil):
                 return false
+            case (_, nil):
+                return true
             case let (l?, r?):
                 return l.due < r.due
             }
