@@ -239,7 +239,7 @@ final class NotionImportServiceTests: XCTestCase {
     }
 }
 
-private final class ImportServiceHTTPTransport: HTTPTransport {
+private final class ImportServiceHTTPTransport: HTTPTransport, @unchecked Sendable {
     typealias Handler = (
         URLRequest
     ) throws -> (Data, URLResponse)
