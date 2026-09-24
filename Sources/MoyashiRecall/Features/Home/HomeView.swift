@@ -1,9 +1,40 @@
 import SwiftUI
+import SwiftData
 
 public struct HomeView: View {
     @EnvironmentObject private var language: LanguageStore
+    @Query private var cards: [FlashcardEntity]
+    @Query(sort: \ReviewStateEntity.due) private var reviewStates: [ReviewStateEntity]
+    @Query(sort: \ReviewHistoryEntity.reviewedAt, order: .reverse) private var reviewHistory: [ReviewHistoryEntity]
 
     public init() {}
+
+    private var dueCount: Int {
+        let now = Date()
+        let stateByCard = Dictionary(uniqueKeysWithValues: reviewStates.map { ($0.cardID, $0) })
+        return cards.reduce(0) { count, card in
+            guard let state = stateByCard[card.id] else { return count + 1 }
+            return count + (state.due <= now ? 1 : 0)
+        }
+    }
+
+    private var streakDays: Int {
+        let calendar = Calendar.current
+        let days = Set(reviewHistory.map { calendar.startOfDay(for: $0.reviewedAt) })
+        guard !days.isEmpty else { return 0 }
+
+        var streak = 0
+        var cursor = calendar.startOfDay(for: .now)
+        if !days.contains(cursor) {
+            cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+        }
+
+        while days.contains(cursor) {
+            streak += 1
+            cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+        }
+        return streak
+    }
 
     public var body: some View {
         NavigationStack {
@@ -18,18 +49,23 @@ public struct HomeView: View {
                     }
 
                     HStack(spacing: 12) {
-                        metric("28", language.text("今日到期", "今日の期限"))
-                        metric("12", language.text("连续学习", "連続学習"))
+                        metric("\(dueCount)", language.text("今日到期", "今日の期限"))
+                        metric("\(streakDays)", language.text("连续学习", "連続学習"))
                     }
 
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Text(language.text("今日复习", "今日の復習")).font(.headline)
                             Spacer()
-                            Text("≈ 8 min").font(.caption).foregroundStyle(AppTheme.muted)
+                            Text(language.text("实时数据", "リアルタイム")).font(.caption).foregroundStyle(AppTheme.muted)
                         }
-                        Text(language.text("28 张卡片等待复习。你可以先选择资料来源，再开始本次学习。", "28枚のカードが復習待ちです。学習ソースを選んで開始できます。"))
-                            .foregroundStyle(AppTheme.muted)
+                        Text(
+                            language.text(
+                                dueCount == 0 ? "今天没有到期卡片。" : "\(dueCount) 张卡片等待复习。",
+                                dueCount == 0 ? "今日は期限のカードがありません。" : "\(dueCount)枚のカードが復習待ちです。"
+                            )
+                        )
+                        .foregroundStyle(AppTheme.muted)
 
                         NavigationLink {
                             StudyScopeView()
