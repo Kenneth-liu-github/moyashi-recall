@@ -869,6 +869,64 @@ public struct LearningRepository {
         return filtered.map(ReviewSessionCard.init)
     }
 
+    public func reviewSources() throws -> [StudySource] {
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter(\.isActive)
+
+        let counts = cards.reduce(
+            into: [String: Int]()
+        ) { result, card in
+            guard !card.sourceKey.isEmpty else {
+                return
+            }
+            result[card.sourceKey, default: 0] += 1
+        }
+
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter(\.isSourceActive)
+
+        var documentByKey: [
+            String: SourceDocumentEntity
+        ] = [:]
+        for document in documents
+        where documentByKey[document.sourceKey] == nil {
+            documentByKey[document.sourceKey] = document
+        }
+
+        return counts.map { key, count in
+            let document = documentByKey[key]
+            let title = document
+                .map {
+                    Self.categoryTitle(
+                        from: $0.sourcePath
+                    )
+                }
+                ?? Self.fallbackSourceTitle(
+                    for: key
+                )
+
+            let detail = document?.sourceKind
+                .capitalized
+                ?? "Local"
+
+            return StudySource(
+                key: key,
+                title: title,
+                detail: detail,
+                cardCount: count
+            )
+        }
+        .sorted {
+            $0.title.localizedCompare(
+                $1.title
+            ) == .orderedAscending
+        }
+    }
+
     public func cardCountsBySourceKey() throws -> [String: Int] {
         let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
             .filter(\.isActive)
@@ -889,6 +947,38 @@ public struct LearningRepository {
             in: context,
             now: now
         )
+    }
+
+    private static func categoryTitle(
+        from sourcePath: String
+    ) -> String {
+        let components = sourcePath
+            .components(
+                separatedBy: " / "
+            )
+            .filter { !$0.isEmpty }
+
+        if components.first == "Learning Home",
+           components.count >= 2 {
+            return components[1]
+        }
+
+        return components.first ?? sourcePath
+    }
+
+    private static func fallbackSourceTitle(
+        for key: String
+    ) -> String {
+        switch key {
+        case "office-japanese":
+            return "办公室日语学习"
+        case "japanese-bootcamp":
+            return "日语训练营"
+        case "japanese-speaking":
+            return "日语口语 私教"
+        default:
+            return key
+        }
     }
 
     public func homeSnapshot(now: Date = .now) throws -> HomeSnapshot {
