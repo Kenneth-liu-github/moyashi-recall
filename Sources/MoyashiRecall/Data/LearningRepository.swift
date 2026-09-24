@@ -121,6 +121,19 @@ public struct SourceDocumentSnapshot: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct GeneratedContentSummary: Equatable, Sendable {
+    public let knowledgeCount: Int
+    public let cardCount: Int
+
+    public init(
+        knowledgeCount: Int,
+        cardCount: Int
+    ) {
+        self.knowledgeCount = knowledgeCount
+        self.cardCount = cardCount
+    }
+}
+
 public struct ExtractionPersistenceReport: Equatable, Sendable {
     public let knowledgeInserted: Int
     public let knowledgeUpdated: Int
@@ -372,6 +385,31 @@ public struct LearningRepository {
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
             .map(SourceDocumentSnapshot.init)
+    }
+
+    public func generatedContentSummary(
+        sourceDocumentID: UUID
+    ) throws -> GeneratedContentSummary {
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        .filter {
+            $0.sourceDocumentID == sourceDocumentID
+                && $0.isActive
+        }
+
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter {
+            $0.sourceDocumentID == sourceDocumentID
+                && $0.isActive
+        }
+
+        return GeneratedContentSummary(
+            knowledgeCount: knowledge.count,
+            cardCount: cards.count
+        )
     }
 
     public func persistExtraction(
