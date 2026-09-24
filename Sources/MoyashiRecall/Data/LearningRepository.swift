@@ -55,6 +55,25 @@ public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
     }
 }
 
+public enum ImportMutation: String, Equatable, Sendable {
+    case inserted
+    case updated
+    case unchanged
+}
+
+public struct ImportedDocumentUpsertResult {
+    public let entity: KnowledgeItemEntity
+    public let mutation: ImportMutation
+
+    public init(
+        entity: KnowledgeItemEntity,
+        mutation: ImportMutation
+    ) {
+        self.entity = entity
+        self.mutation = mutation
+    }
+}
+
 public struct HomeSnapshot: Equatable, Sendable {
     public let dueCount: Int
     public let streakDays: Int
@@ -91,6 +110,16 @@ public struct LearningRepository {
         _ document: ImportedDocument,
         now: Date = .now
     ) throws -> KnowledgeItemEntity {
+        try upsertImportedDocumentWithResult(
+            document,
+            now: now
+        ).entity
+    }
+
+    public func upsertImportedDocumentWithResult(
+        _ document: ImportedDocument,
+        now: Date = .now
+    ) throws -> ImportedDocumentUpsertResult {
         let sourceKind = document.sourceKind
         let externalID = document.id
         var descriptor = FetchDescriptor<KnowledgeItemEntity>(
@@ -110,6 +139,28 @@ public struct LearningRepository {
         let rootExternalID = document.rootExternalID
 
         if let existing = try context.fetch(descriptor).first {
+            let unchanged =
+                existing.title == document.title
+                && existing.content == document.content
+                && existing.parentExternalSourceID == parentExternalID
+                && existing.rootExternalSourceID == rootExternalID
+                && existing.sourcePath == sourcePath
+                && existing.sourceKey == sourceKey
+                && existing.hierarchyDepth == document.hierarchyDepth
+                && existing.sourceLastEditedAt == document.lastEditedAt
+                && existing.sourceReference == document.sourceReference
+                && existing.isSourceActive
+
+            existing.lastSyncedAt = now
+
+            if unchanged {
+                try context.save()
+                return ImportedDocumentUpsertResult(
+                    entity: existing,
+                    mutation: .unchanged
+                )
+            }
+
             existing.title = document.title
             existing.content = document.content
             existing.parentExternalSourceID = parentExternalID
@@ -119,11 +170,14 @@ public struct LearningRepository {
             existing.hierarchyDepth = document.hierarchyDepth
             existing.isSourceActive = true
             existing.sourceLastEditedAt = document.lastEditedAt
-            existing.lastSyncedAt = now
             existing.sourceReference = document.sourceReference
             existing.updatedAt = now
             try context.save()
-            return existing
+
+            return ImportedDocumentUpsertResult(
+                entity: existing,
+                mutation: .updated
+            )
         }
 
         let item = KnowledgeItemEntity(
@@ -145,7 +199,11 @@ public struct LearningRepository {
         )
         context.insert(item)
         try context.save()
-        return item
+
+        return ImportedDocumentUpsertResult(
+            entity: item,
+            mutation: .inserted
+        )
     }
 
     public func importedKnowledgeItems(
