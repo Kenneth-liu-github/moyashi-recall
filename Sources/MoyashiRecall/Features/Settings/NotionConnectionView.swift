@@ -112,6 +112,7 @@ public struct NotionConnectionView: View {
                 ForEach(searchResults, id: \.id) { page in
                     Button {
                         rootPageID = page.id
+                        loadLastSyncState()
                         statusMessage = language.text(
                             "已选择：\(page.title)",
                             "選択済み：\(page.title)"
@@ -191,7 +192,8 @@ public struct NotionConnectionView: View {
                 }
             }
 
-            if let lastSyncState {
+            if let lastSyncState,
+               lastSyncState.rootPageID == rootPageID {
                 Section(
                     language.text(
                         "最近同步",
