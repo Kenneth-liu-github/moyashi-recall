@@ -306,6 +306,16 @@ public struct AIProviderSettingsView: View {
                     "AI Provider 返回错误 \(statusCode)：\(message)",
                     "AI Provider エラー \(statusCode)：\(message)"
                 )
+            case let .refused(message):
+                statusMessage = language.text(
+                    "AI 拒绝了连接测试：\(message)",
+                    "AIが接続テストを拒否しました：\(message)"
+                )
+            case let .incomplete(reason):
+                statusMessage = language.text(
+                    "AI 连接测试输出未完成：\(reason)。",
+                    "AI接続テストの出力が未完了です：\(reason)。"
+                )
             case .invalidResponse, .decodingFailed:
                 statusMessage = language.text(
                     "AI 返回的数据格式无效。",
