@@ -14,6 +14,7 @@ let package = Package(
             sources: [
                 "Scheduling/ReviewLearningState.swift",
                 "Scheduling/FSRSScheduler.swift",
+                "Models/LearningModels.swift",
                 "Core/Networking/HTTPTransport.swift",
                 "AI/AICompletionProvider.swift",
                 "AI/KnowledgeExtractionModels.swift",
