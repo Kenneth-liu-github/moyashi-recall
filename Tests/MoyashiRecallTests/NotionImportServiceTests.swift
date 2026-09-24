@@ -121,7 +121,7 @@ final class NotionImportServiceTests: XCTestCase {
         XCTAssertFalse(report.isComplete)
         XCTAssertEqual(report.deactivated, 0)
 
-        let visible = try repository.importedKnowledgeItems(
+        let visible = try repository.importedDocuments(
             sourceKind: "notion"
         )
         XCTAssertTrue(
@@ -213,7 +213,7 @@ final class NotionImportServiceTests: XCTestCase {
         XCTAssertEqual(report.unchanged, 0)
         XCTAssertEqual(report.deactivated, 1)
 
-        let visible = try repository.importedKnowledgeItems(
+        let visible = try repository.importedDocuments(
             sourceKind: "notion"
         )
         XCTAssertEqual(
