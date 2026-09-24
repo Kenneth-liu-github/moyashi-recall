@@ -4,6 +4,7 @@ import SwiftData
 public struct MoyashiRecallRootView: View {
     @StateObject private var language = LanguageStore()
     @Environment(\.modelContext) private var modelContext
+    @State private var migrationError: String?
 
     public init() {}
 
@@ -61,10 +62,43 @@ public struct MoyashiRecallRootView: View {
             language.language.locale
         )
         .task {
-            try? LearningRepository(
-                context: modelContext
+            do {
+                _ = try LearningRepository(
+                    context: modelContext
+                )
+                .migrateLegacyImportedKnowledgeIfNeeded()
+                migrationError = nil
+            } catch {
+                migrationError = language.text(
+                    "本地学习数据升级失败。旧数据没有被删除，请重启 App 后重试。",
+                    "ローカル学習データの更新に失敗しました。既存データは削除されていません。Appを再起動して再試行してください。"
+                )
+            }
+        }
+        .alert(
+            language.text(
+                "数据升级失败",
+                "データ更新に失敗しました"
+            ),
+            isPresented: Binding(
+                get: { migrationError != nil },
+                set: { presented in
+                    if !presented {
+                        migrationError = nil
+                    }
+                }
             )
-            .migrateLegacyImportedKnowledgeIfNeeded()
+        ) {
+            Button(
+                language.text("知道了", "OK"),
+                role: .cancel
+            ) {
+                migrationError = nil
+            }
+        } message: {
+            if let migrationError {
+                Text(migrationError)
+            }
         }
     }
 }
