@@ -171,8 +171,8 @@ public struct NotionConnectionView: View {
 
                     Button(
                         language.text(
-                            "同步此页面到本地",
-                            "このページを同期"
+                            "同步此页面及子页面",
+                            "このページと子ページを同期"
                         )
                     ) {
                         Task {
@@ -358,13 +358,13 @@ public struct NotionConnectionView: View {
                 repository: repository,
                 client: client
             )
-            let item = try await service.syncPage(
-                id: rootPageID
+            let items = try await service.syncPageTree(
+                rootID: rootPageID
             )
 
             statusMessage = language.text(
-                "同步完成：\(item.title)",
-                "同期完了：\(item.title)"
+                "同步完成：\(items.count) 个页面。",
+                "同期完了：\(items.count)ページ。"
             )
         } catch {
             statusMessage = connectionErrorMessage(error)
