@@ -38,6 +38,7 @@ public final class FlashcardEntity {
     public var prompt: String
     public var answer: String
     public var explanation: String
+    public var naturalEnglish: String
     public var sourceReference: String
     public var createdAt: Date
 
@@ -48,6 +49,7 @@ public final class FlashcardEntity {
         prompt: String,
         answer: String,
         explanation: String = "",
+        naturalEnglish: String = "",
         sourceReference: String,
         createdAt: Date = .now
     ) {
@@ -57,6 +59,7 @@ public final class FlashcardEntity {
         self.prompt = prompt
         self.answer = answer
         self.explanation = explanation
+        self.naturalEnglish = naturalEnglish
         self.sourceReference = sourceReference
         self.createdAt = createdAt
     }
