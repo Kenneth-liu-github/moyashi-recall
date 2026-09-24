@@ -78,6 +78,7 @@ public final class KnowledgeItemEntity {
     public var tags: String = ""
     public var sourceKind: String
     public var sourceKey: String = ""
+    public var sourceDisplayPath: String = ""
     public var sourceReference: String
 
     // V0.3 compatibility fields. Imported source pages now live in
@@ -111,6 +112,7 @@ public final class KnowledgeItemEntity {
         tags: String = "",
         sourceKind: String,
         sourceKey: String = "",
+        sourceDisplayPath: String = "",
         sourceReference: String,
         externalSourceID: String = "",
         parentExternalSourceID: String = "",
@@ -140,6 +142,7 @@ public final class KnowledgeItemEntity {
         self.tags = tags
         self.sourceKind = sourceKind
         self.sourceKey = sourceKey
+        self.sourceDisplayPath = sourceDisplayPath
         self.sourceReference = sourceReference
         self.externalSourceID = externalSourceID
         self.parentExternalSourceID = parentExternalSourceID
@@ -170,6 +173,7 @@ public final class FlashcardEntity {
     public var explanation: String = ""
     public var naturalEnglish: String = ""
     public var sourceKey: String = ""
+    public var sourceDisplayPath: String = ""
     public var sourceReference: String
     public var isActive: Bool = true
     public var createdAt: Date
@@ -186,6 +190,7 @@ public final class FlashcardEntity {
         explanation: String = "",
         naturalEnglish: String = "",
         sourceKey: String = "",
+        sourceDisplayPath: String = "",
         sourceReference: String,
         isActive: Bool = true,
         createdAt: Date = .now,
@@ -201,6 +206,7 @@ public final class FlashcardEntity {
         self.explanation = explanation
         self.naturalEnglish = naturalEnglish
         self.sourceKey = sourceKey
+        self.sourceDisplayPath = sourceDisplayPath
         self.sourceReference = sourceReference
         self.isActive = isActive
         self.createdAt = createdAt
