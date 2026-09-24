@@ -8,6 +8,10 @@ public final class KnowledgeItemEntity {
     public var content: String
     public var sourceKind: String
     public var externalSourceID: String = ""
+    public var parentExternalSourceID: String = ""
+    public var sourcePath: String = ""
+    public var sourceKey: String = ""
+    public var hierarchyDepth: Int = 0
     public var sourceReference: String
     public var createdAt: Date
     public var updatedAt: Date
@@ -18,6 +22,10 @@ public final class KnowledgeItemEntity {
         content: String,
         sourceKind: String,
         externalSourceID: String = "",
+        parentExternalSourceID: String = "",
+        sourcePath: String = "",
+        sourceKey: String = "",
+        hierarchyDepth: Int = 0,
         sourceReference: String,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -27,6 +35,10 @@ public final class KnowledgeItemEntity {
         self.content = content
         self.sourceKind = sourceKind
         self.externalSourceID = externalSourceID
+        self.parentExternalSourceID = parentExternalSourceID
+        self.sourcePath = sourcePath
+        self.sourceKey = sourceKey
+        self.hierarchyDepth = hierarchyDepth
         self.sourceReference = sourceReference
         self.createdAt = createdAt
         self.updatedAt = updatedAt
