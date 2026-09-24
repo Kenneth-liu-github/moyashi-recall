@@ -94,12 +94,15 @@ public struct AIProcessingService {
                 sourceReference: source.sourceReference,
                 content: chunk,
                 sourcePath: source.sourcePath
-                    .split(separator: "/")
+                    .components(
+                        separatedBy: " / "
+                    )
                     .map {
                         $0.trimmingCharacters(
                             in: .whitespacesAndNewlines
                         )
                     }
+                    .filter { !$0.isEmpty }
             )
 
             let extraction = try await extractor.extract(
