@@ -130,6 +130,97 @@ final class NotionImportServiceTests: XCTestCase {
         )
     }
 
+    @MainActor
+    func testCompleteTreeSyncReportsAndDeactivatesRemovedPages() async throws {
+        let container = try makeContainer()
+        let repository = LearningRepository(
+            context: container.mainContext
+        )
+
+        _ = try repository.upsertImportedDocument(
+            ImportedDocument(
+                id: "stale-child",
+                sourceKind: "notion",
+                title: "旧页面",
+                sourceReference: "notion://stale-child",
+                content: "old",
+                parentExternalID: "root",
+                rootExternalID: "root",
+                sourcePath: ["Learning Home", "旧页面"],
+                hierarchyDepth: 1
+            )
+        )
+
+        let transport = ImportServiceHTTPTransport { request in
+            switch request.url?.path {
+            case "/v1/pages/root":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "id": "root",
+                      "properties": {
+                        "title": {
+                          "type": "title",
+                          "title": [{"plain_text": "Learning Home"}]
+                        }
+                      }
+                    }
+                    """
+                )
+
+            case "/v1/blocks/root/children":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "object": "list",
+                      "results": [],
+                      "next_cursor": null,
+                      "has_more": false
+                    }
+                    """
+                )
+
+            default:
+                XCTFail("Unexpected request")
+                return Self.response(
+                    url: request.url!,
+                    statusCode: 500,
+                    json: #"{"message":"unexpected"}"#
+                )
+            }
+        }
+
+        let service = NotionImportService(
+            repository: repository,
+            client: NotionAPIClient(
+                token: "test",
+                transport: transport,
+                baseURL: URL(string: "https://api.notion.test")!
+            )
+        )
+
+        let report = try await service.syncPageTreeReport(
+            rootID: "root"
+        )
+
+        XCTAssertTrue(report.isComplete)
+        XCTAssertEqual(report.totalPages, 1)
+        XCTAssertEqual(report.inserted, 1)
+        XCTAssertEqual(report.updated, 0)
+        XCTAssertEqual(report.unchanged, 0)
+        XCTAssertEqual(report.deactivated, 1)
+
+        let visible = try repository.importedKnowledgeItems(
+            sourceKind: "notion"
+        )
+        XCTAssertEqual(
+            visible.map(\.externalSourceID),
+            ["root"]
+        )
+    }
+
     private static func response(
         url: URL,
         statusCode: Int = 200,
