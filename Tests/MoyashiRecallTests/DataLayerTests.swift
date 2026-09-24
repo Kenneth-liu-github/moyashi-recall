@@ -377,7 +377,7 @@ final class DataLayerTests: XCTestCase {
             now.addingTimeInterval(60)
         )
 
-        let summaries = try repository.importedKnowledgeItems(
+        let summaries = try repository.importedDocuments(
             sourceKind: "notion"
         )
         XCTAssertEqual(summaries.count, 1)
@@ -441,7 +441,7 @@ final class DataLayerTests: XCTestCase {
             false
         )
 
-        let visible = try repository.importedKnowledgeItems(
+        let visible = try repository.importedDocuments(
             sourceKind: "notion"
         )
         XCTAssertEqual(visible.map(\.externalSourceID), ["root"])
