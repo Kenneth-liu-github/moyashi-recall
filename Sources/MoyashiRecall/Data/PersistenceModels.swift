@@ -18,6 +18,7 @@ public final class SourceDocumentEntity {
     public var lastSyncedAt: Date?
     public var lastAIProcessedAt: Date?
     public var aiProcessedSourceUpdatedAt: Date?
+    public var lastAIExtractionVersion: String = ""
     public var sourceReference: String
     public var createdAt: Date
     public var updatedAt: Date = .distantPast
@@ -38,6 +39,7 @@ public final class SourceDocumentEntity {
         lastSyncedAt: Date? = nil,
         lastAIProcessedAt: Date? = nil,
         aiProcessedSourceUpdatedAt: Date? = nil,
+        lastAIExtractionVersion: String = "",
         sourceReference: String,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -57,6 +59,7 @@ public final class SourceDocumentEntity {
         self.lastSyncedAt = lastSyncedAt
         self.lastAIProcessedAt = lastAIProcessedAt
         self.aiProcessedSourceUpdatedAt = aiProcessedSourceUpdatedAt
+        self.lastAIExtractionVersion = lastAIExtractionVersion
         self.sourceReference = sourceReference
         self.createdAt = createdAt
         self.updatedAt = updatedAt
