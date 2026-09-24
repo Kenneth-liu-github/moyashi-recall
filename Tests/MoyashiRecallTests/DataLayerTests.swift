@@ -293,12 +293,15 @@ final class DataLayerTests: XCTestCase {
         let repository = LearningRepository(context: context)
         let now = Date(timeIntervalSince1970: 1_700_000_000)
 
+        let sourceEditedAt = now.addingTimeInterval(-120)
+
         let original = ImportedDocument(
             id: "notion-page-1",
             sourceKind: "notion",
             title: "第二课",
             sourceReference: "https://www.notion.so/page-1",
             content: "原始内容",
+            lastEditedAt: sourceEditedAt,
             parentExternalID: "office-root",
             sourcePath: [
                 "Learning Home",
@@ -318,6 +321,7 @@ final class DataLayerTests: XCTestCase {
             title: "第二课（更新）",
             sourceReference: "https://www.notion.so/page-1",
             content: "更新后的内容",
+            lastEditedAt: sourceEditedAt.addingTimeInterval(60),
             parentExternalID: "office-root",
             sourcePath: [
                 "Learning Home",
@@ -353,6 +357,23 @@ final class DataLayerTests: XCTestCase {
             "office-japanese"
         )
         XCTAssertEqual(items.first?.hierarchyDepth, 2)
+        XCTAssertEqual(
+            items.first?.sourceLastEditedAt,
+            sourceEditedAt.addingTimeInterval(60)
+        )
+        XCTAssertEqual(
+            items.first?.lastSyncedAt,
+            now.addingTimeInterval(60)
+        )
+
+        let summaries = try repository.importedKnowledgeItems(
+            sourceKind: "notion"
+        )
+        XCTAssertEqual(summaries.count, 1)
+        XCTAssertEqual(
+            summaries.first?.sourcePath,
+            "Learning Home / 办公室日语学习 / 第二课（更新）"
+        )
     }
 
     @MainActor
