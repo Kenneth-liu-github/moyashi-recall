@@ -214,7 +214,6 @@ public struct ReviewView: View {
 
         do {
             let repository = LearningRepository(context: modelContext)
-            try repository.seedDemoIfNeeded()
             sessionCards = try repository.dueSessionCards(
                 sourceKeys: sourceKeys,
                 cardTypes: cardTypes,
