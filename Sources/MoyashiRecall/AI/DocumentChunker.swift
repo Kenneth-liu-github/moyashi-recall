@@ -133,7 +133,19 @@ public enum KnowledgeBundleMerger {
         for bundle in bundles {
             for item in bundle.items {
                 if let existing = itemsByKey[item.key] {
-                    itemsByKey[item.key] = merge(
+                    guard
+                        existing.kind == item.kind,
+                        existing.canonicalExpression
+                            == item.canonicalExpression,
+                        existing.meaning == item.meaning
+                    else {
+                        throw KnowledgeExtractionError
+                            .conflictingKnowledgeKey(
+                                item.key
+                            )
+                    }
+
+                    itemsByKey[item.key] = try merge(
                         existing,
                         item
                     )
@@ -160,7 +172,7 @@ public enum KnowledgeBundleMerger {
     private static func merge(
         _ lhs: ExtractedKnowledgeItem,
         _ rhs: ExtractedKnowledgeItem
-    ) -> ExtractedKnowledgeItem {
+    ) throws -> ExtractedKnowledgeItem {
         var cardOrder = lhs.cards.map(\.key)
         var cardsByKey = Dictionary(
             uniqueKeysWithValues: lhs.cards.map {
@@ -168,8 +180,22 @@ public enum KnowledgeBundleMerger {
             }
         )
 
-        for card in rhs.cards
-        where cardsByKey[card.key] == nil {
+        for card in rhs.cards {
+            if let existing = cardsByKey[card.key] {
+                guard
+                    existing.type == card.type,
+                    existing.prompt == card.prompt,
+                    existing.answer == card.answer
+                else {
+                    throw KnowledgeExtractionError
+                        .conflictingCardKey(
+                            itemKey: lhs.key,
+                            cardKey: card.key
+                        )
+                }
+                continue
+            }
+
             cardOrder.append(card.key)
             cardsByKey[card.key] = card
         }
