@@ -121,12 +121,15 @@ public struct SourceDocumentSnapshot: Identifiable, Equatable, Sendable {
             sourceReference: sourceReference,
             content: content,
             sourcePath: sourcePath
-                .split(separator: "/")
+                .components(
+                    separatedBy: " / "
+                )
                 .map {
                     $0.trimmingCharacters(
                         in: .whitespacesAndNewlines
                     )
                 }
+                .filter { !$0.isEmpty }
         )
     }
 }
