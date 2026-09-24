@@ -28,6 +28,8 @@ public struct AIProcessingResult: Equatable, Sendable {
 public enum AIProcessingError: Error, Equatable {
     case sourceDocumentNotFound(UUID)
     case emptySourceDocument(UUID)
+    case tooManyChunks(actual: Int, maximum: Int)
+    case providerChangedDuringRun
 }
 
 @MainActor
@@ -35,17 +37,20 @@ public struct AIProcessingService {
     private let repository: LearningRepository
     private let extractor: KnowledgeExtractionService
     private let chunker: DocumentChunker
+    private let maximumChunks: Int
 
     public init(
         repository: LearningRepository,
         provider: any AICompletionProvider,
-        chunker: DocumentChunker = DocumentChunker()
+        chunker: DocumentChunker = DocumentChunker(),
+        maximumChunks: Int = 20
     ) {
         self.repository = repository
         self.extractor = KnowledgeExtractionService(
             provider: provider
         )
         self.chunker = chunker
+        self.maximumChunks = max(1, maximumChunks)
     }
 
     public func process(
@@ -66,6 +71,13 @@ public struct AIProcessingService {
         guard !chunks.isEmpty else {
             throw AIProcessingError.emptySourceDocument(
                 sourceDocumentID
+            )
+        }
+
+        guard chunks.count <= maximumChunks else {
+            throw AIProcessingError.tooManyChunks(
+                actual: chunks.count,
+                maximum: maximumChunks
             )
         }
 
@@ -93,9 +105,15 @@ public struct AIProcessingService {
             let extraction = try await extractor.extract(
                 from: document
             )
+            if providerID.isEmpty {
+                providerID = extraction.providerID
+                modelID = extraction.modelID
+            } else if providerID != extraction.providerID
+                        || modelID != extraction.modelID {
+                throw AIProcessingError.providerChangedDuringRun
+            }
+
             bundles.append(extraction.bundle)
-            providerID = extraction.providerID
-            modelID = extraction.modelID
         }
 
         let merged = try KnowledgeBundleMerger.merge(
