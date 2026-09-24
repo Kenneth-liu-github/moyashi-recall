@@ -178,7 +178,7 @@ final class NotionAPIClientTests: XCTestCase {
         )
     }
 
-    func testSearchPagesPostsPageFilterAndParsesTitles() async throws {
+    func testSearchPagesPaginatesAndParsesTitles() async throws {
         let transport = MockHTTPTransport { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/v1/search")
@@ -192,6 +192,40 @@ final class NotionAPIClientTests: XCTestCase {
             XCTAssertEqual(filter["property"] as? String, "object")
             XCTAssertEqual(filter["value"] as? String, "page")
 
+            if json["start_cursor"] == nil {
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "object": "list",
+                      "results": [
+                        {
+                          "object": "page",
+                          "id": "page-1",
+                          "url": "https://www.notion.so/page-1",
+                          "last_edited_time": "2026-09-24T12:00:00.000Z",
+                          "properties": {
+                            "title": {
+                              "type": "title",
+                              "title": [
+                                {"plain_text": "Learning Home"}
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "next_cursor": "cursor-2",
+                      "has_more": true
+                    }
+                    """
+                )
+            }
+
+            XCTAssertEqual(
+                json["start_cursor"] as? String,
+                "cursor-2"
+            )
+
             return Self.response(
                 url: request.url!,
                 json: """
@@ -200,14 +234,14 @@ final class NotionAPIClientTests: XCTestCase {
                   "results": [
                     {
                       "object": "page",
-                      "id": "page-1",
-                      "url": "https://www.notion.so/page-1",
-                      "last_edited_time": "2026-09-24T12:00:00.000Z",
+                      "id": "page-2",
+                      "url": "https://www.notion.so/page-2",
+                      "last_edited_time": "2026-09-24T13:00:00Z",
                       "properties": {
                         "title": {
                           "type": "title",
                           "title": [
-                            {"plain_text": "Learning Home"}
+                            {"plain_text": "Learning Home Child"}
                           ]
                         }
                       }
@@ -230,10 +264,13 @@ final class NotionAPIClientTests: XCTestCase {
             query: "Learning Home"
         )
 
-        XCTAssertEqual(pages.count, 1)
-        XCTAssertEqual(pages.first?.id, "page-1")
-        XCTAssertEqual(pages.first?.title, "Learning Home")
-        XCTAssertNotNil(pages.first?.lastEditedAt)
+        XCTAssertEqual(pages.count, 2)
+        XCTAssertEqual(pages[0].id, "page-1")
+        XCTAssertEqual(pages[0].title, "Learning Home")
+        XCTAssertNotNil(pages[0].lastEditedAt)
+        XCTAssertEqual(pages[1].id, "page-2")
+        XCTAssertEqual(pages[1].title, "Learning Home Child")
+        XCTAssertEqual(transport.requests.count, 2)
     }
 
     func testHTTPErrorSurfacesNotionMessage() async throws {
