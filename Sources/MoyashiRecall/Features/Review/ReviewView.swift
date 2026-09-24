@@ -54,6 +54,9 @@ public struct ReviewView: View {
         .task {
             loadSessionIfNeeded()
         }
+        .onAppear {
+            refreshFinishedSessionIfNeeded()
+        }
     }
 
     @ViewBuilder
@@ -185,6 +188,19 @@ public struct ReviewView: View {
         .buttonStyle(.bordered)
         .tint(AppTheme.accent)
         .frame(maxWidth: .infinity)
+    }
+
+    private func refreshFinishedSessionIfNeeded() {
+        guard didLoadSession else { return }
+        guard sessionCards.isEmpty || currentIndex >= sessionCards.count else { return }
+
+        didLoadSession = false
+        sessionCards = []
+        currentIndex = 0
+        reviewed = 0
+        revealed = false
+        saveError = nil
+        loadSessionIfNeeded()
     }
 
     private func loadSessionIfNeeded() {
