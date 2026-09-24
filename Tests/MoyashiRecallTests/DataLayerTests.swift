@@ -131,4 +131,65 @@ final class DataLayerTests: XCTestCase {
         cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
         XCTAssertEqual(cards.first { $0.id == DemoDataSeeder.cardID }?.sourceKey, "office-japanese")
     }
+
+    @MainActor
+    func testRepositoryBuildsHomeSnapshotFromPersistence() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let card = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: "zh-to-ja",
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "office-japanese",
+            sourceReference: "办公室日语学习"
+        )
+        context.insert(card)
+        context.insert(
+            ReviewHistoryEntity(
+                cardID: card.id,
+                reviewedAt: now,
+                ratingRawValue: ReviewRating.good.rawValue,
+                elapsedDays: 0,
+                scheduledDays: 2,
+                stabilityBefore: 0,
+                stabilityAfter: 2.3065,
+                difficultyBefore: 5,
+                difficultyAfter: 2.1181
+            )
+        )
+        try context.save()
+
+        let snapshot = try LearningRepository(context: context).homeSnapshot(now: now)
+
+        XCTAssertEqual(snapshot.dueCount, 1)
+        XCTAssertEqual(snapshot.streakDays, 1)
+    }
+
+    @MainActor
+    func testRepositoryReturnsValueTypeSessionCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let card = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: "zh-to-ja",
+            prompt: "Q",
+            answer: "A",
+            naturalEnglish: "answer",
+            sourceKey: "office-japanese",
+            sourceReference: "办公室日语学习"
+        )
+        context.insert(card)
+        try context.save()
+
+        let cards = try LearningRepository(context: context).dueSessionCards(
+            sourceKeys: ["office-japanese"],
+            limit: 10
+        )
+
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards.first?.id, card.id)
+        XCTAssertEqual(cards.first?.naturalEnglish, "answer")
+    }
 }
