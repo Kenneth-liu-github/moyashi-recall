@@ -297,6 +297,18 @@ public struct ImportedPageDetailView: View {
                     "此页面没有可供 AI 提取的文本内容。",
                     "このページにはAI抽出に使えるテキストがありません。"
                 )
+
+            case let .tooManyChunks(actual, maximum):
+                aiStatusMessage = language.text(
+                    "资料过长：需要处理 \(actual) 个分块，当前单次上限为 \(maximum)。请缩小资料范围后重试。",
+                    "資料が長すぎます：\(actual)チャンク必要ですが、1回の上限は\(maximum)です。範囲を縮小して再試行してください。"
+                )
+
+            case .providerChangedDuringRun:
+                aiStatusMessage = language.text(
+                    "AI Provider 在处理中发生变化，本次结果未保存。请重试。",
+                    "処理中にAI Providerが変更されたため、結果は保存されませんでした。再試行してください。"
+                )
             }
         } catch let error as LearningRepositoryError {
             switch error {
