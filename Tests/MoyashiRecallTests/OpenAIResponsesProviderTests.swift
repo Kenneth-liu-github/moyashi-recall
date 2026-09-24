@@ -61,7 +61,7 @@ final class OpenAIResponsesProviderTests: XCTestCase {
                 url: request.url!,
                 json: """
                 {
-                  "output_text": "{\"version\":\"v1\",\"items\":[]}"
+                  "output_text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
                 }
                 """
             )
@@ -111,7 +111,7 @@ final class OpenAIResponsesProviderTests: XCTestCase {
                       "content": [
                         {
                           "type": "output_text",
-                          "text": "{\"version\":\"v1\",\"items\":[]}"
+                          "text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
                         }
                       ]
                     }
@@ -170,10 +170,8 @@ final class OpenAIResponsesProviderTests: XCTestCase {
             response.text,
             #"{"version":"v1","items":[]}"#
         )
-        XCTAssertEqual(
-            await transport.attemptCount(),
-            2
-        )
+        let attempts = await transport.attemptCount()
+        XCTAssertEqual(attempts, 2)
     }
 
     func testProviderSurfacesHTTPErrorMessage() async throws {
@@ -296,7 +294,11 @@ private actor RateLimitOpenAITransport: HTTPTransport {
         )!
         return (
             Data(
-                #"{"output_text":"{\\"version\\":\\"v1\\",\\"items\\":[]}"}"#.utf8
+                """
+                {
+                  "output_text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
+                }
+                """.utf8
             ),
             response
         )
