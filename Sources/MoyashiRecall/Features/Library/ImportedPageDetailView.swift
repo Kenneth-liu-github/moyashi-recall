@@ -9,6 +9,8 @@ public struct ImportedPageDetailView: View {
     @State private var isProcessing = false
     @State private var aiStatusMessage: String?
     @State private var isAIUpToDate: Bool
+    @State private var lastAIProviderID: String
+    @State private var lastAIModelID: String
     @State private var generatedSummary = GeneratedContentSummary(
         knowledgeCount: 0,
         cardCount: 0
@@ -21,6 +23,12 @@ public struct ImportedPageDetailView: View {
         self.item = item
         _isAIUpToDate = State(
             initialValue: !item.needsAIRefresh
+        )
+        _lastAIProviderID = State(
+            initialValue: item.lastAIProviderID
+        )
+        _lastAIModelID = State(
+            initialValue: item.lastAIModelID
         )
     }
 
@@ -234,17 +242,17 @@ public struct ImportedPageDetailView: View {
                         )
                     }
 
-                    if !item.lastAIProviderID.isEmpty {
+                    if !lastAIProviderID.isEmpty {
                         LabeledContent(
                             language.text(
                                 "最近 AI",
                                 "最終AI"
                             ),
-                            value: item.lastAIModelID.isEmpty
-                                ? item.lastAIProviderID
-                                : item.lastAIProviderID
+                            value: lastAIModelID.isEmpty
+                                ? lastAIProviderID
+                                : lastAIProviderID
                                     + " · "
-                                    + item.lastAIModelID
+                                    + lastAIModelID
                         )
                     }
                 }
@@ -291,6 +299,8 @@ public struct ImportedPageDetailView: View {
             )
 
             isAIUpToDate = true
+            lastAIProviderID = result.providerID
+            lastAIModelID = result.modelID
             loadGeneratedSummary()
             aiStatusMessage = language.text(
                 "完成：提取 \(result.extractedItems) 个知识点；新增卡片 \(result.persistence.cardsInserted)，更新 \(result.persistence.cardsUpdated)，未变化 \(result.persistence.cardsUnchanged)。",
