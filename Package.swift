@@ -18,6 +18,7 @@ let package = Package(
                 "AI/AICompletionProvider.swift",
                 "AI/KnowledgeExtractionModels.swift",
                 "AI/KnowledgeExtractionService.swift",
+                "AI/DocumentChunker.swift",
                 "AI/OpenAIResponsesProvider.swift",
                 "Sources/LearningContentSource.swift",
                 "Sources/SourceKeyResolver.swift",
@@ -33,6 +34,7 @@ let package = Package(
                 "NotionAPIClientTests.swift",
                 "SourceKeyResolverTests.swift",
                 "AIExtractionCoreTests.swift",
+                "DocumentChunkerTests.swift",
                 "OpenAIResponsesProviderTests.swift"
             ]
         )
