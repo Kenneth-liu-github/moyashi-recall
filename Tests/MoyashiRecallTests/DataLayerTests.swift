@@ -154,6 +154,35 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testReviewRecorderRejectsInactiveCard() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let card = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: "zh-to-ja",
+            prompt: "Q",
+            answer: "A",
+            sourceReference: "test",
+            isActive: false
+        )
+        context.insert(card)
+        try context.save()
+
+        XCTAssertThrowsError(
+            try ReviewRecorder().record(
+                cardID: card.id,
+                rating: .good,
+                in: context
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? ReviewRecordingError,
+                .cardInactive(card.id)
+            )
+        }
+    }
+
+    @MainActor
     func testReviewQueuePrioritizesOverdueReviewsBeforeNewCards() throws {
         let container = try makeContainer()
         let context = container.mainContext
