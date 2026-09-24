@@ -79,7 +79,7 @@ public struct ReviewView: View {
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
 
-                Text(card.sourceReference)
+                Text(card.sourceDisplay)
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
 
