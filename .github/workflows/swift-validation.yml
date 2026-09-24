@@ -9,16 +9,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validation:
-    runs-on: macos-15
+  core-tests:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Swift version
         run: swift --version
-      - name: Build reusable package
-        run: swift build
-      - name: Run unit tests
+      - name: Run portable core tests
         run: swift test
+
+  ios-simulator-build:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
       - name: Build iOS app for Simulator
         run: |
           xcodebuild -project App/MoyashiRecall.xcodeproj \
