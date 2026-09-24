@@ -108,6 +108,10 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
             }
 
             if (200..<300).contains(http.statusCode) {
+                if let issue = Self.responseIssue(from: data) {
+                    throw issue
+                }
+
                 guard let text = Self.outputText(from: data),
                       !text.isEmpty
                 else {
@@ -143,6 +147,52 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
         }
 
         throw AIProviderError.invalidResponse
+    }
+
+    private static func responseIssue(
+        from data: Data
+    ) -> AIProviderError? {
+        guard
+            let object = try? JSONSerialization.jsonObject(
+                with: data
+            ),
+            let json = object as? [String: Any]
+        else {
+            return nil
+        }
+
+        if json["status"] as? String == "incomplete" {
+            let details = json["incomplete_details"]
+                as? [String: Any]
+            let reason = details?["reason"] as? String
+                ?? "unknown"
+            return .incomplete(reason)
+        }
+
+        guard let output = json["output"]
+                as? [[String: Any]]
+        else {
+            return nil
+        }
+
+        for item in output {
+            guard
+                item["type"] as? String == "message",
+                let content = item["content"]
+                    as? [[String: Any]]
+            else {
+                continue
+            }
+
+            for part in content
+            where part["type"] as? String == "refusal" {
+                let message = part["refusal"] as? String
+                    ?? "Request refused"
+                return .refused(message)
+            }
+        }
+
+        return nil
     }
 
     private static func outputText(
