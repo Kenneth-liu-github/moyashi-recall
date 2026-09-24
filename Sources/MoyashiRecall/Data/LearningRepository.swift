@@ -54,6 +54,44 @@ public struct LearningRepository {
         #endif
     }
 
+    @discardableResult
+    public func upsertImportedDocument(
+        _ document: ImportedDocument,
+        now: Date = .now
+    ) throws -> KnowledgeItemEntity {
+        let sourceKind = document.sourceKind
+        let externalID = document.id
+        var descriptor = FetchDescriptor<KnowledgeItemEntity>(
+            predicate: #Predicate { item in
+                item.sourceKind == sourceKind
+                    && item.externalSourceID == externalID
+            }
+        )
+        descriptor.fetchLimit = 1
+
+        if let existing = try context.fetch(descriptor).first {
+            existing.title = document.title
+            existing.content = document.content
+            existing.sourceReference = document.sourceReference
+            existing.updatedAt = now
+            try context.save()
+            return existing
+        }
+
+        let item = KnowledgeItemEntity(
+            title: document.title,
+            content: document.content,
+            sourceKind: document.sourceKind,
+            externalSourceID: document.id,
+            sourceReference: document.sourceReference,
+            createdAt: now,
+            updatedAt: now
+        )
+        context.insert(item)
+        try context.save()
+        return item
+    }
+
     public func dueSessionCards(
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
