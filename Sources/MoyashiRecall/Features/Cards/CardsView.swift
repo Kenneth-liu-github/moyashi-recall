@@ -35,7 +35,7 @@ public struct CardsView: View {
                                 Text(card.explanation)
                                     .foregroundStyle(AppTheme.muted)
                             }
-                            Text(card.sourceReference)
+                            Text(card.sourceDisplay)
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.muted)
                         }
