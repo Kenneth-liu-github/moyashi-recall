@@ -219,6 +219,96 @@ final class AIExtractionTests: XCTestCase {
             source.id
         )
         XCTAssertTrue(cards.allSatisfy(\.isActive))
+
+        let sourceDocuments = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        XCTAssertEqual(
+            sourceDocuments.first?.lastAIProcessedAt,
+            now.addingTimeInterval(60)
+        )
+        XCTAssertEqual(
+            sourceDocuments.first?.aiProcessedSourceUpdatedAt,
+            sourceDocuments.first?.updatedAt
+        )
+
+        let summaries = try repository.importedDocuments(
+            sourceKind: "notion"
+        )
+        XCTAssertEqual(
+            summaries.first?.needsAIRefresh,
+            false
+        )
+    }
+
+    @MainActor
+    func testSourceUpdateMarksAIContentStale() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let repository = LearningRepository(context: context)
+        let initialTime = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+
+        let imported = ImportedDocument(
+            id: "page-1",
+            sourceKind: "notion",
+            title: "第二课",
+            sourceReference: "notion://page-1",
+            content: "旧内容",
+            sourcePath: [
+                "Learning Home",
+                "办公室日语学习",
+                "第二课"
+            ]
+        )
+        let source = try repository.upsertImportedDocument(
+            imported,
+            now: initialTime
+        )
+
+        let service = AIProcessingService(
+            repository: repository,
+            provider: StaticAIProvider(
+                providerID: "fixture",
+                modelID: "fixture-1",
+                response: Self.fixtureJSON
+            )
+        )
+        _ = try await service.process(
+            sourceDocumentID: source.id,
+            now: initialTime.addingTimeInterval(30)
+        )
+
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "notion"
+            ).first?.needsAIRefresh,
+            false
+        )
+
+        _ = try repository.upsertImportedDocument(
+            ImportedDocument(
+                id: "page-1",
+                sourceKind: "notion",
+                title: "第二课",
+                sourceReference: "notion://page-1",
+                content: "新内容",
+                sourcePath: [
+                    "Learning Home",
+                    "办公室日语学习",
+                    "第二课"
+                ]
+            ),
+            now: initialTime.addingTimeInterval(60)
+        )
+
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "notion"
+            ).first?.needsAIRefresh,
+            true
+        )
     }
 
     @MainActor
