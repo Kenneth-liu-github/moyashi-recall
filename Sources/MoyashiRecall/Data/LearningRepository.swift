@@ -49,7 +49,9 @@ public struct LearningRepository {
     }
 
     public func seedDemoIfNeeded() throws {
+        #if DEBUG
         try DemoDataSeeder.seedIfNeeded(in: context)
+        #endif
     }
 
     public func dueSessionCards(
