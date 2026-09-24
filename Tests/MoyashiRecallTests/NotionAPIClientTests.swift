@@ -273,6 +273,194 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertEqual(transport.requests.count, 2)
     }
 
+    func testFetchDocumentTreeImportsChildPagesSeparately() async throws {
+        let transport = MockHTTPTransport { request in
+            let path = request.url?.path ?? ""
+
+            switch path {
+            case "/v1/pages/root":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "id": "root",
+                      "url": "https://www.notion.so/root",
+                      "properties": {
+                        "title": {
+                          "type": "title",
+                          "title": [{"plain_text": "Learning Home"}]
+                        }
+                      }
+                    }
+                    """
+                )
+
+            case "/v1/blocks/root/children":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "object": "list",
+                      "results": [
+                        {
+                          "id": "child-1",
+                          "type": "child_page",
+                          "has_children": false,
+                          "child_page": {
+                            "title": "办公室日语学习"
+                          }
+                        }
+                      ],
+                      "next_cursor": null,
+                      "has_more": false
+                    }
+                    """
+                )
+
+            case "/v1/pages/child-1":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "id": "child-1",
+                      "url": "https://www.notion.so/child-1",
+                      "properties": {
+                        "title": {
+                          "type": "title",
+                          "title": [{"plain_text": "办公室日语学习"}]
+                        }
+                      }
+                    }
+                    """
+                )
+
+            case "/v1/blocks/child-1/children":
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "object": "list",
+                      "results": [
+                        {
+                          "id": "p1",
+                          "type": "paragraph",
+                          "has_children": false,
+                          "paragraph": {
+                            "rich_text": [
+                              {"plain_text": "第二课内容"}
+                            ]
+                          }
+                        }
+                      ],
+                      "next_cursor": null,
+                      "has_more": false
+                    }
+                    """
+                )
+
+            default:
+                XCTFail(
+                    "Unexpected request: \(request.url?.absoluteString ?? "nil")"
+                )
+                return Self.response(
+                    url: request.url!,
+                    statusCode: 404,
+                    json: """
+                    {"message": "not found"}
+                    """
+                )
+            }
+        }
+
+        let client = NotionAPIClient(
+            token: "secret_test",
+            transport: transport,
+            baseURL: URL(string: "https://api.notion.test")!
+        )
+
+        let documents = try await client.fetchDocumentTree(
+            rootID: "root"
+        )
+
+        XCTAssertEqual(documents.count, 2)
+        XCTAssertEqual(documents[0].id, "root")
+        XCTAssertEqual(documents[0].title, "Learning Home")
+        XCTAssertEqual(documents[1].id, "child-1")
+        XCTAssertEqual(
+            documents[1].title,
+            "办公室日语学习"
+        )
+        XCTAssertTrue(
+            documents[1].content.contains("第二课内容")
+        )
+    }
+
+    func testDocumentTreeHonorsPageLimit() async throws {
+        let transport = MockHTTPTransport { request in
+            let path = request.url?.path ?? ""
+
+            if path == "/v1/pages/root" {
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "id": "root",
+                      "properties": {
+                        "title": {
+                          "type": "title",
+                          "title": [{"plain_text": "Root"}]
+                        }
+                      }
+                    }
+                    """
+                )
+            }
+
+            if path == "/v1/blocks/root/children" {
+                return Self.response(
+                    url: request.url!,
+                    json: """
+                    {
+                      "object": "list",
+                      "results": [
+                        {
+                          "id": "child-1",
+                          "type": "child_page",
+                          "has_children": false,
+                          "child_page": {"title": "Child"}
+                        }
+                      ],
+                      "next_cursor": null,
+                      "has_more": false
+                    }
+                    """
+                )
+            }
+
+            XCTFail("Page limit should prevent child fetch")
+            return Self.response(
+                url: request.url!,
+                statusCode: 500,
+                json: """
+                {"message": "unexpected"}
+                """
+            )
+        }
+
+        let client = NotionAPIClient(
+            token: "secret_test",
+            transport: transport,
+            baseURL: URL(string: "https://api.notion.test")!
+        )
+
+        let documents = try await client.fetchDocumentTree(
+            rootID: "root",
+            maxPages: 1
+        )
+
+        XCTAssertEqual(documents.map(\.id), ["root"])
+    }
+
     func testHTTPErrorSurfacesNotionMessage() async throws {
         let transport = MockHTTPTransport { request in
             Self.response(
