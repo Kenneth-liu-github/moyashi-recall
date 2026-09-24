@@ -140,6 +140,51 @@ final class FSRSSchedulerTests: XCTestCase {
         XCTAssertEqual(components.day, 9)
     }
 
+    func testElapsedDaysUsesCalendarDaysAcrossSpringDST() {
+        let scheduler = FSRSScheduler()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+
+        let last = calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: 2026,
+                month: 3,
+                day: 8,
+                hour: 0,
+                minute: 30
+            )
+        )!
+        let now = calendar.date(
+            from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: 2026,
+                month: 3,
+                day: 9,
+                hour: 0,
+                minute: 30
+            )
+        )!
+
+        let card = FSRSCardState(
+            due: last,
+            stability: 3,
+            difficulty: 5,
+            repetitions: 2,
+            state: .review,
+            lastReview: last
+        )
+
+        let result = scheduler.schedule(
+            card,
+            rating: .good,
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(result.elapsedDays, 1)
+    }
+
     func testStabilityMeansNinetyPercentRetrievability() {
         let scheduler = FSRSScheduler()
         let retrievability = scheduler.retrievability(
