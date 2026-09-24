@@ -86,7 +86,6 @@ public struct HomeView: View {
     private func loadSnapshot() {
         do {
             let repository = LearningRepository(context: modelContext)
-            try repository.seedDemoIfNeeded()
             snapshot = try repository.homeSnapshot()
             loadError = nil
         } catch {
