@@ -8,7 +8,13 @@ public enum DemoDataSeeder {
 
     public static func seedIfNeeded(in context: ModelContext) throws {
         let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-        guard !cards.contains(where: { $0.id == cardID }) else { return }
+        if let existing = cards.first(where: { $0.id == cardID }) {
+            if existing.sourceKey != "office-japanese" {
+                existing.sourceKey = "office-japanese"
+                try context.save()
+            }
+            return
+        }
 
         let items = try context.fetch(FetchDescriptor<KnowledgeItemEntity>())
         if !items.contains(where: { $0.id == knowledgeID }) {
