@@ -310,10 +310,18 @@ final class DataLayerTests: XCTestCase {
             ],
             hierarchyDepth: 2
         )
-        let first = try repository.upsertImportedDocument(
+        let firstResult = try repository.upsertImportedDocumentWithResult(
             original,
             now: now
         )
+        let first = firstResult.entity
+        XCTAssertEqual(firstResult.mutation, .inserted)
+
+        let unchangedResult = try repository.upsertImportedDocumentWithResult(
+            original,
+            now: now.addingTimeInterval(30)
+        )
+        XCTAssertEqual(unchangedResult.mutation, .unchanged)
 
         let updated = ImportedDocument(
             id: "notion-page-1",
@@ -330,10 +338,12 @@ final class DataLayerTests: XCTestCase {
             ],
             hierarchyDepth: 2
         )
-        let second = try repository.upsertImportedDocument(
+        let secondResult = try repository.upsertImportedDocumentWithResult(
             updated,
             now: now.addingTimeInterval(60)
         )
+        let second = secondResult.entity
+        XCTAssertEqual(secondResult.mutation, .updated)
 
         let items = try context.fetch(
             FetchDescriptor<KnowledgeItemEntity>()
