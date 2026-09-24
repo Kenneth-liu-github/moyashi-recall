@@ -6,19 +6,22 @@ public struct NotionSyncReport: Equatable, Sendable {
     public let updated: Int
     public let unchanged: Int
     public let deactivated: Int
+    public let isComplete: Bool
 
     public init(
         totalPages: Int,
         inserted: Int,
         updated: Int,
         unchanged: Int,
-        deactivated: Int
+        deactivated: Int,
+        isComplete: Bool
     ) {
         self.totalPages = totalPages
         self.inserted = inserted
         self.updated = updated
         self.unchanged = unchanged
         self.deactivated = deactivated
+        self.isComplete = isComplete
     }
 }
 
@@ -54,25 +57,27 @@ public struct NotionImportService {
         maxPages: Int = 200,
         now: Date = .now
     ) async throws -> [KnowledgeItemEntity] {
-        let documents = try await client.fetchDocumentTree(
+        let tree = try await client.fetchDocumentTreeResult(
             rootID: rootID,
             maxDepth: maxDepth,
             maxPages: maxPages
         )
 
-        let items = try documents.map { document in
+        let items = try tree.documents.map { document in
             try repository.upsertImportedDocument(
                 document,
                 now: now
             )
         }
 
-        _ = try repository.reconcileImportedTree(
-            sourceKind: client.kind,
-            rootExternalID: rootID,
-            activeExternalIDs: Set(documents.map(\.id)),
-            now: now
-        )
+        if tree.isComplete {
+            _ = try repository.reconcileImportedTree(
+                sourceKind: client.kind,
+                rootExternalID: rootID,
+                activeExternalIDs: Set(tree.documents.map(\.id)),
+                now: now
+            )
+        }
 
         return items
     }
@@ -83,7 +88,7 @@ public struct NotionImportService {
         maxPages: Int = 200,
         now: Date = .now
     ) async throws -> NotionSyncReport {
-        let documents = try await client.fetchDocumentTree(
+        let tree = try await client.fetchDocumentTreeResult(
             rootID: rootID,
             maxDepth: maxDepth,
             maxPages: maxPages
@@ -93,7 +98,7 @@ public struct NotionImportService {
         var updated = 0
         var unchanged = 0
 
-        for document in documents {
+        for document in tree.documents {
             let result = try repository
                 .upsertImportedDocumentWithResult(
                     document,
@@ -110,19 +115,25 @@ public struct NotionImportService {
             }
         }
 
-        let deactivated = try repository.reconcileImportedTree(
-            sourceKind: client.kind,
-            rootExternalID: rootID,
-            activeExternalIDs: Set(documents.map(\.id)),
-            now: now
-        )
+        let deactivated: Int
+        if tree.isComplete {
+            deactivated = try repository.reconcileImportedTree(
+                sourceKind: client.kind,
+                rootExternalID: rootID,
+                activeExternalIDs: Set(tree.documents.map(\.id)),
+                now: now
+            )
+        } else {
+            deactivated = 0
+        }
 
         return NotionSyncReport(
-            totalPages: documents.count,
+            totalPages: tree.documents.count,
             inserted: inserted,
             updated: updated,
             unchanged: unchanged,
-            deactivated: deactivated
+            deactivated: deactivated,
+            isComplete: tree.isComplete
         )
     }
 }
