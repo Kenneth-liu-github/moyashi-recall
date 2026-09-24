@@ -1,9 +1,12 @@
 import SwiftUI
+import SwiftData
 
 public struct StudyScopeView: View {
     @EnvironmentObject private var language: LanguageStore
+    @Environment(\.modelContext) private var modelContext
     @State private var selected = Set<UUID>()
     @State private var reviewCount = 20
+    @State private var sourceCounts: [String: Int] = [:]
 
     public init() {}
 
@@ -26,7 +29,7 @@ public struct StudyScopeView: View {
                                 Text(source.detail).font(.caption).foregroundStyle(AppTheme.muted)
                             }
                             Spacer()
-                            Text("\(source.itemCount)").font(.subheadline).foregroundStyle(AppTheme.muted)
+                            Text("\(sourceCounts[source.key, default: 0])").font(.subheadline).foregroundStyle(AppTheme.muted)
                         }
                     }
                 }
@@ -72,10 +75,22 @@ public struct StudyScopeView: View {
             if selected.isEmpty {
                 selected = Set(MockData.sources.map(\.id))
             }
+            loadSourceCounts()
         }
     }
 
     private func toggle(_ id: UUID) {
         if selected.contains(id) { selected.remove(id) } else { selected.insert(id) }
     }
+
+    private func loadSourceCounts() {
+        do {
+            let repository = LearningRepository(context: modelContext)
+            try repository.seedDemoIfNeeded()
+            sourceCounts = try repository.cardCountsBySourceKey()
+        } catch {
+            sourceCounts = [:]
+        }
+    }
 }
+
