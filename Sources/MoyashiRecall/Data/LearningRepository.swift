@@ -233,12 +233,6 @@ public struct LearningRepository {
         self.recorder = ReviewRecorder(scheduler: scheduler)
     }
 
-    public func seedDemoIfNeeded() throws {
-        #if DEBUG
-        try DemoDataSeeder.seedIfNeeded(in: context)
-        #endif
-    }
-
     @discardableResult
     public func migrateLegacyImportedKnowledgeIfNeeded(
         now: Date = .now
