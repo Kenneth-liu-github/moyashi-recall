@@ -1,7 +1,6 @@
 name: Swift Validation
 
 on:
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -19,7 +18,6 @@ jobs:
         run: swift test
 
   ios-simulator-build:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
