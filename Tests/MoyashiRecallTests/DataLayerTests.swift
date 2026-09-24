@@ -168,6 +168,43 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testRepositorySearchAndSourceCountsUsePersistedCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        context.insert(
+            FlashcardEntity(
+                knowledgeItemID: UUID(),
+                cardType: "zh-to-ja",
+                prompt: "关于推进方式",
+                answer: "進（すす）め方（かた）について",
+                sourceKey: "office-japanese",
+                sourceReference: "办公室日语学习 · 第二课"
+            )
+        )
+        context.insert(
+            FlashcardEntity(
+                knowledgeItemID: UUID(),
+                cardType: "zh-to-ja",
+                prompt: "条件表达",
+                answer: "～ば",
+                sourceKey: "japanese-bootcamp",
+                sourceReference: "日语训练营"
+            )
+        )
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let matches = try repository.allSessionCards(searchText: "推进")
+        let counts = try repository.cardCountsBySourceKey()
+
+        XCTAssertEqual(matches.count, 1)
+        XCTAssertEqual(matches.first?.sourceKey, "office-japanese")
+        XCTAssertEqual(counts["office-japanese"], 1)
+        XCTAssertEqual(counts["japanese-bootcamp"], 1)
+    }
+
+    @MainActor
     func testRepositoryReturnsValueTypeSessionCards() throws {
         let container = try makeContainer()
         let context = container.mainContext
