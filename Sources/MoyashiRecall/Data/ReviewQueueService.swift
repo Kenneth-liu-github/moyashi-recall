@@ -22,7 +22,13 @@ public struct ReviewQueueService {
             )
         )
 
-        let stateByCard = Dictionary(uniqueKeysWithValues: states.map { ($0.cardID, $0) })
+        let stateByCard = states.reduce(into: [UUID: ReviewStateEntity]()) { result, state in
+            if let existing = result[state.cardID] {
+                if state.due < existing.due { result[state.cardID] = state }
+            } else {
+                result[state.cardID] = state
+            }
+        }
 
         let due = cards.filter { card in
             if let sourceKeys, !sourceKeys.isEmpty, !sourceKeys.contains(card.sourceKey) {
