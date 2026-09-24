@@ -593,7 +593,7 @@ final class NotionAPIClientTests: XCTestCase {
     }
 }
 
-private final class MockHTTPTransport: HTTPTransport {
+private final class MockHTTPTransport: HTTPTransport, @unchecked Sendable {
     typealias Handler = (URLRequest) throws -> (Data, URLResponse)
 
     private let handler: Handler
