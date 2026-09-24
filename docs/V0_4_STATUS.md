@@ -9,8 +9,10 @@ Turn normalized learning documents into structured Japanese-learning knowledge a
 - Provider-agnostic `AICompletionProvider` contract.
 - Two runtime-selectable provider adapters:
   - OpenAI Responses API with Structured Outputs and `store=false`.
-  - Anthropic Messages API with structured JSON output.
+  - Anthropic Messages API with `output_config.format` structured JSON output.
+- Explicit handling for provider refusals and incomplete/truncated structured responses.
 - Provider-specific model IDs and separate Keychain credentials.
+- Source documents record the provider/model used by the latest successful AI generation.
 - Provider-neutral connection test in Settings.
 - Explicit structured-output request containing:
   - system prompt
@@ -84,6 +86,8 @@ Turn normalized learning documents into structured Japanese-learning knowledge a
 - Added provider/model consistency checks across multi-chunk runs.
 - Added provider-specific model persistence so switching providers does not reuse the wrong model ID.
 - Added current-draft connection testing so unsaved UI selections are tested accurately.
+- Added explicit refusal/incomplete-response handling for OpenAI and Anthropic.
+- Added immediate UI refresh of the provider/model metadata after successful generation.
 - Removed iOS-only text-input modifiers from shared SwiftUI package code.
 
 ## Validation coverage
@@ -117,7 +121,7 @@ SwiftData/full-app tests cover:
 
 The portable V0.4 AI core has previously been compiled independently with Swift 6.2 on Linux during development.
 
-GitHub Actions remain manually triggered because the last attempted Actions run failed before any workflow step started. No new automatic failing runs are being created.
+A fresh controlled validation attempt (run #137) was made after the latest V0.4 work. Both Ubuntu core tests and the macOS simulator job again failed before their first workflow step started (`steps: null`). The workflow was immediately returned to manual-only mode, so this remains an Actions execution/account issue rather than a reported Swift build/test failure.
 
 The only remaining release gate is a normal macOS/Xcode validation pass covering:
 
