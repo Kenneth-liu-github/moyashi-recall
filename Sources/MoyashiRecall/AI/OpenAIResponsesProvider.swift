@@ -96,32 +96,53 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
             withJSONObject: body
         )
 
-        let (data, response) = try await transport.data(
-            for: urlRequest
-        )
+        let maxRateLimitRetries = 2
 
-        guard let http = response as? HTTPURLResponse else {
-            throw AIProviderError.invalidResponse
-        }
+        for attempt in 0...maxRateLimitRetries {
+            let (data, response) = try await transport.data(
+                for: urlRequest
+            )
 
-        guard (200..<300).contains(http.statusCode) else {
+            guard let http = response as? HTTPURLResponse else {
+                throw AIProviderError.invalidResponse
+            }
+
+            if (200..<300).contains(http.statusCode) {
+                guard let text = Self.outputText(from: data),
+                      !text.isEmpty
+                else {
+                    throw AIProviderError.invalidResponse
+                }
+
+                return AICompletionResponse(
+                    text: text,
+                    providerID: providerID,
+                    modelID: trimmedModel
+                )
+            }
+
+            if http.statusCode == 429,
+               attempt < maxRateLimitRetries {
+                let delay = Self.retryAfterSeconds(
+                    from: http
+                )
+                let nanoseconds = UInt64(
+                    max(0, min(delay, 60))
+                        * 1_000_000_000
+                )
+                try await Task.sleep(
+                    nanoseconds: nanoseconds
+                )
+                continue
+            }
+
             throw AIProviderError.http(
                 statusCode: http.statusCode,
                 message: Self.errorMessage(from: data)
             )
         }
 
-        guard let text = Self.outputText(from: data),
-              !text.isEmpty
-        else {
-            throw AIProviderError.invalidResponse
-        }
-
-        return AICompletionResponse(
-            text: text,
-            providerID: providerID,
-            modelID: trimmedModel
-        )
+        throw AIProviderError.invalidResponse
     }
 
     private static func outputText(
@@ -167,6 +188,21 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
         return fragments.isEmpty
             ? nil
             : fragments.joined()
+    }
+
+    private static func retryAfterSeconds(
+        from response: HTTPURLResponse
+    ) -> Double {
+        guard
+            let raw = response.value(
+                forHTTPHeaderField: "Retry-After"
+            ),
+            let seconds = Double(raw)
+        else {
+            return 1
+        }
+
+        return seconds
     }
 
     private static func errorMessage(
