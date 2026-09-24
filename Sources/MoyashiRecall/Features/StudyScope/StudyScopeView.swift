@@ -5,23 +5,17 @@ public struct StudyScopeView: View {
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
 
-    @State private var selectedSources = Set<UUID>()
+    @State private var sources: [StudySource] = []
+    @State private var selectedSources = Set<String>()
     @State private var selectedCardTypes = Set(
         ReviewCardType.allCases
     )
     @State private var reviewCount = 20
-    @State private var sourceCounts: [String: Int] = [:]
 
     public init() {}
 
     private var selectedSourceKeys: Set<String> {
-        Set(
-            MockData.sources
-                .filter {
-                    selectedSources.contains($0.id)
-                }
-                .map(\.key)
-        )
+        selectedSources
     }
 
     private var selectedCardTypeIDs: Set<String> {
@@ -31,14 +25,14 @@ public struct StudyScopeView: View {
     public var body: some View {
         List {
             Section {
-                ForEach(MockData.sources) { source in
+                ForEach(sources) { source in
                     Button {
-                        toggleSource(source.id)
+                        toggleSource(source.key)
                     } label: {
                         HStack(spacing: 12) {
                             Image(
                                 systemName: selectedSources
-                                    .contains(source.id)
+                                    .contains(source.key)
                                     ? "checkmark.circle.fill"
                                     : "circle"
                             )
@@ -62,7 +56,7 @@ public struct StudyScopeView: View {
                             Spacer()
 
                             Text(
-                                "\(sourceCounts[source.key, default: 0])"
+                                "\(source.cardCount)"
                             )
                             .font(.subheadline)
                             .foregroundStyle(AppTheme.muted)
@@ -174,20 +168,17 @@ public struct StudyScopeView: View {
             )
         )
         .onAppear {
-            if selectedSources.isEmpty {
-                selectedSources = Set(
-                    MockData.sources.map(\.id)
-                )
-            }
-            loadSourceCounts()
+            loadSources()
         }
     }
 
-    private func toggleSource(_ id: UUID) {
-        if selectedSources.contains(id) {
-            selectedSources.remove(id)
+    private func toggleSource(
+        _ key: String
+    ) {
+        if selectedSources.contains(key) {
+            selectedSources.remove(key)
         } else {
-            selectedSources.insert(id)
+            selectedSources.insert(key)
         }
     }
 
@@ -230,16 +221,26 @@ public struct StudyScopeView: View {
         }
     }
 
-    private func loadSourceCounts() {
+    private func loadSources() {
         do {
             let repository = LearningRepository(
                 context: modelContext
             )
             try repository.seedDemoIfNeeded()
-            sourceCounts = try repository
-                .cardCountsBySourceKey()
+            sources = try repository.reviewSources()
+
+            let availableKeys = Set(
+                sources.map(\.key)
+            )
+            selectedSources = selectedSources
+                .intersection(availableKeys)
+
+            if selectedSources.isEmpty {
+                selectedSources = availableKeys
+            }
         } catch {
-            sourceCounts = [:]
+            sources = []
+            selectedSources = []
         }
     }
 }
