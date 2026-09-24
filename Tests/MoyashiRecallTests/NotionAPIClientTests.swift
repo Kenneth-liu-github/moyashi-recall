@@ -156,6 +156,63 @@ final class NotionAPIClientTests: XCTestCase {
         )
     }
 
+    func testSearchPagesPostsPageFilterAndParsesTitles() async throws {
+        let transport = MockHTTPTransport { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/v1/search")
+
+            let body = try XCTUnwrap(request.httpBody)
+            let object = try JSONSerialization.jsonObject(with: body)
+            let json = try XCTUnwrap(object as? [String: Any])
+            let filter = try XCTUnwrap(json["filter"] as? [String: Any])
+
+            XCTAssertEqual(json["query"] as? String, "Learning Home")
+            XCTAssertEqual(filter["property"] as? String, "object")
+            XCTAssertEqual(filter["value"] as? String, "page")
+
+            return Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "object": "list",
+                  "results": [
+                    {
+                      "object": "page",
+                      "id": "page-1",
+                      "url": "https://www.notion.so/page-1",
+                      "last_edited_time": "2026-09-24T12:00:00.000Z",
+                      "properties": {
+                        "title": {
+                          "type": "title",
+                          "title": [
+                            {"plain_text": "Learning Home"}
+                          ]
+                        }
+                      }
+                    }
+                  ],
+                  "next_cursor": null,
+                  "has_more": false
+                }
+                """
+            )
+        }
+
+        let client = NotionAPIClient(
+            token: "secret_test",
+            transport: transport,
+            baseURL: URL(string: "https://api.notion.test")!
+        )
+
+        let pages = try await client.searchPages(
+            query: "Learning Home"
+        )
+
+        XCTAssertEqual(pages.count, 1)
+        XCTAssertEqual(pages.first?.id, "page-1")
+        XCTAssertEqual(pages.first?.title, "Learning Home")
+    }
+
     func testHTTPErrorSurfacesNotionMessage() async throws {
         let transport = MockHTTPTransport { request in
             Self.response(
