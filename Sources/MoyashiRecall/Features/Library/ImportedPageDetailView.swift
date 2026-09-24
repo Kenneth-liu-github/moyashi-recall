@@ -9,6 +9,10 @@ public struct ImportedPageDetailView: View {
     @State private var isProcessing = false
     @State private var aiStatusMessage: String?
     @State private var isAIUpToDate: Bool
+    @State private var generatedSummary = GeneratedContentSummary(
+        knowledgeCount: 0,
+        cardCount: 0
+    )
 
     private let item: ImportedDocumentSummary
 
@@ -78,6 +82,27 @@ public struct ImportedPageDetailView: View {
                     .tint(AppTheme.accent)
                     .disabled(isProcessing)
                 }
+
+                HStack(spacing: 12) {
+                    Label(
+                        "\(generatedSummary.knowledgeCount) "
+                            + language.text(
+                                "知识点",
+                                "知識"
+                            ),
+                        systemImage: "brain"
+                    )
+                    Label(
+                        "\(generatedSummary.cardCount) "
+                            + language.text(
+                                "卡片",
+                                "カード"
+                            ),
+                        systemImage: "rectangle.stack"
+                    )
+                }
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
 
                 HStack(spacing: 8) {
                     Image(
@@ -160,6 +185,9 @@ public struct ImportedPageDetailView: View {
                 "資料詳細"
             )
         )
+        .onAppear {
+            loadGeneratedSummary()
+        }
     }
 
     @MainActor
@@ -189,6 +217,7 @@ public struct ImportedPageDetailView: View {
             )
 
             isAIUpToDate = true
+            loadGeneratedSummary()
             aiStatusMessage = language.text(
                 "完成：提取 \(result.extractedItems) 个知识点；新增卡片 \(result.persistence.cardsInserted)，更新 \(result.persistence.cardsUpdated)，未变化 \(result.persistence.cardsUnchanged)。",
                 "完了：\(result.extractedItems)件の知識を抽出；カード追加 \(result.persistence.cardsInserted)、更新 \(result.persistence.cardsUpdated)、変更なし \(result.persistence.cardsUnchanged)。"
@@ -213,6 +242,22 @@ public struct ImportedPageDetailView: View {
             aiStatusMessage = language.text(
                 "AI 处理失败。",
                 "AI処理に失敗しました。"
+            )
+        }
+    }
+
+    private func loadGeneratedSummary() {
+        do {
+            generatedSummary = try LearningRepository(
+                context: modelContext
+            )
+            .generatedContentSummary(
+                sourceDocumentID: item.id
+            )
+        } catch {
+            generatedSummary = GeneratedContentSummary(
+                knowledgeCount: 0,
+                cardCount: 0
             )
         }
     }
