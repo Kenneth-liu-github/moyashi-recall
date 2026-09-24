@@ -31,6 +31,7 @@ public struct AIProviderConfiguration: Codable, Equatable, Sendable {
 
 public struct AIConfigurationStore {
     private static let key = "aiProviderConfiguration"
+    private static let modelKeyPrefix = "aiProviderModel."
 
     public init() {}
 
@@ -46,11 +47,33 @@ public struct AIConfigurationStore {
         else {
             return AIProviderConfiguration(
                 provider: .openAI,
-                modelID: ""
+                modelID: modelID(
+                    for: .openAI,
+                    defaults: defaults
+                )
             )
         }
 
-        return value
+        let providerModel = modelID(
+            for: value.provider,
+            defaults: defaults
+        )
+
+        return AIProviderConfiguration(
+            provider: value.provider,
+            modelID: providerModel.isEmpty
+                ? value.modelID
+                : providerModel
+        )
+    }
+
+    public func modelID(
+        for provider: AIProviderKind,
+        defaults: UserDefaults = .standard
+    ) -> String {
+        defaults.string(
+            forKey: Self.modelKeyPrefix + provider.rawValue
+        ) ?? ""
     }
 
     public func save(
@@ -59,6 +82,11 @@ public struct AIConfigurationStore {
     ) throws {
         let data = try JSONEncoder().encode(configuration)
         defaults.set(data, forKey: Self.key)
+        defaults.set(
+            configuration.modelID,
+            forKey: Self.modelKeyPrefix
+                + configuration.provider.rawValue
+        )
     }
 }
 
