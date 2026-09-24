@@ -12,7 +12,8 @@ final class NotionImportServiceTests: XCTestCase {
             isStoredInMemoryOnly: true
         )
         return try ModelContainer(
-            for: KnowledgeItemEntity.self,
+            for: SourceDocumentEntity.self,
+            KnowledgeItemEntity.self,
             FlashcardEntity.self,
             ReviewStateEntity.self,
             ReviewHistoryEntity.self,
