@@ -48,5 +48,7 @@ public enum AIProviderError: Error, Equatable {
     case invalidResponse
     case decodingFailed
     case http(statusCode: Int, message: String)
+    case refused(String)
+    case incomplete(String)
     case missingConfiguration(String)
 }
