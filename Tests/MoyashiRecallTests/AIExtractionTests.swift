@@ -18,6 +18,69 @@ final class AIExtractionTests: XCTestCase {
         )
     }
 
+    func testExtractionRequestContainsSourceContext() {
+        let request = KnowledgeExtractionService.request(
+            for: ImportedDocument(
+                id: "doc",
+                sourceKind: "notion",
+                title: "第二课",
+                sourceReference: "notion://doc",
+                content: "進（すす）め方（かた）について",
+                sourcePath: [
+                    "Learning Home",
+                    "办公室日语学习",
+                    "第二课"
+                ]
+            )
+        )
+
+        XCTAssertTrue(request.userPrompt.contains("第二课"))
+        XCTAssertTrue(
+            request.userPrompt.contains(
+                "Learning Home / 办公室日语学习 / 第二课"
+            )
+        )
+        XCTAssertTrue(
+            request.userPrompt.contains(
+                "進（すす）め方（かた）について"
+            )
+        )
+    }
+
+    func testValidationRejectsDuplicateKeys() throws {
+        let card = GeneratedFlashcard(
+            key: "same-card",
+            type: .zhToJa,
+            prompt: "Q",
+            answer: "A"
+        )
+        let item = ExtractedKnowledgeItem(
+            key: "same-item",
+            kind: .expression,
+            title: "T",
+            canonicalExpression: "T",
+            meaning: "M",
+            explanation: "E",
+            cards: [card, card]
+        )
+        let bundle = KnowledgeExtractionBundle(
+            version: "v1",
+            items: [item]
+        )
+
+        XCTAssertThrowsError(
+            try KnowledgeExtractionService.validate(bundle)
+        ) { error in
+            XCTAssertEqual(
+                error as? KnowledgeExtractionError,
+                .duplicateCardKey(
+                    itemKey: "same-item",
+                    cardKey: "same-card"
+                )
+            )
+        }
+    }
+
     func testExtractorDecodesStructuredKnowledgeBundle() async throws {
         let provider = StaticAIProvider(
             providerID: "fixture",
