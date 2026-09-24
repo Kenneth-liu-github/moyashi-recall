@@ -8,11 +8,15 @@ public struct ImportedPageDetailView: View {
 
     @State private var isProcessing = false
     @State private var aiStatusMessage: String?
+    @State private var isAIUpToDate: Bool
 
     private let item: ImportedDocumentSummary
 
     public init(item: ImportedDocumentSummary) {
         self.item = item
+        _isAIUpToDate = State(
+            initialValue: !item.needsAIRefresh
+        )
     }
 
     public var body: some View {
@@ -73,6 +77,33 @@ public struct ImportedPageDetailView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(AppTheme.accent)
                     .disabled(isProcessing)
+                }
+
+                HStack(spacing: 8) {
+                    Image(
+                        systemName: isAIUpToDate
+                            ? "checkmark.circle"
+                            : "sparkles"
+                    )
+                    .foregroundStyle(
+                        isAIUpToDate
+                            ? AppTheme.muted
+                            : AppTheme.accent
+                    )
+
+                    Text(
+                        isAIUpToDate
+                            ? language.text(
+                                "AI 内容与当前资料一致",
+                                "AI内容は現在の資料と一致しています"
+                            )
+                            : language.text(
+                                "资料有新内容，建议重新生成",
+                                "資料が更新されています。再生成を推奨します"
+                            )
+                    )
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
                 }
 
                 if let aiStatusMessage {
@@ -157,6 +188,7 @@ public struct ImportedPageDetailView: View {
                 sourceDocumentID: item.id
             )
 
+            isAIUpToDate = true
             aiStatusMessage = language.text(
                 "完成：提取 \(result.extractedItems) 个知识点；新增卡片 \(result.persistence.cardsInserted)，更新 \(result.persistence.cardsUpdated)，未变化 \(result.persistence.cardsUnchanged)。",
                 "完了：\(result.extractedItems)件の知識を抽出；カード追加 \(result.persistence.cardsInserted)、更新 \(result.persistence.cardsUpdated)、変更なし \(result.persistence.cardsUnchanged)。"
