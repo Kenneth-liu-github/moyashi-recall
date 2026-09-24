@@ -10,13 +10,7 @@ public enum KnowledgeKind: String, Codable, CaseIterable, Sendable {
     case other
 }
 
-public enum GeneratedCardType: String, Codable, CaseIterable, Sendable {
-    case zhToJa = "zh-to-ja"
-    case jaToZh = "ja-to-zh"
-    case cloze
-    case contrast
-    case application
-}
+public typealias GeneratedCardType = ReviewCardType
 
 public struct GeneratedFlashcard: Codable, Equatable, Sendable {
     public let key: String
