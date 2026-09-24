@@ -31,6 +31,8 @@ public struct ReviewQueueService {
         }
 
         let due = cards.filter { card in
+            guard card.isActive else { return false }
+
             if let sourceKeys, !sourceKeys.isEmpty, !sourceKeys.contains(card.sourceKey) {
                 return false
             }
