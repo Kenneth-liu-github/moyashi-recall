@@ -60,7 +60,7 @@ final class AnthropicMessagesProviderTests: XCTestCase {
                   "content": [
                     {
                       "type": "text",
-                      "text": "{\"version\":\"v1\",\"items\":[]}"
+                      "text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
                     }
                   ]
                 }
@@ -255,7 +255,7 @@ private actor AnthropicRateLimitTransport: HTTPTransport {
                   "content": [
                     {
                       "type": "text",
-                      "text": "{\"version\":\"v1\",\"items\":[]}"
+                      "text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
                     }
                   ]
                 }
