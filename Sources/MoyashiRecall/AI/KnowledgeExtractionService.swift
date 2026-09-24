@@ -136,9 +136,98 @@ public struct KnowledgeExtractionService {
         AICompletionRequest(
             systemPrompt: systemPrompt,
             userPrompt: userPrompt(for: document),
-            responseSchemaName: "moyashi_knowledge_extraction_v1"
+            responseSchemaName: "moyashi_knowledge_extraction_v1",
+            responseSchemaJSON: responseSchemaJSON
         )
     }
+
+    private static let responseSchemaJSON = """
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": ["v1"]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {"type": "string"},
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "vocabulary",
+                  "expression",
+                  "grammar",
+                  "contrast",
+                  "example",
+                  "businessUsage",
+                  "other"
+                ]
+              },
+              "title": {"type": "string"},
+              "canonicalExpression": {"type": "string"},
+              "meaning": {"type": "string"},
+              "explanation": {"type": "string"},
+              "naturalEnglish": {"type": "string"},
+              "tags": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "cards": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {"type": "string"},
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "zh-to-ja",
+                        "ja-to-zh",
+                        "cloze",
+                        "contrast",
+                        "application"
+                      ]
+                    },
+                    "prompt": {"type": "string"},
+                    "answer": {"type": "string"},
+                    "explanation": {"type": "string"},
+                    "naturalEnglish": {"type": "string"}
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "prompt",
+                    "answer",
+                    "explanation",
+                    "naturalEnglish"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "key",
+              "kind",
+              "title",
+              "canonicalExpression",
+              "meaning",
+              "explanation",
+              "naturalEnglish",
+              "tags",
+              "cards"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["version", "items"],
+      "additionalProperties": false
+    }
+    """
 
     private static let systemPrompt = """
     You extract Japanese-learning knowledge from source material.
