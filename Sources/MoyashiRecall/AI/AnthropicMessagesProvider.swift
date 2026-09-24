@@ -165,8 +165,24 @@ public struct AnthropicMessagesProvider: AICompletionProvider {
             return nil
         }
 
-        if json["stop_reason"] as? String == "max_tokens" {
-            return .incomplete("max_tokens")
+        let stopReason = json["stop_reason"] as? String
+
+        if stopReason == "max_tokens"
+            || stopReason == "model_context_window_exceeded"
+            || stopReason == "pause_turn" {
+            return .incomplete(
+                stopReason ?? "incomplete"
+            )
+        }
+
+        if stopReason == "refusal" {
+            let details = json["stop_details"]
+                as? [String: Any]
+            let explanation = details?["explanation"]
+                as? String
+                ?? details?["category"] as? String
+                ?? "Request refused"
+            return .refused(explanation)
         }
 
         return nil
