@@ -5,7 +5,7 @@ public struct LibraryView: View {
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
 
-    @State private var counts: [String: Int] = [:]
+    @State private var reviewSources: [StudySource] = []
     @State private var importedItems: [ImportedDocumentSummary] = []
     @State private var loadError: String?
 
@@ -50,7 +50,7 @@ public struct LibraryView: View {
                                 "復習カードのソース"
                             )
                         ) {
-                            ForEach(MockData.sources) { source in
+                            ForEach(reviewSources) { source in
                                 VStack(
                                     alignment: .leading,
                                     spacing: 4
@@ -59,7 +59,7 @@ public struct LibraryView: View {
                                     Text(
                                         source.detail
                                             + " · "
-                                            + "\(counts[source.key, default: 0])"
+                                            + "\(source.cardCount)"
                                     )
                                     .font(.caption)
                                     .foregroundStyle(AppTheme.muted)
@@ -140,7 +140,7 @@ public struct LibraryView: View {
                 context: modelContext
             )
             try repository.seedDemoIfNeeded()
-            counts = try repository.cardCountsBySourceKey()
+            reviewSources = try repository.reviewSources()
             importedItems = try repository.importedDocuments(
                 sourceKind: "notion"
             )
