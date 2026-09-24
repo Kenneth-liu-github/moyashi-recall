@@ -22,6 +22,19 @@ public struct URLSessionHTTPTransport: HTTPTransport {
     }
 }
 
+public struct NotionDocumentTreeResult: Equatable, Sendable {
+    public let documents: [ImportedDocument]
+    public let isComplete: Bool
+
+    public init(
+        documents: [ImportedDocument],
+        isComplete: Bool
+    ) {
+        self.documents = documents
+        self.isComplete = isComplete
+    }
+}
+
 public struct NotionAPIClient: LearningContentSource {
     public static let apiVersion = "2026-03-11"
 
@@ -51,6 +64,18 @@ public struct NotionAPIClient: LearningContentSource {
         maxDepth: Int = 8,
         maxPages: Int = 200
     ) async throws -> [ImportedDocument] {
+        try await fetchDocumentTreeResult(
+            rootID: rootID,
+            maxDepth: maxDepth,
+            maxPages: maxPages
+        ).documents
+    }
+
+    public func fetchDocumentTreeResult(
+        rootID: String,
+        maxDepth: Int = 8,
+        maxPages: Int = 200
+    ) async throws -> NotionDocumentTreeResult {
         let safeDepth = max(0, maxDepth)
         let safePageLimit = max(1, maxPages)
 
@@ -69,6 +94,7 @@ public struct NotionAPIClient: LearningContentSource {
         ]
         var visited = Set<String>()
         var documents: [ImportedDocument] = []
+        var isComplete = true
 
         while !queue.isEmpty && documents.count < safePageLimit {
             let next = queue.removeFirst()
@@ -93,11 +119,15 @@ public struct NotionAPIClient: LearningContentSource {
             )
             documents.append(document)
 
-            guard next.depth < safeDepth else {
+            let children = childPageReferences(in: result.blocks)
+
+            if next.depth >= safeDepth {
+                if !children.isEmpty {
+                    isComplete = false
+                }
                 continue
             }
 
-            let children = childPageReferences(in: result.blocks)
             for child in children where !visited.contains(child.id) {
                 queue.append(
                     (
@@ -110,7 +140,14 @@ public struct NotionAPIClient: LearningContentSource {
             }
         }
 
-        return documents
+        if !queue.isEmpty {
+            isComplete = false
+        }
+
+        return NotionDocumentTreeResult(
+            documents: documents,
+            isComplete: isComplete
+        )
     }
 
     public func searchPages(
