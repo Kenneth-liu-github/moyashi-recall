@@ -29,11 +29,7 @@ public struct KnowledgeExtractionService {
         providerID: String,
         modelID: String
     ) {
-        let request = AICompletionRequest(
-            systemPrompt: Self.systemPrompt,
-            userPrompt: Self.userPrompt(for: document),
-            responseSchemaName: "moyashi_knowledge_extraction_v1"
-        )
+        let request = Self.request(for: document)
 
         let response = try await provider.complete(request: request)
 
@@ -134,6 +130,16 @@ public struct KnowledgeExtractionService {
         }
     }
 
+    public static func request(
+        for document: ImportedDocument
+    ) -> AICompletionRequest {
+        AICompletionRequest(
+            systemPrompt: systemPrompt,
+            userPrompt: userPrompt(for: document),
+            responseSchemaName: "moyashi_knowledge_extraction_v1"
+        )
+    }
+
     private static let systemPrompt = """
     You extract Japanese-learning knowledge from source material.
     Return JSON only.
@@ -154,13 +160,13 @@ public struct KnowledgeExtractionService {
     ) -> String {
         """
         SOURCE TITLE:
-        (document.title)
+        \(document.title)
 
         SOURCE PATH:
-        (document.sourcePath.joined(separator: " / "))
+        \(document.sourcePath.joined(separator: " / "))
 
         SOURCE CONTENT:
-        (document.content)
+        \(document.content)
 
         Extract a JSON object matching:
         {
