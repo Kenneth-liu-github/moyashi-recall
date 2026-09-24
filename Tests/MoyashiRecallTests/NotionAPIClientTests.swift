@@ -474,12 +474,13 @@ final class NotionAPIClientTests: XCTestCase {
             baseURL: URL(string: "https://api.notion.test")!
         )
 
-        let documents = try await client.fetchDocumentTree(
+        let tree = try await client.fetchDocumentTreeResult(
             rootID: "root",
             maxPages: 1
         )
 
-        XCTAssertEqual(documents.map(\.id), ["root"])
+        XCTAssertEqual(tree.documents.map(\.id), ["root"])
+        XCTAssertFalse(tree.isComplete)
     }
 
     func testHTTPErrorSurfacesNotionMessage() async throws {
