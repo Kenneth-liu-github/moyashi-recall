@@ -104,6 +104,51 @@ final class AnthropicMessagesProviderTests: XCTestCase {
         )
     }
 
+    func testProviderSurfacesTruncatedGeneration() async throws {
+        let transport = AnthropicTestTransport { request in
+            Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "stop_reason": "max_tokens",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "{"
+                    }
+                  ]
+                }
+                """
+            )
+        }
+
+        let provider = AnthropicMessagesProvider(
+            apiKey: "secret_test",
+            modelID: "configured-model",
+            transport: transport,
+            baseURL: URL(
+                string: "https://api.anthropic.test"
+            )!
+        )
+
+        do {
+            _ = try await provider.complete(
+                request: AICompletionRequest(
+                    systemPrompt: "system",
+                    userPrompt: "user",
+                    responseSchemaName: "schema",
+                    responseSchemaJSON: #"{"type":"object"}"#
+                )
+            )
+            XCTFail("Expected incomplete response")
+        } catch let error as AIProviderError {
+            XCTAssertEqual(
+                error,
+                .incomplete("max_tokens")
+            )
+        }
+    }
+
     func testProviderSurfacesHTTPErrorMessage() async throws {
         let transport = AnthropicTestTransport { request in
             Self.response(
