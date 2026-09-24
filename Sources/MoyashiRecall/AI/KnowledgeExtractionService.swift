@@ -11,6 +11,8 @@ public enum KnowledgeExtractionError: Error, Equatable {
     case emptyCardContent(itemKey: String, cardKey: String)
     case conflictingKnowledgeKey(String)
     case conflictingCardKey(itemKey: String, cardKey: String)
+    case duplicateSemanticItem(String)
+    case duplicateCardContent(itemKey: String, identity: String)
 }
 
 public struct KnowledgeExtractionService {
@@ -114,6 +116,7 @@ public struct KnowledgeExtractionService {
         }
 
         var knowledgeKeys = Set<String>()
+        var semanticItems = Set<String>()
 
         for item in bundle.items {
             let itemKey = item.key.trimmingCharacters(
@@ -127,6 +130,28 @@ public struct KnowledgeExtractionService {
                     .duplicateKnowledgeKey(itemKey)
             }
 
+            let semanticIdentity = [
+                item.kind.rawValue,
+                item.title.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+                item.canonicalExpression.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+                item.meaning.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+            ].joined(separator: "\u{1F}")
+
+            guard semanticItems.insert(
+                semanticIdentity
+            ).inserted else {
+                throw KnowledgeExtractionError
+                    .duplicateSemanticItem(
+                        semanticIdentity
+                    )
+            }
+
             guard item.cards.count <= maximumCardsPerItem else {
                 throw KnowledgeExtractionError.tooManyCards(
                     itemKey: itemKey,
@@ -135,6 +160,7 @@ public struct KnowledgeExtractionService {
             }
 
             var cardKeys = Set<String>()
+            var cardContent = Set<String>()
             for card in item.cards {
                 let cardKey = card.key.trimmingCharacters(
                     in: .whitespacesAndNewlines
@@ -149,6 +175,26 @@ public struct KnowledgeExtractionService {
                         itemKey: itemKey,
                         cardKey: cardKey
                     )
+                }
+
+                let cardIdentity = [
+                    card.type.rawValue,
+                    card.prompt.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    ),
+                    card.answer.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                ].joined(separator: "\u{1F}")
+
+                guard cardContent.insert(
+                    cardIdentity
+                ).inserted else {
+                    throw KnowledgeExtractionError
+                        .duplicateCardContent(
+                            itemKey: itemKey,
+                            identity: cardIdentity
+                        )
                 }
 
                 guard
