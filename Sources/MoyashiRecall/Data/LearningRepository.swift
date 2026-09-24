@@ -29,9 +29,11 @@ public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
     public let sourceKind: String
     public let externalSourceID: String
     public let parentExternalSourceID: String
+    public let rootExternalSourceID: String
     public let sourcePath: String
     public let sourceKey: String
     public let hierarchyDepth: Int
+    public let isSourceActive: Bool
     public let sourceReference: String
     public let sourceLastEditedAt: Date?
     public let lastSyncedAt: Date?
@@ -42,9 +44,11 @@ public struct ImportedKnowledgeSummary: Identifiable, Equatable, Sendable {
         self.sourceKind = entity.sourceKind
         self.externalSourceID = entity.externalSourceID
         self.parentExternalSourceID = entity.parentExternalSourceID
+        self.rootExternalSourceID = entity.rootExternalSourceID
         self.sourcePath = entity.sourcePath
         self.sourceKey = entity.sourceKey
         self.hierarchyDepth = entity.hierarchyDepth
+        self.isSourceActive = entity.isSourceActive
         self.sourceReference = entity.sourceReference
         self.sourceLastEditedAt = entity.sourceLastEditedAt
         self.lastSyncedAt = entity.lastSyncedAt
@@ -103,14 +107,17 @@ public struct LearningRepository {
             sourcePath: document.sourcePath
         )
         let parentExternalID = document.parentExternalID ?? ""
+        let rootExternalID = document.rootExternalID
 
         if let existing = try context.fetch(descriptor).first {
             existing.title = document.title
             existing.content = document.content
             existing.parentExternalSourceID = parentExternalID
+            existing.rootExternalSourceID = rootExternalID
             existing.sourcePath = sourcePath
             existing.sourceKey = sourceKey
             existing.hierarchyDepth = document.hierarchyDepth
+            existing.isSourceActive = true
             existing.sourceLastEditedAt = document.lastEditedAt
             existing.lastSyncedAt = now
             existing.sourceReference = document.sourceReference
@@ -125,9 +132,11 @@ public struct LearningRepository {
             sourceKind: document.sourceKind,
             externalSourceID: document.id,
             parentExternalSourceID: parentExternalID,
+            rootExternalSourceID: rootExternalID,
             sourcePath: sourcePath,
             sourceKey: sourceKey,
             hierarchyDepth: document.hierarchyDepth,
+            isSourceActive: true,
             sourceLastEditedAt: document.lastEditedAt,
             lastSyncedAt: now,
             sourceReference: document.sourceReference,
@@ -152,8 +161,41 @@ public struct LearningRepository {
         )
 
         return items
-            .filter { sourceKind == nil || $0.sourceKind == sourceKind }
+            .filter { item in
+                item.isSourceActive
+                    && (sourceKind == nil || item.sourceKind == sourceKind)
+            }
             .map(ImportedKnowledgeSummary.init)
+    }
+
+    @discardableResult
+    public func reconcileImportedTree(
+        sourceKind: String,
+        rootExternalID: String,
+        activeExternalIDs: Set<String>,
+        now: Date = .now
+    ) throws -> Int {
+        let items = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+
+        var deactivated = 0
+        for item in items where
+            item.sourceKind == sourceKind
+            && item.rootExternalSourceID == rootExternalID
+            && !activeExternalIDs.contains(item.externalSourceID)
+            && item.isSourceActive
+        {
+            item.isSourceActive = false
+            item.lastSyncedAt = now
+            item.updatedAt = now
+            deactivated += 1
+        }
+
+        if deactivated > 0 {
+            try context.save()
+        }
+        return deactivated
     }
 
     public func dueSessionCards(
