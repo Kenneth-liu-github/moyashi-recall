@@ -1,13 +1,11 @@
 name: Swift Validation
 
 on:
-  push:
-    branches: [main, "feature/**"]
   pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: swift-validation-${{ github.ref }}
+  group: swift-validation-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
