@@ -233,6 +233,20 @@ public struct ImportedPageDetailView: View {
                             )
                         )
                     }
+
+                    if !item.lastAIProviderID.isEmpty {
+                        LabeledContent(
+                            language.text(
+                                "最近 AI",
+                                "最終AI"
+                            ),
+                            value: item.lastAIModelID.isEmpty
+                                ? item.lastAIProviderID
+                                : item.lastAIProviderID
+                                    + " · "
+                                    + item.lastAIModelID
+                        )
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
