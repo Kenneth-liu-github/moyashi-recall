@@ -483,6 +483,57 @@ final class NotionAPIClientTests: XCTestCase {
         XCTAssertFalse(tree.isComplete)
     }
 
+    func testRateLimitRetriesUsingRetryAfter() async throws {
+        var attempts = 0
+
+        let transport = MockHTTPTransport { request in
+            attempts += 1
+
+            if attempts == 1 {
+                return Self.response(
+                    url: request.url!,
+                    statusCode: 429,
+                    headers: ["Retry-After": "0"],
+                    json: """
+                    {
+                      "object": "error",
+                      "status": 429,
+                      "code": "rate_limited",
+                      "message": "Slow down."
+                    }
+                    """
+                )
+            }
+
+            return Self.response(
+                url: request.url!,
+                json: """
+                {
+                  "id": "root",
+                  "properties": {
+                    "title": {
+                      "type": "title",
+                      "title": [{"plain_text": "Learning Home"}]
+                    }
+                  }
+                }
+                """
+            )
+        }
+
+        let client = NotionAPIClient(
+            token: "secret_test",
+            transport: transport,
+            baseURL: URL(string: "https://api.notion.test")!
+        )
+
+        let page = try await client.retrievePage(id: "root")
+
+        XCTAssertEqual(page.title, "Learning Home")
+        XCTAssertEqual(attempts, 2)
+        XCTAssertEqual(transport.requests.count, 2)
+    }
+
     func testHTTPErrorSurfacesNotionMessage() async throws {
         let transport = MockHTTPTransport { request in
             Self.response(
@@ -522,13 +573,21 @@ final class NotionAPIClientTests: XCTestCase {
     private static func response(
         url: URL,
         statusCode: Int = 200,
+        headers: [String: String] = [:],
         json: String
     ) -> (Data, URLResponse) {
+        var responseHeaders = [
+            "Content-Type": "application/json"
+        ]
+        for (key, value) in headers {
+            responseHeaders[key] = value
+        }
+
         let response = HTTPURLResponse(
             url: url,
             statusCode: statusCode,
             httpVersion: nil,
-            headerFields: ["Content-Type": "application/json"]
+            headerFields: responseHeaders
         )!
         return (Data(json.utf8), response)
     }
