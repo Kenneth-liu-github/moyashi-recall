@@ -14,6 +14,11 @@ let package = Package(
             sources: [
                 "Scheduling/ReviewLearningState.swift",
                 "Scheduling/FSRSScheduler.swift",
+                "Core/Networking/HTTPTransport.swift",
+                "AI/AICompletionProvider.swift",
+                "AI/KnowledgeExtractionModels.swift",
+                "AI/KnowledgeExtractionService.swift",
+                "AI/OpenAIResponsesProvider.swift",
                 "Sources/LearningContentSource.swift",
                 "Sources/SourceKeyResolver.swift",
                 "Sources/Notion/NotionAPIClient.swift"
@@ -26,7 +31,9 @@ let package = Package(
             sources: [
                 "FSRSSchedulerTests.swift",
                 "NotionAPIClientTests.swift",
-                "SourceKeyResolverTests.swift"
+                "SourceKeyResolverTests.swift",
+                "AIExtractionCoreTests.swift",
+                "OpenAIResponsesProviderTests.swift"
             ]
         )
     ]
