@@ -111,6 +111,12 @@ public enum KnowledgeBundleMerger {
             )
         }
 
+        for bundle in bundles {
+            try KnowledgeExtractionService.validate(
+                bundle
+            )
+        }
+
         let version = bundles[0].version
         guard bundles.allSatisfy({
             $0.version == version
