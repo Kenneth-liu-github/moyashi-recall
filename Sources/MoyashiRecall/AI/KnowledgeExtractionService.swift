@@ -9,6 +9,8 @@ public enum KnowledgeExtractionError: Error, Equatable {
     case emptyCardKey(itemKey: String)
     case duplicateCardKey(itemKey: String, cardKey: String)
     case emptyCardContent(itemKey: String, cardKey: String)
+    case conflictingKnowledgeKey(String)
+    case conflictingCardKey(itemKey: String, cardKey: String)
 }
 
 public struct KnowledgeExtractionService {
