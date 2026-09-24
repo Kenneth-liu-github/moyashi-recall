@@ -7,8 +7,8 @@ public struct StudyScopeView: View {
 
     public init() {}
 
-    private var selectedSourceTitles: Set<String> {
-        Set(MockData.sources.filter { selected.contains($0.id) }.map(\.title))
+    private var selectedSourceKeys: Set<String> {
+        Set(MockData.sources.filter { selected.contains($0.id) }.map(\.key))
     }
 
     public var body: some View {
@@ -50,7 +50,7 @@ public struct StudyScopeView: View {
 
             Section {
                 NavigationLink {
-                    ReviewView(sourceTitles: selectedSourceTitles, sessionLimit: reviewCount)
+                    ReviewView(sourceKeys: selectedSourceKeys, sessionLimit: reviewCount)
                 } label: {
                     HStack {
                         Spacer()
