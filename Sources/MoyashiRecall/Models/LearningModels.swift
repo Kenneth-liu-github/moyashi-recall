@@ -14,14 +14,22 @@ public struct StudySource: Identifiable, Hashable {
 }
 
 public struct ReviewCard: Identifiable, Hashable {
-    public let id = UUID()
+    public let id: UUID
     public let prompt: String
     public let answer: String
     public let meaning: String
     public let naturalEnglish: String
     public let source: String
 
-    public init(prompt: String, answer: String, meaning: String, naturalEnglish: String, source: String) {
+    public init(
+        id: UUID = UUID(),
+        prompt: String,
+        answer: String,
+        meaning: String,
+        naturalEnglish: String,
+        source: String
+    ) {
+        self.id = id
         self.prompt = prompt
         self.answer = answer
         self.meaning = meaning
