@@ -292,16 +292,12 @@ private actor RateLimitOpenAITransport: HTTPTransport {
                 "Content-Type": "application/json"
             ]
         )!
-        return (
-            Data(
-                """
-                {
-                  "output_text": "{\\\"version\\\":\\\"v1\\\",\\\"items\\\":[]}"
-                }
-                """.utf8
-            ),
-            response
+        let data = try JSONSerialization.data(
+            withJSONObject: [
+                "output_text": #"{"version":"v1","items":[]}"#
+            ]
         )
+        return (data, response)
     }
 
     func attemptCount() -> Int {
