@@ -38,7 +38,9 @@ Review entities are not structurally coupled to source synchronization and are i
 A Source Document stores:
 
 - last successful AI-processing time,
-- the source-document update timestamp used for that processing.
+- the source-document update timestamp used for that processing,
+- the AI provider ID used for the latest successful generation,
+- the model ID used for the latest successful generation.
 
 When the source changes later, Library marks the AI result as stale until knowledge/cards are regenerated successfully.
 
