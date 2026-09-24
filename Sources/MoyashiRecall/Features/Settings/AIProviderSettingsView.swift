@@ -131,7 +131,7 @@ public struct AIProviderSettingsView: View {
                 }
                 .disabled(
                     isTestingConnection
-                        || !hasStoredCredential
+                        || !hasUsableCredential
                         || modelID.trimmingCharacters(
                             in: .whitespacesAndNewlines
                         ).isEmpty
@@ -168,6 +168,13 @@ public struct AIProviderSettingsView: View {
             apiKeyDraft = ""
             refreshCredentialState()
         }
+    }
+
+    private var hasUsableCredential: Bool {
+        hasStoredCredential
+            || !apiKeyDraft.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).isEmpty
     }
 
     private func loadConfiguration() {
