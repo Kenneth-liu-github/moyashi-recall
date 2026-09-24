@@ -113,7 +113,7 @@ public struct FSRSScheduler: Sendable {
         now: Date = .now,
         calendar: Calendar = .current
     ) -> FSRSScheduleResult {
-        let elapsed = elapsedDays(since: current.lastReview, now: now)
+        let elapsed = elapsedDays(since: current.lastReview, now: now, calendar: calendar)
         let isNew = current.state == .new || current.lastReview == nil || current.stability <= 0
 
         let nextStability: Double
@@ -198,9 +198,18 @@ public struct FSRSScheduler: Sendable {
         return min(maximumInterval, max(1, Int(raw.rounded())))
     }
 
-    private func elapsedDays(since lastReview: Date?, now: Date) -> Int {
+    private func elapsedDays(
+        since lastReview: Date?,
+        now: Date,
+        calendar: Calendar
+    ) -> Int {
         guard let lastReview else { return 0 }
-        return max(0, Int(floor(now.timeIntervalSince(lastReview) / 86_400)))
+        let start = calendar.startOfDay(for: lastReview)
+        let end = calendar.startOfDay(for: now)
+        return max(
+            0,
+            calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        )
     }
 
     private func initialStability(for rating: ReviewRating) -> Double {
