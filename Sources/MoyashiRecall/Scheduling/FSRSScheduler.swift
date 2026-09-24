@@ -63,6 +63,24 @@ public struct FSRSScheduler: Sendable {
         0.1542
     ]
 
+    private static let lowerBounds: [Double] = [
+        0.001, 0.001, 0.001, 0.001,
+        1.0, 0.001, 0.001, 0.001,
+        0.0, 0.0, 0.001, 0.001,
+        0.001, 0.001, 0.0, 0.0,
+        1.0, 0.0, 0.0, 0.0,
+        0.1
+    ]
+
+    private static let upperBounds: [Double] = [
+        100.0, 100.0, 100.0, 100.0,
+        10.0, 4.0, 4.0, 0.75,
+        4.5, 0.8, 3.5, 5.0,
+        0.25, 0.9, 4.0, 1.0,
+        6.0, 2.0, 2.0, 0.8,
+        0.8
+    ]
+
     public let parameters: [Double]
     public let desiredRetention: Double
     public let maximumInterval: Int
@@ -76,6 +94,12 @@ public struct FSRSScheduler: Sendable {
         maximumInterval: Int = 36_500
     ) {
         precondition(parameters.count == 21, "FSRS-6 requires exactly 21 parameters.")
+        for index in parameters.indices {
+            precondition(
+                Self.lowerBounds[index]...Self.upperBounds[index] ~= parameters[index],
+                "FSRS-6 parameter \(index) is outside the supported bounds."
+            )
+        }
         self.parameters = parameters
         self.desiredRetention = min(max(desiredRetention, 0.70), 0.97)
         self.maximumInterval = max(1, maximumInterval)
