@@ -145,6 +145,37 @@ final class OpenAIResponsesProviderTests: XCTestCase {
         )
     }
 
+    func testProviderRetriesRateLimitUsingRetryAfter() async throws {
+        let transport = RateLimitOpenAITransport()
+
+        let provider = OpenAIResponsesProvider(
+            apiKey: "secret_test",
+            modelID: "configured-model",
+            transport: transport,
+            baseURL: URL(
+                string: "https://api.openai.test"
+            )!
+        )
+
+        let response = try await provider.complete(
+            request: AICompletionRequest(
+                systemPrompt: "system",
+                userPrompt: "user",
+                responseSchemaName: "schema",
+                responseSchemaJSON: #"{"type":"object"}"#
+            )
+        )
+
+        XCTAssertEqual(
+            response.text,
+            #"{"version":"v1","items":[]}"#
+        )
+        XCTAssertEqual(
+            await transport.attemptCount(),
+            2
+        )
+    }
+
     func testProviderSurfacesHTTPErrorMessage() async throws {
         let transport = OpenAITestTransport { request in
             Self.response(
@@ -227,5 +258,51 @@ private struct OpenAITestTransport: HTTPTransport {
         for request: URLRequest
     ) async throws -> (Data, URLResponse) {
         try handler(request)
+    }
+}
+
+
+private actor RateLimitOpenAITransport: HTTPTransport {
+    private var attempts = 0
+
+    func data(
+        for request: URLRequest
+    ) async throws -> (Data, URLResponse) {
+        attempts += 1
+
+        if attempts == 1 {
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 429,
+                httpVersion: nil,
+                headerFields: [
+                    "Content-Type": "application/json",
+                    "Retry-After": "0"
+                ]
+            )!
+            return (
+                Data(#"{"error":{"message":"Slow down"}}"#.utf8),
+                response
+            )
+        }
+
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: [
+                "Content-Type": "application/json"
+            ]
+        )!
+        return (
+            Data(
+                #"{"output_text":"{\\"version\\":\\"v1\\",\\"items\\":[]}"}"#.utf8
+            ),
+            response
+        )
+    }
+
+    func attemptCount() -> Int {
+        attempts
     }
 }
