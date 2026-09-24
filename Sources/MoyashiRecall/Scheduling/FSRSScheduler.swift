@@ -110,7 +110,8 @@ public struct FSRSScheduler: Sendable {
     public func schedule(
         _ current: FSRSCardState,
         rating: ReviewRating,
-        now: Date = .now
+        now: Date = .now,
+        calendar: Calendar = .current
     ) -> FSRSScheduleResult {
         let elapsed = elapsedDays(since: current.lastReview, now: now)
         let isNew = current.state == .new || current.lastReview == nil || current.stability <= 0
@@ -154,7 +155,7 @@ public struct FSRSScheduler: Sendable {
         }
 
         let interval = intervalDays(forStability: nextStability)
-        let due = now.addingTimeInterval(TimeInterval(interval) * 86_400)
+        let due = calendar.date(byAdding: .day, value: interval, to: now) ?? now
 
         var nextLapses = current.lapses
         if !isNew && rating == .again {
