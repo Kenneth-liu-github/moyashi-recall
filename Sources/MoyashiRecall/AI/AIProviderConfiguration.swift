@@ -104,6 +104,7 @@ public enum AICredential {
 }
 
 public enum AIProviderFactory {
+    #if canImport(Security)
     public static func makeConfiguredProvider(
         configurationStore: AIConfigurationStore = AIConfigurationStore(),
         credentialStore: KeychainCredentialStore = KeychainCredentialStore()
@@ -128,6 +129,7 @@ public enum AIProviderFactory {
             secret: secret
         )
     }
+    #endif
 
     public static func makeProvider(
         configuration: AIProviderConfiguration,
