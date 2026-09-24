@@ -9,9 +9,11 @@ public final class KnowledgeItemEntity {
     public var sourceKind: String
     public var externalSourceID: String = ""
     public var parentExternalSourceID: String = ""
+    public var rootExternalSourceID: String = ""
     public var sourcePath: String = ""
     public var sourceKey: String = ""
     public var hierarchyDepth: Int = 0
+    public var isSourceActive: Bool = true
     public var sourceLastEditedAt: Date?
     public var lastSyncedAt: Date?
     public var sourceReference: String
@@ -25,9 +27,11 @@ public final class KnowledgeItemEntity {
         sourceKind: String,
         externalSourceID: String = "",
         parentExternalSourceID: String = "",
+        rootExternalSourceID: String = "",
         sourcePath: String = "",
         sourceKey: String = "",
         hierarchyDepth: Int = 0,
+        isSourceActive: Bool = true,
         sourceLastEditedAt: Date? = nil,
         lastSyncedAt: Date? = nil,
         sourceReference: String,
@@ -40,9 +44,11 @@ public final class KnowledgeItemEntity {
         self.sourceKind = sourceKind
         self.externalSourceID = externalSourceID
         self.parentExternalSourceID = parentExternalSourceID
+        self.rootExternalSourceID = rootExternalSourceID
         self.sourcePath = sourcePath
         self.sourceKey = sourceKey
         self.hierarchyDepth = hierarchyDepth
+        self.isSourceActive = isSourceActive
         self.sourceLastEditedAt = sourceLastEditedAt
         self.lastSyncedAt = lastSyncedAt
         self.sourceReference = sourceReference
