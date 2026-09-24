@@ -109,7 +109,30 @@ public enum AIProviderFactory {
         credentialStore: KeychainCredentialStore = KeychainCredentialStore()
     ) throws -> any AICompletionProvider {
         let configuration = configurationStore.load()
+        let account = AICredential.account(
+            for: configuration.provider
+        )
 
+        guard
+            let secret = try credentialStore.read(
+                account: account
+            )
+        else {
+            throw AIProviderError.missingConfiguration(
+                "\(configuration.provider.displayName) API key"
+            )
+        }
+
+        return try makeProvider(
+            configuration: configuration,
+            secret: secret
+        )
+    }
+
+    public static func makeProvider(
+        configuration: AIProviderConfiguration,
+        secret: String
+    ) throws -> any AICompletionProvider {
         let modelID = configuration.modelID
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -120,17 +143,10 @@ public enum AIProviderFactory {
             )
         }
 
-        let account = AICredential.account(
-            for: configuration.provider
+        let trimmedSecret = secret.trimmingCharacters(
+            in: .whitespacesAndNewlines
         )
-        guard
-            let secret = try credentialStore.read(
-                account: account
-            ),
-            !secret.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            ).isEmpty
-        else {
+        guard !trimmedSecret.isEmpty else {
             throw AIProviderError.missingConfiguration(
                 "\(configuration.provider.displayName) API key"
             )
@@ -139,12 +155,12 @@ public enum AIProviderFactory {
         switch configuration.provider {
         case .openAI:
             return OpenAIResponsesProvider(
-                apiKey: secret,
+                apiKey: trimmedSecret,
                 modelID: modelID
             )
         case .anthropic:
             return AnthropicMessagesProvider(
-                apiKey: secret,
+                apiKey: trimmedSecret,
                 modelID: modelID
             )
         }
