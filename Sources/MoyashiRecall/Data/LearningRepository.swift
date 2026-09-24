@@ -365,7 +365,6 @@ public struct LearningRepository {
         var cardsUnchanged = 0
         var cardsDeactivated = 0
 
-        var activeKnowledgeIDs = Set<UUID>()
         let activeKeys = Set(bundle.items.map(\.key))
 
         for generated in bundle.items {
@@ -430,8 +429,6 @@ public struct LearningRepository {
                 context.insert(knowledge)
                 knowledgeInserted += 1
             }
-
-            activeKnowledgeIDs.insert(knowledge.id)
 
             let existingCards = try context.fetch(
                 FetchDescriptor<FlashcardEntity>()
@@ -559,11 +556,12 @@ public struct LearningRepository {
         let normalized = searchText.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
+        let activeEntities = entities.filter(\.isActive)
         let filtered: [FlashcardEntity]
         if normalized.isEmpty {
-            filtered = entities
+            filtered = activeEntities
         } else {
-            filtered = entities.filter {
+            filtered = activeEntities.filter {
                 $0.prompt.localizedCaseInsensitiveContains(normalized)
                     || $0.answer.localizedCaseInsensitiveContains(normalized)
                     || $0.explanation.localizedCaseInsensitiveContains(normalized)
@@ -575,6 +573,7 @@ public struct LearningRepository {
 
     public func cardCountsBySourceKey() throws -> [String: Int] {
         let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
+            .filter(\.isActive)
         return cards.reduce(into: [String: Int]()) { result, card in
             result[card.sourceKey, default: 0] += 1
         }
@@ -596,6 +595,7 @@ public struct LearningRepository {
 
     public func homeSnapshot(now: Date = .now) throws -> HomeSnapshot {
         let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
+            .filter(\.isActive)
         let states = try context.fetch(FetchDescriptor<ReviewStateEntity>())
         let history = try context.fetch(
             FetchDescriptor<ReviewHistoryEntity>(
