@@ -7,13 +7,13 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  package-tests:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Swift version
         run: swift --version
-      - name: Build
+      - name: Build reusable package
         run: swift build
-      - name: Test
+      - name: Run unit tests
         run: swift test
