@@ -377,6 +377,66 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
+    func testReconcileImportedTreeDeactivatesRemovedPages() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let repository = LearningRepository(context: context)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let root = ImportedDocument(
+            id: "root",
+            sourceKind: "notion",
+            title: "Learning Home",
+            sourceReference: "https://www.notion.so/root",
+            content: "root",
+            rootExternalID: "root",
+            sourcePath: ["Learning Home"],
+            hierarchyDepth: 0
+        )
+        let removedChild = ImportedDocument(
+            id: "removed-child",
+            sourceKind: "notion",
+            title: "旧页面",
+            sourceReference: "https://www.notion.so/removed",
+            content: "old",
+            parentExternalID: "root",
+            rootExternalID: "root",
+            sourcePath: ["Learning Home", "旧页面"],
+            hierarchyDepth: 1
+        )
+
+        _ = try repository.upsertImportedDocument(root, now: now)
+        _ = try repository.upsertImportedDocument(
+            removedChild,
+            now: now
+        )
+
+        let deactivated = try repository.reconcileImportedTree(
+            sourceKind: "notion",
+            rootExternalID: "root",
+            activeExternalIDs: ["root"],
+            now: now.addingTimeInterval(60)
+        )
+
+        XCTAssertEqual(deactivated, 1)
+
+        let allItems = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        XCTAssertEqual(
+            allItems.first {
+                $0.externalSourceID == "removed-child"
+            }?.isSourceActive,
+            false
+        )
+
+        let visible = try repository.importedKnowledgeItems(
+            sourceKind: "notion"
+        )
+        XCTAssertEqual(visible.map(\.externalSourceID), ["root"])
+    }
+
+    @MainActor
     func testRepositoryReturnsValueTypeSessionCards() throws {
         let container = try makeContainer()
         let context = container.mainContext
