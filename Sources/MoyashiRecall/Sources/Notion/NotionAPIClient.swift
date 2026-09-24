@@ -10,18 +10,6 @@ public enum NotionAPIError: Error, Equatable {
     case malformedPayload
 }
 
-public protocol HTTPTransport {
-    func data(for request: URLRequest) async throws -> (Data, URLResponse)
-}
-
-public struct URLSessionHTTPTransport: HTTPTransport {
-    public init() {}
-
-    public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        try await URLSession.shared.data(for: request)
-    }
-}
-
 public struct NotionDocumentTreeResult: Equatable, Sendable {
     public let documents: [ImportedDocument]
     public let isComplete: Bool
