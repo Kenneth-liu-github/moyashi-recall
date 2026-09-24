@@ -12,6 +12,7 @@ public struct NotionConnectionView: View {
     @State private var statusMessage: String?
     @State private var hasStoredToken = false
     @State private var isWorking = false
+    @State private var lastSyncState: NotionSyncState?
 
     private let credentialStore = KeychainCredentialStore()
 
@@ -190,6 +191,47 @@ public struct NotionConnectionView: View {
                 }
             }
 
+            if let lastSyncState {
+                Section(
+                    language.text(
+                        "最近同步",
+                        "最終同期"
+                    )
+                ) {
+                    LabeledContent(
+                        language.text(
+                            "时间",
+                            "時刻"
+                        ),
+                        value: lastSyncState.lastSyncedAt.formatted(
+                            date: .abbreviated,
+                            time: .shortened
+                        )
+                    )
+                    LabeledContent(
+                        language.text(
+                            "页面",
+                            "ページ"
+                        ),
+                        value: "\(lastSyncState.totalPages)"
+                    )
+                    LabeledContent(
+                        language.text(
+                            "结果",
+                            "結果"
+                        ),
+                        value: language.text(
+                            lastSyncState.isComplete
+                                ? "完整同步"
+                                : "部分同步",
+                            lastSyncState.isComplete
+                                ? "完全同期"
+                                : "部分同期"
+                        )
+                    )
+                }
+            }
+
             if let statusMessage {
                 Section {
                     HStack(spacing: 10) {
@@ -210,6 +252,7 @@ public struct NotionConnectionView: View {
         )
         .onAppear {
             refreshCredentialState()
+            loadLastSyncState()
         }
     }
 
@@ -362,6 +405,14 @@ public struct NotionConnectionView: View {
                 rootID: rootPageID
             )
 
+            let syncState = NotionSyncState(
+                rootPageID: rootPageID,
+                lastSyncedAt: .now,
+                report: report
+            )
+            try? NotionSyncStateStore().save(syncState)
+            lastSyncState = syncState
+
             if report.isComplete {
                 statusMessage = language.text(
                     "同步完成：共 \(report.totalPages) 个页面；新增 \(report.inserted)，更新 \(report.updated)，未变化 \(report.unchanged)，移出 \(report.deactivated)。",
@@ -376,6 +427,10 @@ public struct NotionConnectionView: View {
         } catch {
             statusMessage = connectionErrorMessage(error)
         }
+    }
+
+    private func loadLastSyncState() {
+        lastSyncState = try? NotionSyncStateStore().load()
     }
 
     private func connectionErrorMessage(
