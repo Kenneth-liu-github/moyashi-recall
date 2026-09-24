@@ -17,6 +17,7 @@ let package = Package(
                 "Models/LearningModels.swift",
                 "Core/Networking/HTTPTransport.swift",
                 "AI/AICompletionProvider.swift",
+                "AI/AIProviderConfiguration.swift",
                 "AI/KnowledgeExtractionModels.swift",
                 "AI/KnowledgeExtractionService.swift",
                 "AI/DocumentChunker.swift",
@@ -38,7 +39,8 @@ let package = Package(
                 "AIExtractionCoreTests.swift",
                 "DocumentChunkerTests.swift",
                 "OpenAIResponsesProviderTests.swift",
-                "AnthropicMessagesProviderTests.swift"
+                "AnthropicMessagesProviderTests.swift",
+                "AIProviderConfigurationTests.swift"
             ]
         )
     ]
