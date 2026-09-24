@@ -3,6 +3,7 @@ import SwiftData
 
 public struct ReviewView: View {
     private let sourceKeys: Set<String>?
+    private let cardTypes: Set<String>?
     private let sessionLimit: Int
 
     @EnvironmentObject private var language: LanguageStore
@@ -15,8 +16,13 @@ public struct ReviewView: View {
     @State private var saveError: String?
     @State private var didLoadSession = false
 
-    public init(sourceKeys: Set<String>? = nil, sessionLimit: Int = 20) {
+    public init(
+        sourceKeys: Set<String>? = nil,
+        cardTypes: Set<String>? = nil,
+        sessionLimit: Int = 20
+    ) {
         self.sourceKeys = sourceKeys
+        self.cardTypes = cardTypes
         self.sessionLimit = max(1, sessionLimit)
     }
 
@@ -211,6 +217,7 @@ public struct ReviewView: View {
             try repository.seedDemoIfNeeded()
             sessionCards = try repository.dueSessionCards(
                 sourceKeys: sourceKeys,
+                cardTypes: cardTypes,
                 limit: sessionLimit
             )
             currentIndex = 0
