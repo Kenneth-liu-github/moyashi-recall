@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 #if canImport(FoundationNetworking)
 import FoundationNetworking
