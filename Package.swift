@@ -8,7 +8,10 @@ let package = Package(
         .library(name: "MoyashiRecall", targets: ["MoyashiRecall"])
     ],
     targets: [
-        .target(name: "MoyashiRecall"),
+        .target(
+            name: "MoyashiRecall",
+            exclude: ["App/MoyashiRecallApp.swift"]
+        ),
         .testTarget(name: "MoyashiRecallTests", dependencies: ["MoyashiRecall"])
     ]
 )
