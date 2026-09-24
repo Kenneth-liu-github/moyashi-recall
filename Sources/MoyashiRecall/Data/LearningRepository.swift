@@ -69,9 +69,20 @@ public struct LearningRepository {
         )
         descriptor.fetchLimit = 1
 
+        let sourcePath = document.sourcePath.joined(separator: " / ")
+        let sourceKey = SourceKeyResolver.resolve(
+            sourceKind: document.sourceKind,
+            sourcePath: document.sourcePath
+        )
+        let parentExternalID = document.parentExternalID ?? ""
+
         if let existing = try context.fetch(descriptor).first {
             existing.title = document.title
             existing.content = document.content
+            existing.parentExternalSourceID = parentExternalID
+            existing.sourcePath = sourcePath
+            existing.sourceKey = sourceKey
+            existing.hierarchyDepth = document.hierarchyDepth
             existing.sourceReference = document.sourceReference
             existing.updatedAt = now
             try context.save()
@@ -83,6 +94,10 @@ public struct LearningRepository {
             content: document.content,
             sourceKind: document.sourceKind,
             externalSourceID: document.id,
+            parentExternalSourceID: parentExternalID,
+            sourcePath: sourcePath,
+            sourceKey: sourceKey,
+            hierarchyDepth: document.hierarchyDepth,
             sourceReference: document.sourceReference,
             createdAt: now,
             updatedAt: now
