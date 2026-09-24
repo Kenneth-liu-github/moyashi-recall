@@ -7,6 +7,9 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
     public let sourceReference: String
     public let content: String
     public let lastEditedAt: Date?
+    public let parentExternalID: String?
+    public let sourcePath: [String]
+    public let hierarchyDepth: Int
 
     public init(
         id: String,
@@ -14,7 +17,10 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
         title: String,
         sourceReference: String,
         content: String,
-        lastEditedAt: Date? = nil
+        lastEditedAt: Date? = nil,
+        parentExternalID: String? = nil,
+        sourcePath: [String] = [],
+        hierarchyDepth: Int = 0
     ) {
         self.id = id
         self.sourceKind = sourceKind
@@ -22,6 +28,9 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
         self.sourceReference = sourceReference
         self.content = content
         self.lastEditedAt = lastEditedAt
+        self.parentExternalID = parentExternalID
+        self.sourcePath = sourcePath.isEmpty ? [title] : sourcePath
+        self.hierarchyDepth = max(0, hierarchyDepth)
     }
 }
 
