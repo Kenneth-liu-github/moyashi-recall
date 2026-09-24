@@ -2,6 +2,7 @@ import Foundation
 
 public enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case openAI = "openai"
+    case anthropic
 
     public var id: String { rawValue }
 
@@ -9,6 +10,8 @@ public enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Sendabl
         switch self {
         case .openAI:
             return "OpenAI"
+        case .anthropic:
+            return "Anthropic"
         }
     }
 }
@@ -66,6 +69,8 @@ public enum AICredential {
         switch provider {
         case .openAI:
             return "ai-openai-api-key"
+        case .anthropic:
+            return "ai-anthropic-api-key"
         }
     }
 }
@@ -106,6 +111,11 @@ public enum AIProviderFactory {
         switch configuration.provider {
         case .openAI:
             return OpenAIResponsesProvider(
+                apiKey: secret,
+                modelID: modelID
+            )
+        case .anthropic:
+            return AnthropicMessagesProvider(
                 apiKey: secret,
                 modelID: modelID
             )
