@@ -9,6 +9,7 @@ struct MoyashiRecallApp: App {
             MoyashiRecallRootView()
         }
         .modelContainer(for: [
+            SourceDocumentEntity.self,
             KnowledgeItemEntity.self,
             FlashcardEntity.self,
             ReviewStateEntity.self,
