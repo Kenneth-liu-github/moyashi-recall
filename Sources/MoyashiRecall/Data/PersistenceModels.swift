@@ -16,6 +16,8 @@ public final class SourceDocumentEntity {
     public var isSourceActive: Bool
     public var sourceLastEditedAt: Date?
     public var lastSyncedAt: Date?
+    public var lastAIProcessedAt: Date?
+    public var aiProcessedSourceUpdatedAt: Date?
     public var sourceReference: String
     public var createdAt: Date
     public var updatedAt: Date = .distantPast
@@ -34,6 +36,8 @@ public final class SourceDocumentEntity {
         isSourceActive: Bool = true,
         sourceLastEditedAt: Date? = nil,
         lastSyncedAt: Date? = nil,
+        lastAIProcessedAt: Date? = nil,
+        aiProcessedSourceUpdatedAt: Date? = nil,
         sourceReference: String,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -51,6 +55,8 @@ public final class SourceDocumentEntity {
         self.isSourceActive = isSourceActive
         self.sourceLastEditedAt = sourceLastEditedAt
         self.lastSyncedAt = lastSyncedAt
+        self.lastAIProcessedAt = lastAIProcessedAt
+        self.aiProcessedSourceUpdatedAt = aiProcessedSourceUpdatedAt
         self.sourceReference = sourceReference
         self.createdAt = createdAt
         self.updatedAt = updatedAt
