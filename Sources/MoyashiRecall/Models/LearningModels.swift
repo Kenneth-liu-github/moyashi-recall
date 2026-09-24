@@ -1,5 +1,15 @@
 import Foundation
 
+public enum ReviewCardType: String, Codable, CaseIterable, Identifiable, Sendable {
+    case zhToJa = "zh-to-ja"
+    case jaToZh = "ja-to-zh"
+    case cloze
+    case contrast
+    case application
+
+    public var id: String { rawValue }
+}
+
 public struct StudySource: Identifiable, Hashable {
     public let id: UUID
     public let key: String
