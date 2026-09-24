@@ -468,6 +468,83 @@ final class AIExtractionTests: XCTestCase {
     }
 
     @MainActor
+    func testRemovedSourceDeactivatesGeneratedLearningButPreservesHistory() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            rootExternalSourceID: "root",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-1"
+        )
+        context.insert(source)
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let bundle = try JSONDecoder().decode(
+            KnowledgeExtractionBundle.self,
+            from: Data(Self.fixtureJSON.utf8)
+        )
+        _ = try repository.persistExtraction(
+            bundle,
+            sourceDocumentID: source.id,
+            providerID: "fixture",
+            modelID: "one"
+        )
+
+        let card = try XCTUnwrap(
+            context.fetch(
+                FetchDescriptor<FlashcardEntity>()
+            ).first
+        )
+        context.insert(
+            ReviewHistoryEntity(
+                cardID: card.id,
+                reviewedAt: .now,
+                ratingRawValue: ReviewRating.good.rawValue,
+                elapsedDays: 0,
+                scheduledDays: 2,
+                stabilityBefore: 0,
+                stabilityAfter: 2,
+                difficultyBefore: 5,
+                difficultyAfter: 4
+            )
+        )
+        try context.save()
+
+        let deactivated = try repository.reconcileImportedTree(
+            sourceKind: "notion",
+            rootExternalID: "root",
+            activeExternalIDs: []
+        )
+
+        XCTAssertEqual(deactivated, 1)
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<KnowledgeItemEntity>()
+            ).allSatisfy { !$0.isActive }
+        )
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<FlashcardEntity>()
+            ).allSatisfy { !$0.isActive }
+        )
+        XCTAssertEqual(
+            try context.fetch(
+                FetchDescriptor<ReviewHistoryEntity>()
+            ).count,
+            1
+        )
+        XCTAssertTrue(
+            try repository.dueSessionCards().isEmpty
+        )
+    }
+
+    @MainActor
     func testRemovedGeneratedCardBecomesInactiveButHistorySurvives() async throws {
         let container = try makeContainer()
         let context = container.mainContext
