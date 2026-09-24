@@ -11,7 +11,9 @@ public struct MoyashiRecallRootView: View {
         TabView {
             HomeView()
                 .tabItem { Label(language.text("首页", "ホーム"), systemImage: "house") }
-            ReviewView()
+            NavigationStack {
+                ReviewView()
+            }
                 .tabItem { Label(language.text("复习", "復習"), systemImage: "rectangle.stack") }
             LibraryView()
                 .tabItem { Label(language.text("资料库", "ライブラリ"), systemImage: "books.vertical") }
