@@ -3,9 +3,9 @@ import SwiftUI
 
 public struct ImportedPageDetailView: View {
     @EnvironmentObject private var language: LanguageStore
-    private let item: ImportedKnowledgeSummary
+    private let item: ImportedDocumentSummary
 
-    public init(item: ImportedKnowledgeSummary) {
+    public init(item: ImportedDocumentSummary) {
         self.item = item
     }
 
