@@ -84,6 +84,18 @@ Source → Source Document → AI Knowledge Item → Flashcard → Review Histor
 - credential-free JSON learning-data export
 - deterministic backup schema with inactive-history preservation
 
+### V0.8 — Safe learning-data restore
+
+- JSON backup validation before any write
+- bounded backup size and record-count limits
+- referential-integrity and scheduling-state validation
+- semantic-duplicate rejection
+- source / knowledge / flashcard UUID identity-conflict protection
+- non-destructive merge that preserves newer and local-only data
+- legacy stable-key enrichment
+- explicit restore preview and confirmation
+- credentials and settings excluded from restore
+
 ## Development workflow
 
 Feature work is isolated on stacked branches and draft pull requests. A milestone is not merged until its validation gate is satisfied.
