@@ -921,4 +921,83 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testLocalFileImportIsIdempotentAndUpdatesChangedContent() throws {
+        let container = try makeContainer()
+        let repository = LearningRepository(
+            context: container.mainContext
+        )
+        let service = LocalFileImportService(
+            repository: repository
+        )
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                UUID().uuidString,
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(
+                at: directory
+            )
+        }
+
+        let url = directory.appendingPathComponent(
+            "lesson.txt"
+        )
+        try "first".write(
+            to: url,
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let first = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_000
+            )
+        )
+        XCTAssertEqual(first.inserted, 1)
+        XCTAssertEqual(first.updated, 0)
+
+        let second = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_060
+            )
+        )
+        XCTAssertEqual(second.inserted, 0)
+        XCTAssertEqual(second.unchanged, 1)
+
+        try "second".write(
+            to: url,
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let third = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_120
+            )
+        )
+        XCTAssertEqual(third.inserted, 0)
+        XCTAssertEqual(third.updated, 1)
+
+        let documents = try repository.importedDocuments(
+            sourceKind: "file"
+        )
+        XCTAssertEqual(documents.count, 1)
+        XCTAssertEqual(documents.first?.content, "second")
+        XCTAssertTrue(
+            documents.first?.sourceKey
+                .hasPrefix("file-") == true
+        )
+    }
+
+
 }
