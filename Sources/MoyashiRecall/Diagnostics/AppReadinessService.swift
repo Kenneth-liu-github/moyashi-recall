@@ -8,7 +8,11 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
     public let aiProviderName: String
     public let aiModelConfigured: Bool
     public let aiCredentialConfigured: Bool
+    public let activeKnowledgeCount: Int
     public let activeCardCount: Int
+    public let dueCardCount: Int
+    public let reviewHistoryCount: Int
+    public let latestReviewAt: Date?
 
     public init(
         notionCredentialConfigured: Bool,
@@ -17,7 +21,11 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
         aiProviderName: String,
         aiModelConfigured: Bool,
         aiCredentialConfigured: Bool,
-        activeCardCount: Int
+        activeKnowledgeCount: Int = 0,
+        activeCardCount: Int,
+        dueCardCount: Int = 0,
+        reviewHistoryCount: Int = 0,
+        latestReviewAt: Date? = nil
     ) {
         self.notionCredentialConfigured = notionCredentialConfigured
         self.notionRootSelected = notionRootSelected
@@ -25,7 +33,11 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
         self.aiProviderName = aiProviderName
         self.aiModelConfigured = aiModelConfigured
         self.aiCredentialConfigured = aiCredentialConfigured
+        self.activeKnowledgeCount = max(0, activeKnowledgeCount)
         self.activeCardCount = max(0, activeCardCount)
+        self.dueCardCount = max(0, dueCardCount)
+        self.reviewHistoryCount = max(0, reviewHistoryCount)
+        self.latestReviewAt = latestReviewAt
     }
 
     public var notionReady: Bool {
@@ -107,6 +119,14 @@ public struct AppReadinessService {
             .isEmpty
 
         let cards = try repository.allSessionCards()
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        .filter(\.isActive)
+        let history = try context.fetch(
+            FetchDescriptor<ReviewHistoryEntity>()
+        )
+        let home = try repository.homeSnapshot()
 
         return AppReadinessSnapshot(
             notionCredentialConfigured: notionConfigured,
@@ -116,7 +136,11 @@ public struct AppReadinessService {
                 aiConfiguration.provider.displayName,
             aiModelConfigured: aiModelConfigured,
             aiCredentialConfigured: aiCredentialConfigured,
-            activeCardCount: cards.count
+            activeKnowledgeCount: knowledge.count,
+            activeCardCount: cards.count,
+            dueCardCount: home.dueCount,
+            reviewHistoryCount: history.count,
+            latestReviewAt: home.latestReviewAt
         )
     }
 }
