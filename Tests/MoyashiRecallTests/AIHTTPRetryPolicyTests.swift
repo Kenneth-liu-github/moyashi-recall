@@ -33,9 +33,12 @@ final class AIHTTPRetryPolicyTests: XCTestCase {
     }
 
     func testRetryAfterHeaderOverridesBackoff() throws {
+        let url = try XCTUnwrap(
+            URL(string: "https://example.test")
+        )
         let response = try XCTUnwrap(
             HTTPURLResponse(
-                url: URL(string: "https://example.test")!,
+                url: url,
                 statusCode: 429,
                 httpVersion: nil,
                 headerFields: ["Retry-After": "0"]
@@ -52,9 +55,12 @@ final class AIHTTPRetryPolicyTests: XCTestCase {
     }
 
     func testBackoffIsBoundedWhenHeaderMissing() throws {
+        let url = try XCTUnwrap(
+            URL(string: "https://example.test")
+        )
         let response = try XCTUnwrap(
             HTTPURLResponse(
-                url: URL(string: "https://example.test")!,
+                url: url,
                 statusCode: 503,
                 httpVersion: nil,
                 headerFields: nil
