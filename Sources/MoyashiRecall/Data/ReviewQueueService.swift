@@ -48,8 +48,7 @@ public struct ReviewQueueService {
                 return false
             }
 
-            if let sourceDocumentIDs,
-               !sourceDocumentIDs.isEmpty {
+            if let sourceDocumentIDs {
                 guard let sourceDocumentID = card.sourceDocumentID,
                       sourceDocumentIDs.contains(sourceDocumentID)
                 else {
