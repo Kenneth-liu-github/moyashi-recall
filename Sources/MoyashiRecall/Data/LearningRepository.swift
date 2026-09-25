@@ -578,6 +578,20 @@ public struct LearningRepository {
         return deactivated
     }
 
+    @discardableResult
+    public func archiveImportedSource(
+        sourceKind: String,
+        rootExternalID: String,
+        now: Date = .now
+    ) throws -> Int {
+        try reconcileImportedTree(
+            sourceKind: sourceKind,
+            rootExternalID: rootExternalID,
+            activeExternalIDs: [],
+            now: now
+        )
+    }
+
     public func sourceDocument(
         id: UUID
     ) throws -> SourceDocumentSnapshot? {
