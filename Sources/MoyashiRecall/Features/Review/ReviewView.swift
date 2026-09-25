@@ -110,7 +110,7 @@ public struct ReviewView: View {
                         if let saveError {
                             Text(saveError)
                                 .font(.caption)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(AppTheme.accent)
                         }
                     }
                 }
