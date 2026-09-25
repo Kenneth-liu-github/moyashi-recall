@@ -77,14 +77,9 @@ public struct AppReadinessService {
             context: context
         )
 
-        let notionSecret = try credentialStore.read(
+        let notionConfigured = hasCredential(
             account: NotionCredential.tokenAccount
         )
-        let notionConfigured = !(notionSecret ?? "")
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            .isEmpty
 
         let rootPageID = defaults.string(
             forKey: "notionRootPageID"
@@ -107,16 +102,11 @@ public struct AppReadinessService {
             )
             .isEmpty
 
-        let aiSecret = try credentialStore.read(
+        let aiCredentialConfigured = hasCredential(
             account: AICredential.account(
                 for: aiConfiguration.provider
             )
         )
-        let aiCredentialConfigured = !(aiSecret ?? "")
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            .isEmpty
 
         let cards = try repository.allSessionCards()
         let knowledge = try context.fetch(
@@ -142,5 +132,20 @@ public struct AppReadinessService {
             reviewHistoryCount: history.count,
             latestReviewAt: home.latestReviewAt
         )
+    }
+    private func hasCredential(
+        account: String
+    ) -> Bool {
+        guard
+            let secret = try? credentialStore.read(
+                account: account
+            )
+        else {
+            return false
+        }
+
+        return !secret.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ).isEmpty
     }
 }
