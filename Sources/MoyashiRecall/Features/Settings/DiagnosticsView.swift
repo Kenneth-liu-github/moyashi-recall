@@ -201,6 +201,25 @@ public struct DiagnosticsView: View {
                 "システム状態"
             )
         )
+        .toolbar {
+            ToolbarItem(
+                placement: .primaryAction
+            ) {
+                Button {
+                    loadSnapshot()
+                } label: {
+                    Image(
+                        systemName: "arrow.clockwise"
+                    )
+                }
+                .accessibilityLabel(
+                    language.text(
+                        "刷新系统状态",
+                        "システム状態を更新"
+                    )
+                )
+            }
+        }
         .onAppear {
             loadSnapshot()
         }
