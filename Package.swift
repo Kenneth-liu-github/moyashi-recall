@@ -26,6 +26,7 @@ let package = Package(
                 "AI/AnthropicMessagesProvider.swift",
                 "Sources/LearningContentSource.swift",
                 "Sources/SourceKeyResolver.swift",
+                "Sources/Files/LocalFileImporter.swift",
                 "Sources/Notion/NotionAPIClient.swift",
                 "Features/StudyScope/StudyScopePreferences.swift",
                 "Features/StudyScope/StudyPresetStore.swift",
@@ -48,7 +49,8 @@ let package = Package(
                 "AIProviderConfigurationTests.swift",
                 "StudyScopePreferencesTests.swift",
                 "StudyPresetStoreTests.swift",
-                "ReviewSessionSummaryStoreTests.swift"
+                "ReviewSessionSummaryStoreTests.swift",
+                "LocalFileImporterTests.swift"
             ]
         )
     ]
