@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(AVFoundation)
 import AVFoundation
+import Combine
 
 @MainActor
 public final class JapaneseSpeechService: ObservableObject {
