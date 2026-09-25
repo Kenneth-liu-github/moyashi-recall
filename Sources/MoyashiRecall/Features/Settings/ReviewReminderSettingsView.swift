@@ -116,17 +116,12 @@ public struct ReviewReminderSettingsView: View {
             let status = await service.authorizationStatus()
 
             if preferences.enabled {
-                switch status {
-                case .authorized, .provisional, .ephemeral:
+                if isAuthorized(status) {
                     await scheduleCurrentReminder()
-                case .denied, .notDetermined:
+                } else {
                     preferences.enabled = false
                     service.cancelDailyReminder()
                     persistPreferences()
-                    statusMessage = authorizationMessage(
-                        status
-                    )
-                @unknown default:
                     statusMessage = authorizationMessage(
                         status
                     )
@@ -264,15 +259,34 @@ public struct ReviewReminderSettingsView: View {
         ) ?? now
     }
 
+    private func isAuthorized(
+        _ status: UNAuthorizationStatus
+    ) -> Bool {
+        if status == .authorized
+            || status == .provisional {
+            return true
+        }
+
+        #if os(iOS)
+        if status == .ephemeral {
+            return true
+        }
+        #endif
+
+        return false
+    }
+
     private func authorizationMessage(
         _ status: UNAuthorizationStatus
     ) -> String {
-        switch status {
-        case .authorized, .provisional, .ephemeral:
+        if isAuthorized(status) {
             return language.text(
                 "通知权限已开启。",
                 "通知は許可されています。"
             )
+        }
+
+        switch status {
         case .denied:
             return language.text(
                 "通知权限已关闭。需要在系统设置中重新开启后才能使用提醒。",
@@ -283,7 +297,7 @@ public struct ReviewReminderSettingsView: View {
                 "启用提醒时会请求通知权限。",
                 "リマインダーを有効にすると通知許可を求めます。"
             )
-        @unknown default:
+        default:
             return language.text(
                 "无法确认通知权限状态。",
                 "通知権限の状態を確認できません。"
