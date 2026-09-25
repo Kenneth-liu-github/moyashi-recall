@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 public struct LibraryView: View {
     @EnvironmentObject private var language: LanguageStore
@@ -8,6 +9,9 @@ public struct LibraryView: View {
     @State private var reviewSources: [StudySource] = []
     @State private var importedItems: [ImportedDocumentSummary] = []
     @State private var loadError: String?
+    @State private var showingFileImporter = false
+    @State private var isImportingFiles = false
+    @State private var importStatusMessage: String?
 
     public init() {}
 
@@ -25,11 +29,24 @@ public struct LibraryView: View {
                     )
                 } else {
                     List {
+                        if let importStatusMessage {
+                            Section {
+                                HStack(spacing: 10) {
+                                    if isImportingFiles {
+                                        ProgressView()
+                                    }
+                                    Text(importStatusMessage)
+                                        .font(.caption)
+                                        .foregroundStyle(AppTheme.muted)
+                                }
+                            }
+                        }
+
                         if !importedItems.isEmpty {
                             Section(
                                 language.text(
-                                    "已同步资料",
-                                    "同期済み資料"
+                                    "学习资料",
+                                    "学習資料"
                                 )
                             ) {
                                 ForEach(importedItems) { item in
@@ -75,10 +92,63 @@ public struct LibraryView: View {
                     "ライブラリ"
                 )
             )
+            .toolbar {
+                ToolbarItem(
+                    placement: .primaryAction
+                ) {
+                    Button {
+                        showingFileImporter = true
+                    } label: {
+                        Image(
+                            systemName: "square.and.arrow.down"
+                        )
+                    }
+                    .disabled(isImportingFiles)
+                    .accessibilityLabel(
+                        language.text(
+                            "导入文件",
+                            "ファイルを読み込む"
+                        )
+                    )
+                }
+            }
+            .fileImporter(
+                isPresented: $showingFileImporter,
+                allowedContentTypes: supportedFileTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case let .success(urls):
+                    Task {
+                        await importFiles(urls)
+                    }
+
+                case let .failure(error):
+                    importStatusMessage = language.text(
+                        "无法打开文件：\(error.localizedDescription)",
+                        "ファイルを開けません：\(error.localizedDescription)"
+                    )
+                }
+            }
             .onAppear {
                 loadLibrary()
             }
         }
+    }
+
+    private var supportedFileTypes: [UTType] {
+        var types: [UTType] = [
+            .pdf,
+            .plainText
+        ]
+
+        if let markdown = UTType(
+            filenameExtension: "md"
+        ) {
+            types.append(markdown)
+        }
+
+        return types
     }
 
     private func importedRow(
@@ -94,9 +164,10 @@ public struct LibraryView: View {
                 )
 
             Image(
-                systemName: item.hierarchyDepth == 0
-                    ? "square.stack.3d.up"
-                    : "doc.text"
+                systemName: sourceIcon(
+                    item.sourceKind,
+                    depth: item.hierarchyDepth
+                )
             )
             .foregroundStyle(AppTheme.accent)
             .frame(width: 20)
@@ -134,15 +205,98 @@ public struct LibraryView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func sourceIcon(
+        _ sourceKind: String,
+        depth: Int
+    ) -> String {
+        if sourceKind == "file" {
+            return depth == 0
+                ? "doc"
+                : "doc.text"
+        }
+
+        return depth == 0
+            ? "square.stack.3d.up"
+            : "doc.text"
+    }
+
+    @MainActor
+    private func importFiles(
+        _ urls: [URL]
+    ) async {
+        guard !urls.isEmpty else {
+            return
+        }
+
+        isImportingFiles = true
+        importStatusMessage = language.text(
+            "正在导入 \(urls.count) 个文件…",
+            "\(urls.count)個のファイルを読み込み中…"
+        )
+        defer {
+            isImportingFiles = false
+        }
+
+        var importedFiles = 0
+        var importedDocuments = 0
+        var failures: [String] = []
+
+        for url in urls {
+            let didAccess = url
+                .startAccessingSecurityScopedResource()
+            defer {
+                if didAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let parsed = try await Task.detached(
+                    priority: .userInitiated
+                ) {
+                    try LocalFileImporter()
+                        .importFile(at: url)
+                }.value
+
+                let repository = LearningRepository(
+                    context: modelContext
+                )
+                let report = try LocalFileImportService(
+                    repository: repository
+                )
+                .persist(parsed)
+
+                importedFiles += 1
+                importedDocuments += report.documentCount
+            } catch {
+                failures.append(
+                    url.lastPathComponent
+                )
+            }
+        }
+
+        loadLibrary()
+
+        if failures.isEmpty {
+            importStatusMessage = language.text(
+                "导入完成：\(importedFiles) 个文件，\(importedDocuments) 个资料单元。",
+                "読み込み完了：\(importedFiles)ファイル、\(importedDocuments)資料単位。"
+            )
+        } else {
+            importStatusMessage = language.text(
+                "已导入 \(importedFiles) 个文件；\(failures.count) 个失败：\(failures.joined(separator: "、"))",
+                "\(importedFiles)ファイルを読み込み、\(failures.count)件失敗しました：\(failures.joined(separator: "、"))"
+            )
+        }
+    }
+
     private func loadLibrary() {
         do {
             let repository = LearningRepository(
                 context: modelContext
             )
             reviewSources = try repository.reviewSources()
-            importedItems = try repository.importedDocuments(
-                sourceKind: "notion"
-            )
+            importedItems = try repository.importedDocuments()
             loadError = nil
         } catch {
             loadError = language.text(
