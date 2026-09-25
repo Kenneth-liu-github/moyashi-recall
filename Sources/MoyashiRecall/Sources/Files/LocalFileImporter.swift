@@ -289,13 +289,23 @@ public struct LocalFileImporter {
                 in: .whitespacesAndNewlines
             )
             .lowercased()
-        let normalizedPath = url
-            .standardizedFileURL
-            .path
-            .lowercased()
+        let identityMaterial: String
+        if let resourceIdentifier = try? url.resourceValues(
+            forKeys: [.fileResourceIdentifierKey]
+        ).fileResourceIdentifier,
+        let resourceIdentifier {
+            identityMaterial = String(
+                describing: resourceIdentifier
+            )
+        } else {
+            identityMaterial = url
+                .standardizedFileURL
+                .path
+                .lowercased()
+        }
 
         var hash: UInt64 = 14_695_981_039_346_656_037
-        for byte in normalizedPath.utf8 {
+        for byte in identityMaterial.utf8 {
             hash ^= UInt64(byte)
             hash &*= 1_099_511_628_211
         }
