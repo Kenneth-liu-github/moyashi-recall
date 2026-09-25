@@ -953,7 +953,8 @@ public struct LearningRepository {
     }
 
     public func reviewSources(
-        now: Date = .now
+        now: Date = .now,
+        cardTypes: Set<String>? = nil
     ) throws -> [StudySource] {
         let cards = try context.fetch(
             FetchDescriptor<FlashcardEntity>()
@@ -985,6 +986,11 @@ public struct LearningRepository {
 
             result[card.sourceKey, default: (0, 0)].all += 1
 
+            let matchesCardType =
+                cardTypes == nil
+                || cardTypes?.isEmpty == true
+                || cardTypes?.contains(card.cardType) == true
+
             let isDue: Bool
             if let state = stateByCard[card.id] {
                 isDue = state.due <= now
@@ -992,7 +998,7 @@ public struct LearningRepository {
                 isDue = true
             }
 
-            if isDue {
+            if matchesCardType && isDue {
                 result[card.sourceKey, default: (0, 0)].due += 1
             }
         }
