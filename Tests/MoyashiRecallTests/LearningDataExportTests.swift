@@ -166,4 +166,96 @@ private extension JSONDecoder {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }
+    @MainActor
+    func testExportIncludesInactiveCardsForHistoricalPreservation() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let card = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Old prompt",
+            answer: "Old answer",
+            sourceReference: "local://old",
+            isActive: false
+        )
+        let history = ReviewHistoryEntity(
+            cardID: card.id,
+            reviewedAt: Date(
+                timeIntervalSince1970: 1_700_000_000
+            ),
+            ratingRawValue: ReviewRating.hard.rawValue,
+            elapsedDays: 1,
+            scheduledDays: 2,
+            stabilityBefore: 1,
+            stabilityAfter: 2,
+            difficultyBefore: 5,
+            difficultyAfter: 5
+        )
+
+        context.insert(card)
+        context.insert(history)
+        try context.save()
+
+        let package = try LearningDataExportService(
+            context: context
+        ).makePackage()
+
+        XCTAssertEqual(package.flashcards.count, 1)
+        XCTAssertEqual(
+            package.flashcards.first?.isActive,
+            false
+        )
+        XCTAssertEqual(package.reviewHistory.count, 1)
+        XCTAssertEqual(
+            package.reviewHistory.first?.cardID,
+            card.id
+        )
+    }
+
+    @MainActor
+    func testExportOrderingIsDeterministic() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let first = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+        let second = first.addingTimeInterval(60)
+
+        context.insert(
+            SourceDocumentEntity(
+                title: "B",
+                content: "B",
+                sourceKind: "notion",
+                externalSourceID: "b",
+                sourcePath: "B",
+                sourceReference: "notion://b",
+                createdAt: first,
+                updatedAt: first
+            )
+        )
+        context.insert(
+            SourceDocumentEntity(
+                title: "A",
+                content: "A",
+                sourceKind: "notion",
+                externalSourceID: "a",
+                sourcePath: "A",
+                sourceReference: "notion://a",
+                createdAt: second,
+                updatedAt: second
+            )
+        )
+        try context.save()
+
+        let package = try LearningDataExportService(
+            context: context
+        ).makePackage()
+
+        XCTAssertEqual(
+            package.sources.map(\.sourcePath),
+            ["A", "B"]
+        )
+    }
+
+
 }
