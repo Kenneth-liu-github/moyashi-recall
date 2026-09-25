@@ -36,7 +36,7 @@ public struct LocalFileImporter {
         )
 
         switch ext {
-        case "txt", "md", "markdown":
+        case "txt", "md", "markdown", "csv", "tsv":
             let content = try readTextFile(url)
             guard !content
                 .trimmingCharacters(
