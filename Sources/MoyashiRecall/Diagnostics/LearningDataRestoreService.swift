@@ -120,9 +120,14 @@ public struct LearningDataRestoreService {
         var sourceIDMap: [UUID: UUID] = [:]
 
         for record in package.sources {
-            let semanticMatches = sourcesByStableKey[
-                Self.sourceStableKey(record)
-            ] ?? []
+            let semanticMatches: [SourceDocumentEntity]
+            if record.externalSourceID.isEmpty {
+                semanticMatches = []
+            } else {
+                semanticMatches = sourcesByStableKey[
+                    Self.sourceStableKey(record)
+                ] ?? []
+            }
             let semanticMatch = semanticMatches.count == 1
                 ? semanticMatches[0]
                 : nil
