@@ -23,6 +23,28 @@ public struct ImportedPageDetailView: View {
 
     private let item: ImportedDocumentSummary
 
+    private var batchTargets: [SourceDocumentSnapshot] {
+        var result: [SourceDocumentSnapshot] = []
+        var totalCharacters = 0
+
+        for unit in childTextUnits {
+            guard result.count < 10 else {
+                break
+            }
+
+            let nextTotal = totalCharacters
+                + unit.content.count
+            guard nextTotal <= 60_000 else {
+                break
+            }
+
+            result.append(unit)
+            totalCharacters = nextTotal
+        }
+
+        return result
+    }
+
     public init(item: ImportedDocumentSummary) {
         self.item = item
         _isAIUpToDate = State(
@@ -65,14 +87,18 @@ public struct ImportedPageDetailView: View {
 
                     if item.sourceKind == "file",
                        item.hierarchyDepth == 0,
-                       !childTextUnits.isEmpty {
+                       !batchTargets.isEmpty {
                         Button {
                             showingBatchConfirmation = true
                         } label: {
                             Label(
                                 language.text(
-                                    "AI 处理全部 \(childTextUnits.count) 个文本单元",
-                                    "AIで全 \(childTextUnits.count) テキスト単位を処理"
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AI 处理全部 \(batchTargets.count) 个文本单元"
+                                        : "AI 批量处理前 \(batchTargets.count) / \(childTextUnits.count) 个单元",
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AIで全 \(batchTargets.count) テキスト単位を処理"
+                                        : "AIで先頭 \(batchTargets.count) / \(childTextUnits.count) 単位を処理"
                                 ),
                                 systemImage: "sparkles.rectangle.stack"
                             )
@@ -305,8 +331,8 @@ public struct ImportedPageDetailView: View {
         ) {
             Button(
                 language.text(
-                    "继续处理 \(min(childTextUnits.count, 20)) 个单元",
-                    "\(min(childTextUnits.count, 20))単位を処理"
+                    "继续处理 \(batchTargets.count) 个单元",
+                    "\(batchTargets.count)単位を処理"
                 )
             ) {
                 batchRequestID = UUID()
@@ -321,10 +347,10 @@ public struct ImportedPageDetailView: View {
             ) {}
         } message: {
             Text(
-                childTextUnits.count > 20
+                batchTargets.count < childTextUnits.count
                     ? language.text(
-                        "为控制 AI 成本和单次任务长度，本次最多处理前 20 个文本单元。其余内容可逐页处理。",
-                        "AIコストと処理時間を抑えるため、今回は先頭20単位まで処理します。残りは個別に処理できます。"
+                        "为控制 AI 成本和单次任务长度，批量任务最多处理 10 个文本单元且总文本不超过约 6 万字符。其余内容可逐页处理。",
+                        "AIコストと処理時間を抑えるため、一括処理は最大10単位・合計約6万文字までです。残りは個別に処理できます。"
                     )
                     : language.text(
                         "这会依次调用当前 AI Provider，并为每个文本单元生成知识点和复习卡片。",
@@ -376,9 +402,7 @@ public struct ImportedPageDetailView: View {
 
     @MainActor
     private func processBatchWithAI() async {
-        let targets = Array(
-            childTextUnits.prefix(20)
-        )
+        let targets = batchTargets
         guard !targets.isEmpty else {
             return
         }
