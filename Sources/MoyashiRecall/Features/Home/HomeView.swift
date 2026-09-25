@@ -120,6 +120,20 @@ public struct HomeView: View {
                         }
 
                         NavigationLink {
+                            ReviewHistoryView()
+                        } label: {
+                            Label(
+                                language.text(
+                                    "查看复习记录",
+                                    "復習履歴を見る"
+                                ),
+                                systemImage: "clock.arrow.circlepath"
+                            )
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accent)
+                        }
+
+                        NavigationLink {
                             StudyScopeView()
                         } label: {
                             Label(
