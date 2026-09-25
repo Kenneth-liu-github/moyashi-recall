@@ -125,10 +125,14 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
                 )
             }
 
-            if http.statusCode == 429,
-               attempt < maxRateLimitRetries {
-                let delay = Self.retryAfterSeconds(
-                    from: http
+            if AIHTTPRetryPolicy.shouldRetry(
+                statusCode: http.statusCode,
+                attempt: attempt,
+                maximumRetries: maxRateLimitRetries
+            ) {
+                let delay = AIHTTPRetryPolicy.delaySeconds(
+                    response: http,
+                    attempt: attempt
                 )
                 let nanoseconds = UInt64(
                     max(0, min(delay, 60))
@@ -238,21 +242,6 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
         return fragments.isEmpty
             ? nil
             : fragments.joined()
-    }
-
-    private static func retryAfterSeconds(
-        from response: HTTPURLResponse
-    ) -> Double {
-        guard
-            let raw = response.value(
-                forHTTPHeaderField: "Retry-After"
-            ),
-            let seconds = Double(raw)
-        else {
-            return 1
-        }
-
-        return seconds
     }
 
     private static func errorMessage(
