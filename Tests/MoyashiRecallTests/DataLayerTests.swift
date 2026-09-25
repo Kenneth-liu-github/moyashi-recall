@@ -697,15 +697,19 @@ final class DataLayerTests: XCTestCase {
         let container = try makeContainer()
         let context = container.mainContext
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        let now = calendar.date(
-            from: DateComponents(
-                year: 2026,
-                month: 9,
-                day: 25,
-                hour: 12
+        calendar.timeZone = try XCTUnwrap(
+            TimeZone(secondsFromGMT: 0)
+        )
+        let now = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2026,
+                    month: 9,
+                    day: 25,
+                    hour: 12
+                )
             )
-        )!
+        )
 
         let source = SourceDocumentEntity(
             title: "第二课",
@@ -757,11 +761,13 @@ final class DataLayerTests: XCTestCase {
             (ReviewRating.easy.rawValue, -3)
         ]
         for (rating, dayOffset) in ratings {
-            let reviewedAt = calendar.date(
-                byAdding: .day,
-                value: dayOffset,
-                to: now
-            )!
+            let reviewedAt = try XCTUnwrap(
+                calendar.date(
+                    byAdding: .day,
+                    value: dayOffset,
+                    to: now
+                )
+            )
             context.insert(
                 ReviewHistoryEntity(
                     cardID: card.id,
