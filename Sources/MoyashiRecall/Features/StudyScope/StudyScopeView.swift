@@ -455,9 +455,7 @@ public struct StudyScopeView: View {
                     .filter { $0.sourceKey == key }
                     .map(\.id)
             )
-            refreshDocuments(
-                selectNewlyAvailable: false
-            )
+            refreshDocuments()
         } else {
             selectedSources.insert(key)
             refreshDocuments(
