@@ -208,9 +208,10 @@ public struct LearningDataRestoreService {
                 : nil
 
             if let idMatch = knowledgeByID[record.id],
-               (
-                    idMatch.sourceDocumentID != mappedSourceID
-                    || idMatch.extractionKey != record.extractionKey
+               !Self.sameKnowledgeIdentity(
+                    idMatch,
+                    mappedSourceID: mappedSourceID,
+                    extractionKey: record.extractionKey
                ) {
                 throw LearningDataRestoreError
                     .knowledgeIdentityConflict(record.id)
@@ -286,9 +287,10 @@ public struct LearningDataRestoreService {
                 : nil
 
             if let idMatch = cardByID[record.id],
-               (
-                    idMatch.knowledgeItemID != mappedKnowledgeID
-                    || idMatch.generationKey != record.generationKey
+               !Self.sameFlashcardIdentity(
+                    idMatch,
+                    mappedKnowledgeID: mappedKnowledgeID,
+                    generationKey: record.generationKey
                ) {
                 throw LearningDataRestoreError
                     .flashcardIdentityConflict(record.id)
@@ -440,9 +442,50 @@ public struct LearningDataRestoreService {
         _ entity: SourceDocumentEntity,
         _ record: LearningDataExportPackage.SourceRecord
     ) -> Bool {
-        entity.sourceKind == record.sourceKind
-            && entity.externalSourceID
-                == record.externalSourceID
+        guard entity.sourceKind == record.sourceKind else {
+            return false
+        }
+
+        if entity.externalSourceID == record.externalSourceID {
+            return true
+        }
+
+        return entity.externalSourceID.isEmpty
+            && !record.externalSourceID.isEmpty
+    }
+
+    private static func sameKnowledgeIdentity(
+        _ entity: KnowledgeItemEntity,
+        mappedSourceID: UUID?,
+        extractionKey: String
+    ) -> Bool {
+        guard entity.sourceDocumentID == mappedSourceID else {
+            return false
+        }
+
+        if entity.extractionKey == extractionKey {
+            return true
+        }
+
+        return entity.extractionKey.isEmpty
+            && !extractionKey.isEmpty
+    }
+
+    private static func sameFlashcardIdentity(
+        _ entity: FlashcardEntity,
+        mappedKnowledgeID: UUID,
+        generationKey: String
+    ) -> Bool {
+        guard entity.knowledgeItemID == mappedKnowledgeID else {
+            return false
+        }
+
+        if entity.generationKey == generationKey {
+            return true
+        }
+
+        return entity.generationKey.isEmpty
+            && !generationKey.isEmpty
     }
 
     private static func sourceStableKey(
