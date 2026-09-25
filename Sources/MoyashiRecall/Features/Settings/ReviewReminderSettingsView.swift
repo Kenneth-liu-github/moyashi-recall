@@ -8,6 +8,7 @@ public struct ReviewReminderSettingsView: View {
     @State private var reminderTime = Date()
     @State private var statusMessage: String?
     @State private var isUpdating = false
+    @State private var isLoadingPreferences = true
 
     private let store = ReviewReminderPreferencesStore()
     private let service = ReviewReminderService()
@@ -28,6 +29,10 @@ public struct ReviewReminderSettingsView: View {
                 .onChange(
                     of: preferences.enabled
                 ) { _, enabled in
+                    guard !isLoadingPreferences else {
+                        return
+                    }
+
                     Task {
                         await updateEnabled(
                             enabled
@@ -50,6 +55,9 @@ public struct ReviewReminderSettingsView: View {
                 .onChange(
                     of: reminderTime
                 ) { _, date in
+                    guard !isLoadingPreferences else {
+                        return
+                    }
                     updateTime(date)
                 }
             } footer: {
@@ -97,16 +105,37 @@ public struct ReviewReminderSettingsView: View {
     }
 
     private func loadPreferences() {
+        isLoadingPreferences = true
         preferences = store.load()
         reminderTime = dateForPreferences(
             preferences
         )
+        isLoadingPreferences = false
 
         Task {
             let status = await service.authorizationStatus()
-            statusMessage = authorizationMessage(
-                status
-            )
+
+            if preferences.enabled {
+                switch status {
+                case .authorized, .provisional, .ephemeral:
+                    await scheduleCurrentReminder()
+                case .denied, .notDetermined:
+                    preferences.enabled = false
+                    service.cancelDailyReminder()
+                    persistPreferences()
+                    statusMessage = authorizationMessage(
+                        status
+                    )
+                @unknown default:
+                    statusMessage = authorizationMessage(
+                        status
+                    )
+                }
+            } else {
+                statusMessage = authorizationMessage(
+                    status
+                )
+            }
         }
     }
 
