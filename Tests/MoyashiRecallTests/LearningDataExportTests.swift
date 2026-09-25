@@ -166,6 +166,9 @@ private extension JSONDecoder {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }
+}
+
+extension LearningDataExportTests {
     @MainActor
     func testExportIncludesInactiveCardsForHistoricalPreservation() throws {
         let container = try makeContainer()
