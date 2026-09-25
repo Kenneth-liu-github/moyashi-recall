@@ -1197,4 +1197,92 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testFileReimportDeactivatesRemovedChildDocuments() throws {
+        let container = try makeContainer()
+        let repository = LearningRepository(
+            context: container.mainContext
+        )
+        let service = LocalFileImportService(
+            repository: repository
+        )
+        let rootID = "local-file:lesson:abc"
+        let sourceKey = "file-abc"
+
+        let first = LocalFileImportResult(
+            documents: [
+                ImportedDocument(
+                    id: rootID,
+                    sourceKind: "file",
+                    title: "lesson.pdf",
+                    sourceReference: "local-file://lesson.pdf",
+                    content: "",
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf"
+                    ],
+                    sourceKeyHint: sourceKey
+                ),
+                ImportedDocument(
+                    id: "\(rootID)#page-1",
+                    sourceKind: "file",
+                    title: "Page 1",
+                    sourceReference:
+                        "local-file://lesson.pdf#page=1",
+                    content: "page one",
+                    parentExternalID: rootID,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf",
+                        "Page 1"
+                    ],
+                    hierarchyDepth: 1,
+                    sourceKeyHint: sourceKey
+                ),
+                ImportedDocument(
+                    id: "\(rootID)#page-2",
+                    sourceKind: "file",
+                    title: "Page 2",
+                    sourceReference:
+                        "local-file://lesson.pdf#page=2",
+                    content: "page two",
+                    parentExternalID: rootID,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf",
+                        "Page 2"
+                    ],
+                    hierarchyDepth: 1,
+                    sourceKeyHint: sourceKey
+                )
+            ]
+        )
+
+        let firstReport = try service.persist(first)
+        XCTAssertEqual(firstReport.inserted, 3)
+        XCTAssertEqual(firstReport.deactivated, 0)
+
+        let second = LocalFileImportResult(
+            documents: Array(
+                first.documents.prefix(2)
+            )
+        )
+        let secondReport = try service.persist(second)
+
+        XCTAssertEqual(secondReport.deactivated, 1)
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "file"
+            ).map(\.title),
+            [
+                "lesson.pdf",
+                "Page 1"
+            ]
+        )
+    }
+
+
 }
