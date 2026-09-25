@@ -86,6 +86,8 @@ public struct AIProcessingService {
         var modelID = ""
 
         for (index, chunk) in chunks.enumerated() {
+            try Task.checkCancellation()
+
             let document = ImportedDocument(
                 id: source.id.uuidString
                     + "#chunk-\(index + 1)",
@@ -119,9 +121,13 @@ public struct AIProcessingService {
             bundles.append(extraction.bundle)
         }
 
+        try Task.checkCancellation()
+
         let merged = try KnowledgeBundleMerger.merge(
             bundles
         )
+
+        try Task.checkCancellation()
 
         let persistence = try repository.persistExtraction(
             merged,
