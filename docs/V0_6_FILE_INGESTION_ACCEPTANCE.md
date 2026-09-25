@@ -56,6 +56,12 @@ The gate must cover:
 - Confirm Library/source references display filename/page metadata only.
 - Confirm raw local filesystem paths are not persisted in Source Documents.
 
+## Validation result
+
+The automated Apple/Xcode validation gate passed in GitHub Actions run #148.
+
+The remaining document-picker, security-scoped URL, OCR, notification, and audio checks require interactive simulator/device use and are tracked as release-readiness smoke checks rather than engineering-freeze blockers.
+
 ## Freeze rule
 
-V0.6 remains Draft until the Apple/Xcode validation pass is green.
+**V0.6 engineering freeze: PASSED.**
