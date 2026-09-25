@@ -879,6 +879,20 @@ public struct LearningRepository {
             .map(ReviewSessionCard.init)
     }
 
+    public func dueCardCount(
+        now: Date = .now,
+        sourceKeys: Set<String>? = nil,
+        cardTypes: Set<String>? = nil
+    ) throws -> Int {
+        try queueService.dueCards(
+            in: context,
+            now: now,
+            sourceKeys: sourceKeys,
+            cardTypes: cardTypes,
+            limit: nil
+        ).count
+    }
+
     public func allSessionCards(
         searchText: String = ""
     ) throws -> [ReviewSessionCard] {
