@@ -251,12 +251,26 @@ public struct DataExportView: View {
                 }
             }
 
+            let limits = LearningDataImportValidationLimits.standard
+            let fileSize = try url.resourceValues(
+                forKeys: [.fileSizeKey]
+            ).fileSize
+
+            if let fileSize,
+               fileSize > limits.maximumBytes {
+                throw LearningDataImportValidationError
+                    .backupTooLarge(fileSize)
+            }
+
             let data = try Data(
                 contentsOf: url,
                 options: [.mappedIfSafe]
             )
             let validated = try LearningDataImportValidator
-                .decodeAndValidate(data)
+                .decodeAndValidate(
+                    data,
+                    limits: limits
+                )
 
             pendingRestoreData = data
             pendingRestoreReport = validated.report
