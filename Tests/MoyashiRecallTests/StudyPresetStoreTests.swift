@@ -220,4 +220,29 @@ final class StudyPresetStoreTests: XCTestCase {
     }
 
 
+    func testPresetSupportsAllDueCount() throws {
+        let suiteName = "StudyPresetAllDue.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(
+            UserDefaults(suiteName: suiteName)
+        )
+        defer {
+            defaults.removePersistentDomain(
+                forName: suiteName
+            )
+        }
+
+        let preset = try StudyPresetStore().save(
+            name: "全部到期",
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.zhToJa.rawValue
+            ],
+            reviewCount: 0,
+            defaults: defaults
+        )
+
+        XCTAssertEqual(preset.reviewCount, 0)
+    }
+
+
 }
