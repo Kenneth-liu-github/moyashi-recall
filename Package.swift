@@ -30,7 +30,8 @@ let package = Package(
                 "Features/StudyScope/StudyScopePreferences.swift",
                 "Features/StudyScope/StudyPresetStore.swift",
                 "Features/Review/ReviewSessionSummaryStore.swift",
-                "Speech/JapaneseSpeechText.swift"
+                "Speech/JapaneseSpeechText.swift",
+                "Notifications/ReviewReminderPreferences.swift"
             ]
         ),
         .testTarget(
@@ -50,7 +51,8 @@ let package = Package(
                 "StudyScopePreferencesTests.swift",
                 "StudyPresetStoreTests.swift",
                 "ReviewSessionSummaryStoreTests.swift",
-                "JapaneseSpeechTextTests.swift"
+                "JapaneseSpeechTextTests.swift",
+                "ReviewReminderPreferencesTests.swift"
             ]
         )
     ]
