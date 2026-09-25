@@ -7,11 +7,13 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* MoyashiRecall in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* MoyashiRecall */; };
+		A10000000000000000000004 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A20000000000000000000001 /* Moyashi Recall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Moyashi Recall.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000002 /* MoyashiRecallApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoyashiRecallApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A10000000000000000000003 /* MoyashiRecallApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* MoyashiRecallApp.swift */; };
 /* End PBXFileReference section */
 
@@ -35,7 +37,10 @@
 		};
 		A40000000000000000000002 /* MoyashiRecallApp */ = {
 			isa = PBXGroup;
-			children = (A20000000000000000000002 /* MoyashiRecallApp.swift */,);
+			children = (
+				A20000000000000000000002 /* MoyashiRecallApp.swift */,
+				A20000000000000000000003 /* PrivacyInfo.xcprivacy */,
+			);
 			path = MoyashiRecall;
 			sourceTree = "<group>";
 		};
@@ -90,7 +95,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A80000000000000000000001 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+		A80000000000000000000001 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000004 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -102,13 +114,13 @@
 		AB0000000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos;}; name = Release;};
 		AB0000000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {
 			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 1;
+			CURRENT_PROJECT_VERSION = 10;
 			DEVELOPMENT_ASSET_PATHS = "";
 			GENERATE_INFOPLIST_FILE = YES;
 			INFOPLIST_KEY_CFBundleDisplayName = "Moyashi Recall";
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-			MARKETING_VERSION = 0.1.0;
+			MARKETING_VERSION = 0.10.0;
 			PRODUCT_BUNDLE_IDENTIFIER = com.moyashi.recall;
 			PRODUCT_NAME = "$(TARGET_NAME)";
 			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -119,12 +131,12 @@
 		}; name = Debug;};
 		AB0000000000000000000004 = {isa = XCBuildConfiguration; buildSettings = {
 			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 1;
+			CURRENT_PROJECT_VERSION = 10;
 			GENERATE_INFOPLIST_FILE = YES;
 			INFOPLIST_KEY_CFBundleDisplayName = "Moyashi Recall";
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-			MARKETING_VERSION = 0.1.0;
+			MARKETING_VERSION = 0.10.0;
 			PRODUCT_BUNDLE_IDENTIFIER = com.moyashi.recall;
 			PRODUCT_NAME = "$(TARGET_NAME)";
 			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
