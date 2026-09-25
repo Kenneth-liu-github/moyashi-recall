@@ -5,6 +5,7 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
     public let notionCredentialConfigured: Bool
     public let notionRootSelected: Bool
     public let syncedDocumentCount: Int
+    public let activeSourceDocumentCount: Int
     public let aiProviderName: String
     public let aiModelConfigured: Bool
     public let aiCredentialConfigured: Bool
@@ -18,6 +19,7 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
         notionCredentialConfigured: Bool,
         notionRootSelected: Bool,
         syncedDocumentCount: Int,
+        activeSourceDocumentCount: Int = 0,
         aiProviderName: String,
         aiModelConfigured: Bool,
         aiCredentialConfigured: Bool,
@@ -30,6 +32,7 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
         self.notionCredentialConfigured = notionCredentialConfigured
         self.notionRootSelected = notionRootSelected
         self.syncedDocumentCount = max(0, syncedDocumentCount)
+        self.activeSourceDocumentCount = max(0, activeSourceDocumentCount)
         self.aiProviderName = aiProviderName
         self.aiModelConfigured = aiModelConfigured
         self.aiCredentialConfigured = aiCredentialConfigured
@@ -44,6 +47,10 @@ public struct AppReadinessSnapshot: Equatable, Sendable {
         notionCredentialConfigured
             && notionRootSelected
             && syncedDocumentCount > 0
+    }
+
+    public var learningSourceReady: Bool {
+        activeSourceDocumentCount > 0
     }
 
     public var aiReady: Bool {
@@ -93,6 +100,8 @@ public struct AppReadinessService {
         let documents = try repository.importedDocuments(
             sourceKind: "notion"
         )
+        let activeSourceDocuments = try repository
+            .importedDocuments()
 
         let aiConfiguration = AIConfigurationStore()
             .load(defaults: defaults)
@@ -122,6 +131,8 @@ public struct AppReadinessService {
             notionCredentialConfigured: notionConfigured,
             notionRootSelected: rootSelected,
             syncedDocumentCount: documents.count,
+            activeSourceDocumentCount:
+                activeSourceDocuments.count,
             aiProviderName:
                 aiConfiguration.provider.displayName,
             aiModelConfigured: aiModelConfigured,
