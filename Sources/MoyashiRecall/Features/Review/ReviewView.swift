@@ -275,6 +275,7 @@ public struct ReviewView: View {
                 )
                 ratingCounts[value.rawValue, default: 0] += 1
                 reviewed += 1
+                persistSessionSummaryIfFinished()
                 currentIndex += 1
                 revealed = false
                 saveError = nil
@@ -288,6 +289,27 @@ public struct ReviewView: View {
         .buttonStyle(.bordered)
         .tint(AppTheme.accent)
         .frame(maxWidth: .infinity)
+    }
+
+    private func persistSessionSummaryIfFinished() {
+        guard reviewed == sessionCards.count else {
+            return
+        }
+
+        do {
+            try ReviewSessionSummaryStore().save(
+                ReviewSessionSummary(
+                    reviewedCount: reviewed,
+                    againCount: count(for: .again),
+                    hardCount: count(for: .hard),
+                    goodCount: count(for: .good),
+                    easyCount: count(for: .easy)
+                )
+            )
+        } catch {
+            // The review records are already persisted in SwiftData.
+            // Session summary persistence is best-effort only.
+        }
     }
 
     private func refreshFinishedSessionIfNeeded() {
