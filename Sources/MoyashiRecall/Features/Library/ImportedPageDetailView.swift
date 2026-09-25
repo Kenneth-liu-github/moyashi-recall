@@ -117,31 +117,33 @@ public struct ImportedPageDetailView: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
 
-                HStack(spacing: 8) {
-                    Image(
-                        systemName: isAIUpToDate
-                            ? "checkmark.circle"
-                            : "sparkles"
-                    )
-                    .foregroundStyle(
-                        isAIUpToDate
-                            ? AppTheme.muted
-                            : AppTheme.accent
-                    )
+                if item.canGenerateAI {
+                    HStack(spacing: 8) {
+                        Image(
+                            systemName: isAIUpToDate
+                                ? "checkmark.circle"
+                                : "sparkles"
+                        )
+                        .foregroundStyle(
+                            isAIUpToDate
+                                ? AppTheme.muted
+                                : AppTheme.accent
+                        )
 
-                    Text(
-                        isAIUpToDate
-                            ? language.text(
-                                "AI 内容与当前资料一致",
-                                "AI内容は現在の資料と一致しています"
-                            )
-                            : language.text(
-                                "资料有新内容，建议重新生成",
-                                "資料が更新されています。再生成を推奨します"
-                            )
-                    )
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.muted)
+                        Text(
+                            isAIUpToDate
+                                ? language.text(
+                                    "AI 内容与当前资料一致",
+                                    "AI内容は現在の資料と一致しています"
+                                )
+                                : language.text(
+                                    "资料有新内容，建议重新生成",
+                                    "資料が更新されています。再生成を推奨します"
+                                )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                    }
                 }
 
                 if let aiStatusMessage {
