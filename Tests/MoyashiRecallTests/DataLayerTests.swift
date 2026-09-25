@@ -802,4 +802,62 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testDueQueueCanTargetWeakKnowledgeItem() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let firstKnowledge = KnowledgeItemEntity(
+            extractionKey: "first",
+            knowledgeType: "grammar",
+            title: "First",
+            content: "first",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://first"
+        )
+        let secondKnowledge = KnowledgeItemEntity(
+            extractionKey: "second",
+            knowledgeType: "grammar",
+            title: "Second",
+            content: "second",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://second"
+        )
+        let firstCard = FlashcardEntity(
+            knowledgeItemID: firstKnowledge.id,
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Q1",
+            answer: "A1",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://first"
+        )
+        let secondCard = FlashcardEntity(
+            knowledgeItemID: secondKnowledge.id,
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Q2",
+            answer: "A2",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://second"
+        )
+
+        context.insert(firstKnowledge)
+        context.insert(secondKnowledge)
+        context.insert(firstCard)
+        context.insert(secondCard)
+        try context.save()
+
+        let targeted = try LearningRepository(
+            context: context
+        ).dueSessionCards(
+            now: now,
+            knowledgeItemIDs: [secondKnowledge.id]
+        )
+
+        XCTAssertEqual(targeted.map(\.id), [secondCard.id])
+    }
+
+
 }
