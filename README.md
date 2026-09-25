@@ -123,6 +123,21 @@ Source → Source Document → AI Knowledge Item → Flashcard → Review Histor
 - archive-level Privacy Manifest verification
 - clear separation of engineering failures from signing/App Store blockers
 
+### V0.13 — Distribution handoff hardening
+
+- Assets.xcassets and AppIcon.appiconset wired into the app target
+- final artwork separated from engineering configuration
+- release audit distinguishes engineering failures from external distribution blockers
+- publication-ready privacy policy draft
+- TestFlight/App Store distribution handoff checklist
+- unsigned Release archive remains green after AppIcon wiring
+
+Release handoff references:
+
+- `docs/PRIVACY_POLICY_DRAFT.md`
+- `docs/DISTRIBUTION_HANDOFF.md`
+- `docs/V0_13_ACCEPTANCE.md`
+
 ## Development workflow
 
 Feature work is isolated on stacked branches and draft pull requests. A milestone is not merged until its validation gate is satisfied.
