@@ -357,4 +357,32 @@ final class LocalFileImporterTests: XCTestCase {
     #endif
 
 
+    func testImportsCSVAsText() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(UUID().uuidString).csv"
+            )
+        try "日本語,中文\n進め方,推进方式".write(
+            to: url,
+            atomically: true,
+            encoding: .utf8
+        )
+        defer {
+            try? FileManager.default.removeItem(
+                at: url
+            )
+        }
+
+        let result = try LocalFileImporter()
+            .importFile(at: url)
+
+        XCTAssertEqual(result.documents.count, 1)
+        XCTAssertTrue(
+            result.documents[0].content.contains(
+                "進め方,推进方式"
+            )
+        )
+    }
+
+
 }
