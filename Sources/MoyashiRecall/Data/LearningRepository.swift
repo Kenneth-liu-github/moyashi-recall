@@ -1239,8 +1239,7 @@ public struct LearningRepository {
         }
 
         let successfulReviews = recentHistory.filter {
-            $0.ratingRawValue == ReviewRating.good.rawValue
-                || $0.ratingRawValue == ReviewRating.easy.rawValue
+            $0.ratingRawValue != ReviewRating.again.rawValue
         }.count
         let successRate = recentHistory.isEmpty
             ? nil
