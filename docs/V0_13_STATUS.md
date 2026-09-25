@@ -23,6 +23,38 @@ Reduce the remaining TestFlight/App Store blockers to account-, brand-, and devi
 - signed Archive and TestFlight upload,
 - physical-device smoke validation.
 
-## Current state
+## Validation
 
-Engineering changes prepared. Full regression and Release archive validation pending.
+GitHub Actions run #179 passed on commit:
+
+`ee54d099b7b1d3522b4806eebf8713e484619883`
+
+Results:
+
+- portable Linux tests: passed
+- full macOS / SwiftData regression suite: passed
+- Debug iOS Simulator build: passed
+- AppIcon asset catalog compilation: passed
+- target AppIcon build setting: passed
+- unsigned generic-iOS Release archive: passed
+- archived PrivacyInfo.xcprivacy: present
+- V0.1–V0.12 regression gate: passed
+- release audit: 0 engineering failures
+
+After the AppIcon engineering wiring, the remaining distribution blockers are reduced to:
+
+1. supply the approved final 1024 × 1024 App Icon image,
+2. select the intended Apple Development Team,
+3. verify/register `com.moyashi.recall` in the intended Apple Developer account.
+
+Additional App Store/TestFlight release actions remain external:
+
+- publish the privacy policy at a stable public URL,
+- finalize App Store Connect privacy answers,
+- produce a signed Archive,
+- upload to TestFlight,
+- run the physical-device smoke checklist.
+
+## Freeze state
+
+**V0.13 engineering freeze: PASSED.**
