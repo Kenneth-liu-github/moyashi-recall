@@ -324,7 +324,8 @@ public struct DataExportView: View {
                 "备份版本与当前 App 不兼容。",
                 "バックアップのバージョンは現在のAppと互換性がありません。"
             )
-        case .tooManySources,
+        case .backupTooLarge,
+             .tooManySources,
              .tooManyKnowledgeItems,
              .tooManyFlashcards,
              .tooManyReviewStates,
