@@ -29,6 +29,11 @@ final class AIExtractionCoreTests: XCTestCase {
                 #""additionalProperties": false"#
             )
         )
+        XCTAssertTrue(
+            request.systemPrompt.contains(
+                "annotate every kanji with kana"
+            )
+        )
     }
 
     func testNormalizationTrimsStableKeysBeforePersistence() {
