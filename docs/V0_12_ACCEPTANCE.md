@@ -2,14 +2,14 @@
 
 ## Automated engineering gate
 
-- [ ] Portable Linux core tests pass.
-- [ ] Full macOS / SwiftData tests pass.
-- [ ] Debug iOS Simulator build passes.
-- [ ] Release metadata audit passes with no engineering-controlled failure.
-- [ ] Unsigned Release archive succeeds for generic iOS.
-- [ ] Archived app bundle exists.
-- [ ] PrivacyInfo.xcprivacy is present in the archived app.
-- [ ] V0.1–V0.11 regression suite remains green.
+- [x] Portable Linux core tests pass.
+- [x] Full macOS / SwiftData tests pass.
+- [x] Debug iOS Simulator build passes.
+- [x] Release metadata audit passes with no engineering-controlled failure.
+- [x] Unsigned Release archive succeeds for generic iOS.
+- [x] Archived app bundle exists.
+- [x] PrivacyInfo.xcprivacy is present in the archived app.
+- [x] V0.1–V0.11 regression suite remains green.
 
 ## Privacy and distribution metadata
 
@@ -33,4 +33,4 @@
 
 ## Decision
 
-**V0.12 engineering freeze: PENDING RELEASE ARCHIVE VALIDATION.**
+**V0.12 engineering freeze: PASSED. TestFlight/App Store distribution remains pending external prerequisites.**
