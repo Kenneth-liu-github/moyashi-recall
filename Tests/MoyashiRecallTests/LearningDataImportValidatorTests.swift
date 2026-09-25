@@ -300,6 +300,162 @@ final class LearningDataImportValidatorTests: XCTestCase {
         }
     }
 
+    func testRejectsDuplicateSourceSemanticIdentity() {
+        let package = makeValidPackage()
+        let source = package.sources[0]
+        let duplicate = LearningDataExportPackage.SourceRecord(
+            id: UUID(),
+            title: source.title,
+            content: source.content,
+            sourceKind: source.sourceKind,
+            externalSourceID: source.externalSourceID,
+            parentExternalSourceID: source.parentExternalSourceID,
+            rootExternalSourceID: source.rootExternalSourceID,
+            sourcePath: source.sourcePath,
+            sourceKey: source.sourceKey,
+            hierarchyDepth: source.hierarchyDepth,
+            isSourceActive: source.isSourceActive,
+            sourceReference: source.sourceReference,
+            sourceLastEditedAt: source.sourceLastEditedAt,
+            lastSyncedAt: source.lastSyncedAt,
+            lastAIProcessedAt: source.lastAIProcessedAt,
+            aiProcessedSourceUpdatedAt: source.aiProcessedSourceUpdatedAt,
+            lastAIExtractionVersion: source.lastAIExtractionVersion,
+            lastAIProviderID: source.lastAIProviderID,
+            lastAIModelID: source.lastAIModelID,
+            createdAt: source.createdAt,
+            updatedAt: source.updatedAt
+        )
+
+        let invalid = LearningDataExportPackage(
+            schemaVersion: package.schemaVersion,
+            exportedAt: package.exportedAt,
+            sources: package.sources + [duplicate],
+            knowledgeItems: package.knowledgeItems,
+            flashcards: package.flashcards,
+            reviewStates: package.reviewStates,
+            reviewHistory: package.reviewHistory
+        )
+
+        XCTAssertThrowsError(
+            try LearningDataImportValidator.validate(invalid)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataImportValidationError,
+                .duplicateSourceIdentity(
+                    sourceKind: source.sourceKind,
+                    externalSourceID: source.externalSourceID
+                )
+            )
+        }
+    }
+
+    func testRejectsDuplicateKnowledgeSemanticIdentity() {
+        let package = makeValidPackage()
+        let item = package.knowledgeItems[0]
+        guard let sourceID = item.sourceDocumentID else {
+            XCTFail("Fixture must include sourceDocumentID")
+            return
+        }
+        let duplicate = LearningDataExportPackage.KnowledgeRecord(
+            id: UUID(),
+            sourceDocumentID: item.sourceDocumentID,
+            extractionKey: item.extractionKey,
+            knowledgeType: item.knowledgeType,
+            title: item.title,
+            canonicalExpression: item.canonicalExpression,
+            meaning: item.meaning,
+            explanation: item.explanation,
+            naturalEnglish: item.naturalEnglish,
+            content: item.content,
+            tags: item.tags,
+            sourceKind: item.sourceKind,
+            sourceKey: item.sourceKey,
+            sourceDisplayPath: item.sourceDisplayPath,
+            sourceReference: item.sourceReference,
+            externalSourceID: item.externalSourceID,
+            parentExternalSourceID: item.parentExternalSourceID,
+            rootExternalSourceID: item.rootExternalSourceID,
+            sourcePath: item.sourcePath,
+            hierarchyDepth: item.hierarchyDepth,
+            isSourceActive: item.isSourceActive,
+            sourceLastEditedAt: item.sourceLastEditedAt,
+            lastSyncedAt: item.lastSyncedAt,
+            aiProvider: item.aiProvider,
+            aiModel: item.aiModel,
+            extractionVersion: item.extractionVersion,
+            isActive: item.isActive,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+
+        let invalid = LearningDataExportPackage(
+            schemaVersion: package.schemaVersion,
+            exportedAt: package.exportedAt,
+            sources: package.sources,
+            knowledgeItems: package.knowledgeItems + [duplicate],
+            flashcards: package.flashcards,
+            reviewStates: package.reviewStates,
+            reviewHistory: package.reviewHistory
+        )
+
+        XCTAssertThrowsError(
+            try LearningDataImportValidator.validate(invalid)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataImportValidationError,
+                .duplicateKnowledgeIdentity(
+                    sourceID: sourceID,
+                    extractionKey: item.extractionKey
+                )
+            )
+        }
+    }
+
+    func testRejectsDuplicateFlashcardSemanticIdentity() {
+        let package = makeValidPackage()
+        let card = package.flashcards[0]
+        let duplicate = LearningDataExportPackage.FlashcardRecord(
+            id: UUID(),
+            knowledgeItemID: card.knowledgeItemID,
+            sourceDocumentID: card.sourceDocumentID,
+            generationKey: card.generationKey,
+            cardType: card.cardType,
+            prompt: card.prompt,
+            answer: card.answer,
+            explanation: card.explanation,
+            naturalEnglish: card.naturalEnglish,
+            sourceKey: card.sourceKey,
+            sourceDisplayPath: card.sourceDisplayPath,
+            sourceReference: card.sourceReference,
+            isActive: card.isActive,
+            createdAt: card.createdAt,
+            updatedAt: card.updatedAt
+        )
+
+        let invalid = LearningDataExportPackage(
+            schemaVersion: package.schemaVersion,
+            exportedAt: package.exportedAt,
+            sources: package.sources,
+            knowledgeItems: package.knowledgeItems,
+            flashcards: package.flashcards + [duplicate],
+            reviewStates: package.reviewStates,
+            reviewHistory: package.reviewHistory
+        )
+
+        XCTAssertThrowsError(
+            try LearningDataImportValidator.validate(invalid)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataImportValidationError,
+                .duplicateFlashcardIdentity(
+                    knowledgeID: card.knowledgeItemID,
+                    generationKey: card.generationKey
+                )
+            )
+        }
+    }
+
     private func makeValidPackage() -> LearningDataExportPackage {
         let now = Date(
             timeIntervalSince1970: 1_700_000_000
