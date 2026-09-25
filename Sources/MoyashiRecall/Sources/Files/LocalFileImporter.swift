@@ -5,6 +5,7 @@ public enum LocalFileImportError: Error, Equatable {
     case unreadableFile
     case emptyContent
     case pdfUnavailable
+    case imageTextRecognitionUnavailable
 }
 
 public struct LocalFileImportResult: Equatable, Sendable {
@@ -74,6 +75,15 @@ public struct LocalFileImporter {
                 sourceKey: sourceKey
             )
 
+        case "png", "jpg", "jpeg", "heic":
+            return try importImage(
+                url: url,
+                title: title,
+                rootID: rootID,
+                lastEditedAt: lastEditedAt,
+                sourceKey: sourceKey
+            )
+
         default:
             throw LocalFileImportError
                 .unsupportedExtension(ext)
@@ -117,6 +127,51 @@ public struct LocalFileImporter {
         )
         #else
         throw LocalFileImportError.pdfUnavailable
+        #endif
+    }
+
+    private func importImage(
+        url: URL,
+        title: String,
+        rootID: String,
+        lastEditedAt: Date?,
+        sourceKey: String
+    ) throws -> LocalFileImportResult {
+        #if canImport(Vision)
+        let text = try ImageTextExtractor.extract(
+            url: url
+        )
+        guard !text
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .isEmpty
+        else {
+            throw LocalFileImportError.emptyContent
+        }
+
+        return LocalFileImportResult(
+            documents: [
+                ImportedDocument(
+                    id: rootID,
+                    sourceKind: "file",
+                    title: title,
+                    sourceReference: "local-file://\(title)",
+                    content: text,
+                    lastEditedAt: lastEditedAt,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        title
+                    ],
+                    hierarchyDepth: 0,
+                    sourceKeyHint: sourceKey
+                )
+            ]
+        )
+        #else
+        throw LocalFileImportError
+            .imageTextRecognitionUnavailable
         #endif
     }
 
@@ -246,6 +301,44 @@ private enum PDFTextExtractor {
         return LocalFileImportResult(
             documents: [root] + documents
         )
+    }
+}
+#endif
+
+
+#if canImport(Vision)
+import Vision
+
+private enum ImageTextExtractor {
+    static func extract(
+        url: URL
+    ) throws -> String {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        request.recognitionLanguages = [
+            "ja-JP",
+            "zh-Hans",
+            "en-US"
+        ]
+
+        let handler = VNImageRequestHandler(
+            url: url,
+            options: [:]
+        )
+
+        do {
+            try handler.perform([request])
+        } catch {
+            throw LocalFileImportError.unreadableFile
+        }
+
+        let observations = request.results ?? []
+        let lines = observations.compactMap {
+            $0.topCandidates(1).first?.string
+        }
+
+        return lines.joined(separator: "\n")
     }
 }
 #endif
