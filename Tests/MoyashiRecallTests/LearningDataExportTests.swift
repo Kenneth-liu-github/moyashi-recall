@@ -4,7 +4,7 @@ import SwiftData
 
 final class LearningDataExportTests: XCTestCase {
     @MainActor
-    private func makeContainer() throws -> ModelContainer {
+    fileprivate func makeContainer() throws -> ModelContainer {
         let configuration = ModelConfiguration(
             isStoredInMemoryOnly: true
         )
@@ -255,7 +255,7 @@ extension LearningDataExportTests {
         ).makePackage()
 
         XCTAssertEqual(
-            package.sources.map(\.sourcePath),
+            package.sources.map { $0.sourcePath },
             ["A", "B"]
         )
     }
