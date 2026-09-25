@@ -674,6 +674,13 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(sources.first?.cardCount, 2)
         XCTAssertEqual(sources.first?.dueCardCount, 1)
 
+        let jaToZhOnly = try repository.reviewSources(
+            now: now,
+            cardTypes: [ReviewCardType.jaToZh.rawValue]
+        )
+        XCTAssertEqual(jaToZhOnly.first?.cardCount, 2)
+        XCTAssertEqual(jaToZhOnly.first?.dueCardCount, 0)
+
         XCTAssertEqual(
             try repository.dueCardCount(
                 now: now,
