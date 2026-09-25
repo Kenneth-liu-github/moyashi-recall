@@ -281,7 +281,7 @@ public struct HomeView: View {
             .navigationTitle("Moyashi Recall")
             .onAppear {
                 loadSnapshot()
-                lastSessionSummary = ReviewSessionSummaryStore().load()
+                loadLastSessionSummary()
             }
         }
     }
@@ -291,6 +291,19 @@ public struct HomeView: View {
             return "—"
         }
         return "\(Int((rate * 100).rounded()))%"
+    }
+
+    private func loadLastSessionSummary() {
+        guard
+            let summary = ReviewSessionSummaryStore().load(),
+            let latestReviewAt = snapshot.latestReviewAt,
+            summary.completedAt >= latestReviewAt
+        else {
+            lastSessionSummary = nil
+            return
+        }
+
+        lastSessionSummary = summary
     }
 
     private func loadSnapshot() {
