@@ -394,7 +394,7 @@ final class LocalFileImporterTests: XCTestCase {
         )
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(
-                "\(UUID().uuidString).xyz"
+                "\(UUID().uuidString).docx"
             )
         try data.write(to: url)
         defer {
