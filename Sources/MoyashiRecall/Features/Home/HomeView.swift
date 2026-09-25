@@ -10,6 +10,7 @@ public struct HomeView: View {
         streakDays: 0
     )
     @State private var loadError: String?
+    @State private var lastSessionSummary: ReviewSessionSummary?
 
     public init() {}
 
@@ -199,6 +200,52 @@ public struct HomeView: View {
                         )
                     )
 
+                    if let summary = lastSessionSummary {
+                        VStack(
+                            alignment: .leading,
+                            spacing: 10
+                        ) {
+                            HStack {
+                                Text(
+                                    language.text(
+                                        "最近一次复习",
+                                        "直近の復習"
+                                    )
+                                )
+                                .font(.headline)
+
+                                Spacer()
+
+                                Text(
+                                    summary.completedAt.formatted(
+                                        date: .abbreviated,
+                                        time: .shortened
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.muted)
+                            }
+
+                            Text(
+                                language.text(
+                                    "完成 \(summary.reviewedCount) 张 · 重来 \(summary.againCount) · 困难 \(summary.hardCount) · 良好 \(summary.goodCount) · 简单 \(summary.easyCount)",
+                                    "\(summary.reviewedCount)枚完了 · もう一度 \(summary.againCount) · 難しい \(summary.hardCount) · 良い \(summary.goodCount) · 簡単 \(summary.easyCount)"
+                                )
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.muted)
+                        }
+                        .padding(16)
+                        .background(
+                            Color.gray.opacity(0.10)
+                        )
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: AppTheme.cornerRadius
+                            )
+                        )
+                    }
+
                     VStack(
                         alignment: .leading,
                         spacing: 10
@@ -234,6 +281,7 @@ public struct HomeView: View {
             .navigationTitle("Moyashi Recall")
             .onAppear {
                 loadSnapshot()
+                lastSessionSummary = ReviewSessionSummaryStore().load()
             }
         }
     }
