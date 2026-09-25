@@ -12,6 +12,7 @@ public struct LibraryView: View {
     @State private var showingFileImporter = false
     @State private var isImportingFiles = false
     @State private var importStatusMessage: String?
+    @State private var pendingArchiveItem: ImportedDocumentSummary?
 
     public init() {}
 
@@ -63,7 +64,7 @@ public struct LibraryView: View {
                                             Button(
                                                 role: .destructive
                                             ) {
-                                                archiveFileSource(item)
+                                                pendingArchiveItem = item
                                             } label: {
                                                 Label(
                                                     language.text(
@@ -129,6 +130,51 @@ public struct LibraryView: View {
                         )
                     )
                 }
+            }
+            .confirmationDialog(
+                language.text(
+                    "归档此文件？",
+                    "このファイルをアーカイブしますか？"
+                ),
+                isPresented: Binding(
+                    get: {
+                        pendingArchiveItem != nil
+                    },
+                    set: { presented in
+                        if !presented {
+                            pendingArchiveItem = nil
+                        }
+                    }
+                ),
+                presenting: pendingArchiveItem
+            ) { item in
+                Button(
+                    language.text(
+                        "归档 \(item.title)",
+                        "\(item.title) をアーカイブ"
+                    ),
+                    role: .destructive
+                ) {
+                    archiveFileSource(item)
+                    pendingArchiveItem = nil
+                }
+
+                Button(
+                    language.text(
+                        "取消",
+                        "キャンセル"
+                    ),
+                    role: .cancel
+                ) {
+                    pendingArchiveItem = nil
+                }
+            } message: { _ in
+                Text(
+                    language.text(
+                        "资料及其生成卡片会从当前学习范围中停用，但复习历史会保留。",
+                        "資料と生成カードは現在の学習対象から外れますが、復習履歴は保持されます。"
+                    )
+                )
             }
             .fileImporter(
                 isPresented: $showingFileImporter,
