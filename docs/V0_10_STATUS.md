@@ -63,3 +63,22 @@ TestFlight upload readiness additionally requires:
 - valid Apple Developer signing team,
 - confirmed bundle ID ownership,
 - public privacy policy URL and reviewed App Store privacy answers.
+
+
+## Engineering validation
+
+GitHub Actions run #171 passed on validated commit:
+
+`90f824df1c5a794f62227ea3305aedc7a435c8dd`
+
+Results:
+
+- portable Linux core tests: passed
+- full macOS / SwiftData regression suite: passed
+- iOS Simulator build: passed
+- release metadata audit executed successfully
+- `PrivacyInfo.xcprivacy` verified inside the built `.app` bundle
+
+**V0.10 engineering freeze: PASSED.**
+
+TestFlight upload readiness remains blocked only by external/distribution prerequisites documented above.
