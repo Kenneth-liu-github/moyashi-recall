@@ -15,6 +15,7 @@ public struct StudySource: Identifiable, Hashable, Sendable {
     public let title: String
     public let detail: String
     public let cardCount: Int
+    public let dueCardCount: Int
 
     public var id: String { key }
 
@@ -22,11 +23,13 @@ public struct StudySource: Identifiable, Hashable, Sendable {
         key: String,
         title: String,
         detail: String,
-        cardCount: Int
+        cardCount: Int,
+        dueCardCount: Int = 0
     ) {
         self.key = key
         self.title = title
         self.detail = detail
         self.cardCount = cardCount
+        self.dueCardCount = dueCardCount
     }
 }
