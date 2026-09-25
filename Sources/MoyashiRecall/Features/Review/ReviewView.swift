@@ -13,6 +13,7 @@ public struct ReviewView: View {
     @State private var reviewed = 0
     @State private var sessionCards: [ReviewSessionCard] = []
     @State private var currentIndex = 0
+    @State private var ratingCounts: [Int: Int] = [:]
     @State private var saveError: String?
     @State private var didLoadSession = false
 
@@ -156,16 +157,105 @@ public struct ReviewView: View {
     }
 
     private var completeState: some View {
-        ContentUnavailableView(
-            language.text("本次复习完成", "今回の復習が完了しました"),
-            systemImage: "checkmark.circle.fill",
-            description: Text(
-                language.text(
-                    "已完成 \(reviewed) 张卡片。",
-                    "\(reviewed)枚のカードを完了しました。"
+        ScrollView {
+            VStack(spacing: 22) {
+                Image(
+                    systemName: "checkmark.circle.fill"
                 )
+                .font(.system(size: 44))
+                .foregroundStyle(AppTheme.accent)
+
+                Text(
+                    language.text(
+                        "本次复习完成",
+                        "今回の復習が完了しました"
+                    )
+                )
+                .font(.title2.bold())
+
+                Text(
+                    language.text(
+                        "已完成 \(reviewed) 张卡片。",
+                        "\(reviewed)枚のカードを完了しました。"
+                    )
+                )
+                .foregroundStyle(AppTheme.muted)
+
+                HStack(spacing: 10) {
+                    resultMetric(
+                        language.text(
+                            "重来",
+                            "もう一度"
+                        ),
+                        count(for: .again)
+                    )
+                    resultMetric(
+                        language.text(
+                            "困难",
+                            "難しい"
+                        ),
+                        count(for: .hard)
+                    )
+                }
+
+                HStack(spacing: 10) {
+                    resultMetric(
+                        language.text(
+                            "良好",
+                            "良い"
+                        ),
+                        count(for: .good)
+                    )
+                    resultMetric(
+                        language.text(
+                            "简单",
+                            "簡単"
+                        ),
+                        count(for: .easy)
+                    )
+                }
+
+                Text(
+                    language.text(
+                        "FSRS 已根据本次评分更新每张卡片的下次复习时间。",
+                        "FSRSが今回の評価に基づいて各カードの次回復習日を更新しました。"
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
+                .multilineTextAlignment(.center)
+            }
+            .padding()
+        }
+    }
+
+    private func resultMetric(
+        _ label: String,
+        _ value: Int
+    ) -> some View {
+        VStack(spacing: 4) {
+            Text("\(value)")
+                .font(.title2.bold())
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(
+            Color.gray.opacity(0.10)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: AppTheme.cornerRadius
             )
         )
+    }
+
+    private func count(
+        for rating: ReviewRating
+    ) -> Int {
+        ratingCounts[rating.rawValue, default: 0]
     }
 
     private func rating(
@@ -180,6 +270,7 @@ public struct ReviewView: View {
                     cardID: card.id,
                     rating: value
                 )
+                ratingCounts[value.rawValue, default: 0] += 1
                 reviewed += 1
                 currentIndex += 1
                 revealed = false
@@ -204,6 +295,7 @@ public struct ReviewView: View {
         sessionCards = []
         currentIndex = 0
         reviewed = 0
+        ratingCounts = [:]
         revealed = false
         saveError = nil
         loadSessionIfNeeded()
@@ -221,6 +313,7 @@ public struct ReviewView: View {
             )
             currentIndex = 0
             reviewed = 0
+            ratingCounts = [:]
             didLoadSession = true
             saveError = nil
         } catch {
