@@ -66,6 +66,21 @@ public struct SettingsView: View {
                         )
                     }
 
+                    NavigationLink {
+                        SpeechSettingsView()
+                    } label: {
+                        LabeledContent(
+                            language.text(
+                                "日语朗读",
+                                "日本語読み上げ"
+                            ),
+                            value: language.text(
+                                "语速与自动朗读",
+                                "速度と自動読み上げ"
+                            )
+                        )
+                    }
+
                     LabeledContent(
                         "FSRS",
                         value: "FSRS-6 · 90%"
