@@ -352,8 +352,8 @@ public struct HomeView: View {
                 && !readiness.aiReady {
                 Text(
                     language.text(
-                        "资料已同步。下一步配置 AI Provider 和模型。",
-                        "資料は同期済みです。次にAI Providerとモデルを設定してください。"
+                        "资料已就绪。下一步配置 AI Provider 和模型。",
+                        "資料は準備済みです。次にAI Providerとモデルを設定してください。"
                     )
                 )
                 .font(.subheadline)
