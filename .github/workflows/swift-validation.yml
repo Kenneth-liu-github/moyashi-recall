@@ -2,6 +2,9 @@ name: Swift Validation
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/v0.10-pre1-release-hardening
 
 concurrency:
   group: swift-validation-${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +19,8 @@ jobs:
         run: swift --version
       - name: Run portable core tests
         run: swift test
+      - name: Audit release project
+        run: bash scripts/audit-release-project.sh
 
   ios-simulator-build:
     runs-on: macos-15
