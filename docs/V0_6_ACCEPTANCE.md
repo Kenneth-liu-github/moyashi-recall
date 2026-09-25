@@ -1,61 +1,67 @@
 # V0.6 Acceptance Checklist
 
-## Automated validation
+## Automated engineering gate
 
-On a Mac with Xcode installed, run the normal full validation used by the project.
+Validated by GitHub Actions run #148 on commit `5b65e048a5be09b4256a14dbc526117672403c0e`.
 
-The gate must cover:
+- [x] Portable Linux core tests
+- [x] Full macOS Swift package tests
+- [x] SwiftData/data-layer tests
+- [x] Apple-platform PDF fixture
+- [x] Apple-platform DOCX fixture
+- [x] iOS Simulator build
+- [x] V0.5 regression coverage
 
-1. Swift package tests,
-2. SwiftData/data-layer tests,
-3. Apple-platform PDF/DOCX fixtures,
-4. iOS Simulator build.
+## Japanese TTS
 
-## Functional acceptance
+- [x] Japanese prompts and answers support speech controls.
+- [x] Kana reading annotations are normalized before speech.
+- [x] Non-reading parentheses are preserved.
+- [x] Slow / normal / fast settings are persisted.
+- [x] Answer auto-play is opt-in and defaults off.
+- [x] Leaving Review stops speech.
 
-### Text / Markdown / CSV
+## Daily reminders
 
-- Import TXT, Markdown, CSV, and TSV.
-- Confirm Library shows a clean filename source.
-- Re-import the same path unchanged and confirm it is reported unchanged.
-- Modify the same file and re-import; confirm it updates instead of duplicating.
+- [x] Daily reminders default off.
+- [x] Permission is requested only when enabling.
+- [x] Denied authorization returns preferences to a consistent disabled state.
+- [x] Reminder time changes reschedule notifications.
+- [x] Disabling removes the pending reminder.
+- [x] Reminder copy can include current due-card count.
+- [x] Reminder copy follows the selected interface language.
 
-### PDF
+## Local file ingestion
 
-- Import a multi-page PDF.
-- Confirm Library shows:
-  - one root file container,
-  - child page units,
-  - natural page ordering.
-- Open a text-bearing page and generate AI knowledge/cards.
-- Confirm card/source trace includes filename and page number.
-- Re-import a version with fewer text pages and confirm removed page units become inactive.
+- [x] TXT / Markdown / CSV / TSV parsing.
+- [x] PDF page-level extraction and natural page ordering.
+- [x] DOCX / DOC / RTF / ODT rich-document path implemented.
+- [x] PNG / JPG / JPEG / HEIC OCR path implemented with Apple Vision.
+- [x] Same-path re-import is idempotent.
+- [x] Same-named files in different folders receive distinct identities.
+- [x] Removed child pages are deactivated rather than deleted.
+- [x] Archive preserves Review History while deactivating generated learning.
+- [x] Imported filenames become Study Scope sources.
+- [x] Batch AI generation is bounded.
 
-### Word / rich text
+## Privacy and quality
 
-- Import DOCX, DOC, RTF, and ODT.
-- Confirm readable text appears in Library.
-- Generate AI knowledge/cards from extracted text.
+- [x] Raw local filesystem paths are not persisted in Source Documents.
+- [x] Existing Notion/AI secrets remain Keychain-backed.
+- [x] No new production `try!`, `fatalError`, TODO, or FIXME markers found in the V0.6 audit.
+- [x] Combined PR #7 + PR #9 integration is merge-clean and validated.
 
-### Images
+## Release-readiness smoke checks
 
-- Import PNG, JPG/JPEG, and HEIC screenshots containing Japanese text.
-- Confirm on-device OCR produces usable text in reading order.
-- Generate cards and verify Japanese kanji readings follow the existing kana-annotation rule.
+These require interactive simulator/device use and are intentionally not claimed as automated:
 
-### Archive
+- [ ] Exercise the system document picker with real iCloud/local files.
+- [ ] Confirm security-scoped access with externally provided files.
+- [ ] Confirm notification delivery on a device/simulator with permission transitions.
+- [ ] Listen to Japanese TTS on-device and confirm audio/voice behavior.
 
-- Swipe a local file root and choose Archive.
-- Confirm the user receives a confirmation dialog.
-- Confirm the source disappears from active Library/Study Scope.
-- Confirm its generated cards no longer appear in due review.
-- Confirm previous Review History remains visible.
+## Freeze decision
 
-### Privacy
+**V0.6 engineering freeze: PASSED.**
 
-- Confirm Library/source references display filename/page metadata only.
-- Confirm raw local filesystem paths are not persisted in Source Documents.
-
-## Freeze rule
-
-V0.6 remains Draft until the Apple/Xcode validation pass is green.
+The remaining interactive smoke checks belong to release readiness and do not block the V0.6 engineering freeze.

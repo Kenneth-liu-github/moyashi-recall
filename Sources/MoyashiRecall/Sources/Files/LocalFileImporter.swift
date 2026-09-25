@@ -150,17 +150,7 @@ public struct LocalFileImporter {
         sourceKey: String
     ) throws -> LocalFileImportResult {
         #if canImport(AppKit) || canImport(UIKit)
-        let documentType: NSAttributedString.DocumentType
-        switch ext {
-        case "docx":
-            documentType = .officeOpenXML
-        case "doc":
-            documentType = .docFormat
-        case "rtf":
-            documentType = .rtf
-        case "odt":
-            documentType = .openDocument
-        default:
+        guard ["docx", "doc", "rtf", "odt"].contains(ext) else {
             throw LocalFileImportError
                 .unsupportedExtension(ext)
         }
@@ -176,9 +166,7 @@ public struct LocalFileImporter {
         do {
             attributed = try NSAttributedString(
                 data: data,
-                options: [
-                    .documentType: documentType
-                ],
+                options: [:],
                 documentAttributes: nil
             )
         } catch {

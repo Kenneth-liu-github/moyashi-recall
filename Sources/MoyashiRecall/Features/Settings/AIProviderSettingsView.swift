@@ -17,12 +17,7 @@ public struct AIProviderSettingsView: View {
 
     public var body: some View {
         Form {
-            Section(
-                language.text(
-                    "AI Provider",
-                    "AI Provider"
-                )
-            ) {
+            Section {
                 Picker(
                     language.text(
                         "Provider",
@@ -43,14 +38,16 @@ public struct AIProviderSettingsView: View {
                     ),
                     text: $modelID
                 )
+            } header: {
+                Text(
+                    language.text(
+                        "AI Provider",
+                        "AI Provider"
+                    )
+                )
             }
 
-            Section(
-                language.text(
-                    "安全凭证",
-                    "安全な認証情報"
-                )
-            ) {
+            Section {
                 SecureField(
                     language.text(
                         "API Key",
@@ -86,6 +83,13 @@ public struct AIProviderSettingsView: View {
                         deleteCredential()
                     }
                 }
+            } header: {
+                Text(
+                    language.text(
+                        "安全凭证",
+                        "安全な認証情報"
+                    )
+                )
             } footer: {
                 Text(
                     language.text(

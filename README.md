@@ -61,8 +61,11 @@ Source → Source Document → AI Knowledge Item → Flashcard → Review Histor
 - Review History search/filter
 - session summaries
 
-### V0.6 — Local file ingestion
+### V0.6 — Engagement, speech & local file ingestion
 
+- daily local review reminders with due-aware copy
+- native Japanese text-to-speech with kana-reading normalization
+- configurable speech speed and optional answer auto-play
 - PDF page extraction
 - Word / RTF / ODT text extraction
 - TXT / Markdown

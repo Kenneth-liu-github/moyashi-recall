@@ -1,125 +1,62 @@
-# V0.6 Status — Local File Ingestion
+# V0.6 Status — Engagement, Japanese TTS & Local File Ingestion
 
 ## Goal
 
-Expand Moyashi Recall beyond Notion so users can import their own learning files directly from iPhone/iPad while keeping the same normalized pipeline:
+Extend the V0.5 learning loop with daily-use engagement features and direct local-file ingestion while preserving the same traceable learning pipeline:
 
 Source → Source Document → AI Knowledge Extraction → Flashcards → Review → FSRS.
 
 ## Implemented
 
-### Supported local formats
+### Daily reminders
+- Local UserNotifications-based daily reminders.
+- Opt-in enable/disable and configurable time.
+- Alert + sound permission only.
+- Permission-state reconciliation.
+- Due-aware reminder copy refreshed from Home.
+- Localized reminder copy follows the selected interface language.
 
-- PDF
-- Word: DOCX / DOC
-- RTF
-- ODT
-- TXT
-- Markdown
-- CSV / TSV
-- PNG
-- JPG / JPEG
-- HEIC
+### Japanese TTS
+- Native AVSpeechSynthesizer playback for Japanese review prompts and answers.
+- Kana reading annotations such as `進（すす）め方（かた）` are normalized before speech.
+- Slow / normal / fast speech rates.
+- Optional answer auto-play, default off.
+- Speech stops when leaving Review.
 
-### PDF handling
+### Local file ingestion
+- PDF with page-level text extraction and hierarchy.
+- DOCX / DOC / RTF / ODT rich-document extraction.
+- TXT / Markdown / CSV / TSV.
+- PNG / JPG / JPEG / HEIC OCR through Apple Vision.
+- Multi-file import and security-scoped access.
+- Idempotent re-import and stale-child reconciliation.
+- Archive flow that deactivates current learning while preserving Review History.
+- Source identity avoids persisting raw local filesystem paths.
+- Imported files appear as distinct Study Scope sources.
+- Bounded batch AI generation for text-bearing file units.
 
-- Uses PDFKit on Apple platforms.
-- Extracts text page by page.
-- Stores the PDF itself as a root container.
-- Stores each non-empty page as its own child Source Document.
-- Preserves filename + page-number traceability.
-- PDF pages are naturally ordered in Library (Page 1, Page 2, … Page 10).
-- Re-importing the same PDF updates existing pages idempotently.
-- Pages removed from a later complete re-import are marked inactive rather than deleted.
-- Empty PDF roots are labeled as containers rather than incorrectly appearing AI-stale.
+## Validation
 
-### Word / rich documents
+Engineering validation is green on GitHub Actions:
 
-- Uses Apple attributed-document reading APIs on supported platforms.
-- Supports Office Open XML DOCX, legacy DOC, RTF, and ODT text extraction.
-- Extracted text enters the same AI/card pipeline as Notion and PDF.
-- Non-Apple platforms fail explicitly instead of silently.
+- Run #148
+- commit: `5b65e048a5be09b4256a14dbc526117672403c0e`
+- portable Linux core tests: passed
+- full macOS Swift package / SwiftData tests: passed
+- Apple-platform PDF and DOCX fixture coverage: passed
+- iOS Simulator build: passed
 
-### Text / Markdown / spreadsheet text
+The earlier runner/budget provisioning issue was resolved after the repository was made public.
 
-- Reads UTF-8 first, then Unicode fallback.
-- Imports TXT and Markdown directly.
-- Imports CSV/TSV as text-based spreadsheet sources.
-- Rejects empty documents.
+## Quality checks
 
-### Images
+- No new production `try!`, `fatalError`, TODO, or FIXME markers were found in the V0.6 audit.
+- Local source references persist filename/page metadata, not raw filesystem paths.
+- V0.5 FSRS, review queue, history, presets, weak-item review, and dashboard regression coverage remained green.
+- V0.4 AI extraction and V0.3 Notion ingestion remain covered by the combined test suite.
 
-- Uses Apple Vision on supported platforms.
-- Performs on-device text recognition.
-- Recognition languages prioritize Japanese, Simplified Chinese, and English.
-- OCR observations are ordered top-to-bottom and left-to-right before text is assembled.
-- OCR text enters the same AI extraction/card-generation pipeline.
-- Platforms without Vision fail explicitly.
+## Freeze state
 
-### Source identity and privacy
+V0.6 is **engineering-frozen**.
 
-- Local filesystem paths are never stored in Source Documents.
-- A deterministic hash of the standardized path is used as local-file identity.
-- Same-named files in different folders remain distinct.
-- Re-importing the same path remains idempotent even when file contents are replaced atomically.
-- Each file receives its own collision-resistant source key.
-- User-visible paths stay clean:
-  - Imported Files / filename
-  - Imported Files / filename / Page N
-
-### Library UX
-
-- Multi-file import from the Library toolbar.
-- Security-scoped file access.
-- Parsing occurs off the MainActor; SwiftData persistence remains on the MainActor.
-- Library now shows both Notion and local-file sources.
-- Empty Library shows supported-format onboarding.
-- Import result reports inserted / updated / unchanged / archived units.
-- Per-file failures show a concrete reason.
-- Imported file roots can be archived with confirmation.
-- Archiving deactivates source documents and generated learning without deleting Review History.
-- Imported filenames appear as separate Study Scope sources.
-- PDF/file container pages can batch-run AI over text-bearing child units.
-- Batch AI is explicitly confirmed and bounded to at most 10 units / about 60,000 source characters per run to control cost.
-
-## Quality and tests
-
-Added coverage for:
-
-- TXT import
-- Markdown import
-- CSV import
-- empty-file rejection
-- unsupported-extension rejection
-- same-named files in different folders
-- source-key uniqueness
-- idempotent local-file re-import
-- changed-content update behavior
-- removed PDF-page reconciliation
-- file-source archive/history preservation
-- imported filename Study Scope titles
-- natural PDF page ordering
-- text-bearing child-unit selection for batch AI
-- non-Apple Vision fallback
-- non-Apple rich-document fallback
-- Apple-platform PDF text fixture
-- Apple-platform DOCX fixture
-
-No new production force unwraps, `try!`, `fatalError`, or unresolved TODO/FIXME markers are present in the V0.6 changes.
-
-## Remaining V0.6 gates
-
-- Execute Apple-platform PDF/DOCX/Vision tests in a working Xcode/macOS runner.
-- Run the full SwiftData test suite.
-- Run the iOS Simulator build.
-- Perform a device/simulator UX pass for the system document picker and security-scoped URLs.
-
-## Deferred formats
-
-Native XLSX and PPTX structured extraction are intentionally deferred to the next ingestion milestone. CSV/TSV are supported now for spreadsheet-style text data.
-
-## V0.6 completion state
-
-Feature implementation is complete enough to be treated as a **V0.6 freeze candidate**.
-
-PR remains Draft until the Apple/Xcode validation gate can execute normally.
+The automated engineering gate is complete. A physical-device UX smoke test for the system document picker, security-scoped URLs, notifications, and spoken-audio behavior remains a release-readiness check rather than an engineering-freeze blocker.
