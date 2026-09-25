@@ -45,7 +45,27 @@ public struct SettingsView: View {
                     }
                 }
 
-                Section(language.text("复习算法", "復習アルゴリズム")) {
+                Section(
+                    language.text(
+                        "复习",
+                        "復習"
+                    )
+                ) {
+                    NavigationLink {
+                        ReviewReminderSettingsView()
+                    } label: {
+                        LabeledContent(
+                            language.text(
+                                "每日提醒",
+                                "毎日のリマインダー"
+                            ),
+                            value: language.text(
+                                "通知设置",
+                                "通知設定"
+                            )
+                        )
+                    }
+
                     LabeledContent(
                         "FSRS",
                         value: "FSRS-6 · 90%"
