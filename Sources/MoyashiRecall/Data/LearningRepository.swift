@@ -212,13 +212,50 @@ public enum LearningRepositoryError: Error, Equatable {
     case emptyExtractionWouldDeactivateExisting(UUID)
 }
 
+public struct WeakKnowledgeSummary: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let sourceDisplay: String
+    public let difficultReviews: Int
+    public let totalReviews: Int
+
+    public init(
+        id: UUID,
+        title: String,
+        sourceDisplay: String,
+        difficultReviews: Int,
+        totalReviews: Int
+    ) {
+        self.id = id
+        self.title = title
+        self.sourceDisplay = sourceDisplay
+        self.difficultReviews = difficultReviews
+        self.totalReviews = totalReviews
+    }
+}
+
 public struct HomeSnapshot: Equatable, Sendable {
     public let dueCount: Int
     public let streakDays: Int
+    public let reviewedToday: Int
+    public let reviewedLast7Days: Int
+    public let successRateLast7Days: Double?
+    public let weakKnowledge: [WeakKnowledgeSummary]
 
-    public init(dueCount: Int, streakDays: Int) {
+    public init(
+        dueCount: Int,
+        streakDays: Int,
+        reviewedToday: Int = 0,
+        reviewedLast7Days: Int = 0,
+        successRateLast7Days: Double? = nil,
+        weakKnowledge: [WeakKnowledgeSummary] = []
+    ) {
         self.dueCount = dueCount
         self.streakDays = streakDays
+        self.reviewedToday = reviewedToday
+        self.reviewedLast7Days = reviewedLast7Days
+        self.successRateLast7Days = successRateLast7Days
+        self.weakKnowledge = weakKnowledge
     }
 }
 
@@ -869,19 +906,49 @@ public struct LearningRepository {
         return filtered.map(ReviewSessionCard.init)
     }
 
-    public func reviewSources() throws -> [StudySource] {
+    public func reviewSources(
+        now: Date = .now
+    ) throws -> [StudySource] {
         let cards = try context.fetch(
             FetchDescriptor<FlashcardEntity>()
         )
         .filter(\.isActive)
 
+        let states = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
+
+        let stateByCard = states.reduce(
+            into: [UUID: ReviewStateEntity]()
+        ) { result, state in
+            if let existing = result[state.cardID] {
+                if state.due < existing.due {
+                    result[state.cardID] = state
+                }
+            } else {
+                result[state.cardID] = state
+            }
+        }
+
         let counts = cards.reduce(
-            into: [String: Int]()
+            into: [String: (all: Int, due: Int)]()
         ) { result, card in
             guard !card.sourceKey.isEmpty else {
                 return
             }
-            result[card.sourceKey, default: 0] += 1
+
+            result[card.sourceKey, default: (0, 0)].all += 1
+
+            let isDue: Bool
+            if let state = stateByCard[card.id] {
+                isDue = state.due <= now
+            } else {
+                isDue = true
+            }
+
+            if isDue {
+                result[card.sourceKey, default: (0, 0)].due += 1
+            }
         }
 
         let documents = try context.fetch(
@@ -917,7 +984,8 @@ public struct LearningRepository {
                 key: key,
                 title: title,
                 detail: detail,
-                cardCount: count
+                cardCount: count.all,
+                dueCardCount: count.due
             )
         }
         .sorted {
@@ -982,9 +1050,13 @@ public struct LearningRepository {
     }
 
     public func homeSnapshot(now: Date = .now) throws -> HomeSnapshot {
-        let cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-            .filter(\.isActive)
-        let states = try context.fetch(FetchDescriptor<ReviewStateEntity>())
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter(\.isActive)
+        let states = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
         let history = try context.fetch(
             FetchDescriptor<ReviewHistoryEntity>(
                 sortBy: [
@@ -995,6 +1067,15 @@ public struct LearningRepository {
                 ]
             )
         )
+        let knowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        .filter(\.isActive)
+
+        let activeCardIDs = Set(cards.map(\.id))
+        let activeHistory = history.filter {
+            activeCardIDs.contains($0.cardID)
+        }
 
         let stateByCard = states.reduce(
             into: [UUID: ReviewStateEntity]()
@@ -1016,15 +1097,27 @@ public struct LearningRepository {
         }
 
         let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        let sevenDaysAgo = calendar.date(
+            byAdding: .day,
+            value: -6,
+            to: today
+        ) ?? today
+        let fourteenDaysAgo = calendar.date(
+            byAdding: .day,
+            value: -13,
+            to: today
+        ) ?? today
+
         let reviewDays = Set(
-            history.map {
+            activeHistory.map {
                 calendar.startOfDay(for: $0.reviewedAt)
             }
         )
         var streak = 0
 
         if !reviewDays.isEmpty {
-            var cursor = calendar.startOfDay(for: now)
+            var cursor = today
             if !reviewDays.contains(cursor) {
                 cursor = calendar.date(
                     byAdding: .day,
@@ -1043,9 +1136,107 @@ public struct LearningRepository {
             }
         }
 
+        let todayHistory = activeHistory.filter {
+            calendar.isDate($0.reviewedAt, inSameDayAs: now)
+        }
+        let recentHistory = activeHistory.filter {
+            $0.reviewedAt >= sevenDaysAgo
+                && $0.reviewedAt <= now
+        }
+
+        let successfulReviews = recentHistory.filter {
+            $0.ratingRawValue == ReviewRating.good.rawValue
+                || $0.ratingRawValue == ReviewRating.easy.rawValue
+        }.count
+        let successRate = recentHistory.isEmpty
+            ? nil
+            : Double(successfulReviews)
+                / Double(recentHistory.count)
+
+        let cardByID = Dictionary(
+            uniqueKeysWithValues: cards.map {
+                ($0.id, $0)
+            }
+        )
+        let knowledgeByID = Dictionary(
+            uniqueKeysWithValues: knowledge.map {
+                ($0.id, $0)
+            }
+        )
+
+        var weaknessByKnowledge: [
+            UUID: (
+                difficult: Int,
+                total: Int
+            )
+        ] = [:]
+
+        for review in activeHistory
+        where review.reviewedAt >= fourteenDaysAgo
+            && review.reviewedAt <= now {
+            guard let card = cardByID[review.cardID] else {
+                continue
+            }
+
+            weaknessByKnowledge[
+                card.knowledgeItemID,
+                default: (0, 0)
+            ].total += 1
+
+            if review.ratingRawValue == ReviewRating.again.rawValue
+                || review.ratingRawValue == ReviewRating.hard.rawValue {
+                weaknessByKnowledge[
+                    card.knowledgeItemID,
+                    default: (0, 0)
+                ].difficult += 1
+            }
+        }
+
+        let weakKnowledge = weaknessByKnowledge
+            .compactMap { knowledgeID, values
+                -> WeakKnowledgeSummary? in
+                guard values.difficult > 0,
+                      let item = knowledgeByID[knowledgeID]
+                else {
+                    return nil
+                }
+
+                let sourceDisplay = item.sourceDisplayPath.isEmpty
+                    ? item.sourceReference
+                    : item.sourceDisplayPath
+
+                return WeakKnowledgeSummary(
+                    id: item.id,
+                    title: item.canonicalExpression.isEmpty
+                        ? item.title
+                        : item.canonicalExpression,
+                    sourceDisplay: sourceDisplay,
+                    difficultReviews: values.difficult,
+                    totalReviews: values.total
+                )
+            }
+            .sorted {
+                let lhsRate = Double($0.difficultReviews)
+                    / Double(max($0.totalReviews, 1))
+                let rhsRate = Double($1.difficultReviews)
+                    / Double(max($1.totalReviews, 1))
+
+                if lhsRate == rhsRate {
+                    return $0.difficultReviews
+                        > $1.difficultReviews
+                }
+                return lhsRate > rhsRate
+            }
+
         return HomeSnapshot(
             dueCount: dueCount,
-            streakDays: streak
+            streakDays: streak,
+            reviewedToday: todayHistory.count,
+            reviewedLast7Days: recentHistory.count,
+            successRateLast7Days: successRate,
+            weakKnowledge: Array(
+                weakKnowledge.prefix(3)
+            )
         )
     }
 }
