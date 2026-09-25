@@ -11,6 +11,8 @@ public struct ReviewView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var speech = JapaneseSpeechService()
 
+    @State private var speechPreferences =
+        JapaneseSpeechPreferencesStore().load()
     @State private var revealed = false
     @State private var reviewed = 0
     @State private var sessionCards: [ReviewSessionCard] = []
@@ -66,6 +68,8 @@ public struct ReviewView: View {
             loadSessionIfNeeded()
         }
         .onAppear {
+            speechPreferences =
+                JapaneseSpeechPreferencesStore().load()
             refreshFinishedSessionIfNeeded()
         }
         .onDisappear {
@@ -162,6 +166,9 @@ public struct ReviewView: View {
                 Button {
                     saveError = nil
                     revealed = true
+                    autoPlayAnswerIfNeeded(
+                        card.answer
+                    )
                 } label: {
                     Text(language.text("显示答案", "答えを見る"))
                         .fontWeight(.semibold)
@@ -267,7 +274,10 @@ public struct ReviewView: View {
         label: String
     ) -> some View {
         Button {
-            speech.speak(text)
+            speech.speak(
+                text,
+                rate: speechPreferences.rate
+            )
         } label: {
             Label(
                 label,
@@ -277,6 +287,23 @@ public struct ReviewView: View {
         }
         .buttonStyle(.bordered)
         .tint(AppTheme.accent)
+    }
+
+    private func autoPlayAnswerIfNeeded(
+        _ answer: String
+    ) {
+        guard speechPreferences.autoPlayAnswer,
+              JapaneseSpeechText.containsJapanese(
+                answer
+              )
+        else {
+            return
+        }
+
+        speech.speak(
+            answer,
+            rate: speechPreferences.rate
+        )
     }
 
     private func resultMetric(
