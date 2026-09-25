@@ -445,6 +445,54 @@ final class AIExtractionTests: XCTestCase {
     }
 
     @MainActor
+    func testCancellationStopsGenerationBeforePersistence() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let source = SourceDocumentEntity(
+            title: "Cancel",
+            content: String(repeating: "あ", count: 1_500),
+            sourceKind: "notion",
+            externalSourceID: "cancel-page",
+            sourceReference: "notion://cancel"
+        )
+        context.insert(source)
+        try context.save()
+
+        let service = AIProcessingService(
+            repository: LearningRepository(context: context),
+            provider: SlowAIProvider(),
+            chunker: DocumentChunker(
+                maximumCharacters: 1_000
+            )
+        )
+
+        let task = Task {
+            try await service.process(
+                sourceDocumentID: source.id
+            )
+        }
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("Expected cancellation")
+        } catch is CancellationError {
+            // Expected.
+        }
+
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<KnowledgeItemEntity>()
+            ).isEmpty
+        )
+        XCTAssertTrue(
+            try context.fetch(
+                FetchDescriptor<FlashcardEntity>()
+            ).isEmpty
+        )
+    }
+
+    @MainActor
     func testStableKeyDriftPreservesKnowledgeAndCardIDs() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -861,6 +909,25 @@ private actor ChangingIdentityAIProvider: AICompletionProvider {
             text: #"{"version":"v1","items":[]}"#,
             providerID: providerID,
             modelID: calls == 1 ? "model-a" : "model-b"
+        )
+    }
+}
+
+
+private struct SlowAIProvider: AICompletionProvider {
+    let providerID = "slow"
+    let modelID = "slow-1"
+
+    func complete(
+        request: AICompletionRequest
+    ) async throws -> AICompletionResponse {
+        try await Task.sleep(
+            nanoseconds: 2_000_000_000
+        )
+        return AICompletionResponse(
+            text: #"{"version":"v1","items":[]}"#,
+            providerID: providerID,
+            modelID: modelID
         )
     }
 }
