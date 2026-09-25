@@ -25,7 +25,7 @@ public struct LocalFileImporter {
         let ext = url.pathExtension.lowercased()
         let title = url.lastPathComponent
         let rootID = Self.externalID(
-            fileName: title
+            for: url
         )
         let lastEditedAt = modifiedAt
             ?? Self.modificationDate(for: url)
@@ -122,15 +122,29 @@ public struct LocalFileImporter {
     }
 
     private static func externalID(
-        fileName: String
+        for url: URL
     ) -> String {
-        let normalized = fileName
+        let normalizedName = url.lastPathComponent
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
             .lowercased()
+        let normalizedPath = url
+            .standardizedFileURL
+            .path
+            .lowercased()
 
-        return "local-file:\(normalized)"
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in normalizedPath.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1_099_511_628_211
+        }
+
+        let pathHash = String(
+            hash,
+            radix: 16
+        )
+        return "local-file:\(normalizedName):\(pathHash)"
     }
 }
 
