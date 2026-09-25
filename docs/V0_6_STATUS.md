@@ -8,13 +8,15 @@ Source → Source Document → AI Knowledge Extraction → Flashcards → Review
 
 ## Implemented
 
-### Local file ingestion
-
-Supported initial formats:
+### Supported local formats
 
 - PDF
+- Word: DOCX / DOC
+- RTF
+- ODT
 - TXT
 - Markdown
+- CSV / TSV
 - PNG
 - JPG / JPEG
 - HEIC
@@ -25,75 +27,96 @@ Supported initial formats:
 - Extracts text page by page.
 - Stores the PDF itself as a root container.
 - Stores each non-empty page as its own child Source Document.
-- Preserves page-level traceability:
-  - filename
-  - page number
-  - source hierarchy
+- Preserves filename + page-number traceability.
+- PDF pages are naturally ordered in Library (Page 1, Page 2, … Page 10).
 - Re-importing the same PDF updates existing pages idempotently.
 - Pages removed from a later complete re-import are marked inactive rather than deleted.
+- Empty PDF roots are labeled as containers rather than incorrectly appearing AI-stale.
 
-### Text / Markdown
+### Word / rich documents
+
+- Uses Apple attributed-document reading APIs on supported platforms.
+- Supports Office Open XML DOCX, legacy DOC, RTF, and ODT text extraction.
+- Extracted text enters the same AI/card pipeline as Notion and PDF.
+- Non-Apple platforms fail explicitly instead of silently.
+
+### Text / Markdown / spreadsheet text
 
 - Reads UTF-8 first, then Unicode fallback.
+- Imports TXT and Markdown directly.
+- Imports CSV/TSV as text-based spreadsheet sources.
 - Rejects empty documents.
-- Imports one file as one Source Document.
-- Re-importing the same file updates existing content instead of duplicating it.
 
 ### Images
 
 - Uses Apple Vision on supported platforms.
 - Performs on-device text recognition.
-- Recognition languages prioritize:
-  - Japanese
-  - Simplified Chinese
-  - English
-- OCR text enters the same AI extraction/card-generation pipeline as Notion/PDF/text sources.
-- Platforms without Vision fail explicitly rather than silently.
+- Recognition languages prioritize Japanese, Simplified Chinese, and English.
+- OCR observations are ordered top-to-bottom and left-to-right before text is assembled.
+- OCR text enters the same AI extraction/card-generation pipeline.
+- Platforms without Vision fail explicitly.
 
 ### Source identity and privacy
 
-- Local filesystem paths are not stored in Source Documents.
-- External IDs use a deterministic path hash to distinguish same-named files from different locations.
-- Each imported file receives a collision-resistant source key.
-- User-visible source paths remain clean:
+- Local filesystem paths are never stored in Source Documents.
+- A deterministic hash of the standardized path is used as local-file identity.
+- Same-named files in different folders remain distinct.
+- Re-importing the same path remains idempotent even when file contents are replaced atomically.
+- Each file receives its own collision-resistant source key.
+- User-visible paths stay clean:
   - Imported Files / filename
   - Imported Files / filename / Page N
 
 ### Library UX
 
-- Added multi-file import from the Library toolbar.
-- Supports selecting multiple files at once.
-- Uses security-scoped file access.
-- File parsing happens off the MainActor.
-- Persisting parsed Source Documents happens on the MainActor.
-- Library now shows both Notion and local file sources.
-- PDF root containers are labeled as containers instead of incorrectly showing “AI update required”.
-- AI generation remains available on text-bearing child units/pages.
+- Multi-file import from the Library toolbar.
+- Security-scoped file access.
+- Parsing occurs off the MainActor; SwiftData persistence remains on the MainActor.
+- Library now shows both Notion and local-file sources.
+- Empty Library shows supported-format onboarding.
+- Import result reports inserted / updated / unchanged / archived units.
+- Per-file failures show a concrete reason.
+- Imported file roots can be archived with confirmation.
+- Archiving deactivates source documents and generated learning without deleting Review History.
+- Imported filenames appear as separate Study Scope sources.
 
-## Quality and test coverage
+## Quality and tests
 
-Added tests for:
+Added coverage for:
 
 - TXT import
 - Markdown import
-- empty-text rejection
+- CSV import
+- empty-file rejection
 - unsupported-extension rejection
-- same-named files in different folders producing distinct IDs/source keys
-- source-key grouping
+- same-named files in different folders
+- source-key uniqueness
 - idempotent local-file re-import
 - changed-content update behavior
-- no-Vision image fallback
+- removed PDF-page reconciliation
+- file-source archive/history preservation
+- imported filename Study Scope titles
+- natural PDF page ordering
+- non-Apple Vision fallback
+- non-Apple rich-document fallback
+- Apple-platform PDF text fixture
+- Apple-platform DOCX fixture
 
-No new force unwraps or TODO/FIXME markers were introduced in the V0.6 branch.
+No new production force unwraps, `try!`, `fatalError`, or unresolved TODO/FIXME markers are present in the V0.6 changes.
 
-## Remaining V0.6 work
+## Remaining V0.6 gates
 
-- Add Apple-platform PDF extraction tests.
-- Add Apple-platform Vision OCR tests where practical.
-- Improve import error feedback by file/type.
-- Add file-source removal/archive UX.
-- Add Word (.docx) ingestion strategy.
-- Consider PowerPoint/Excel text extraction after DOCX architecture is settled.
-- Full Xcode/iOS Simulator validation when GitHub Actions runners can execute normally.
+- Execute Apple-platform PDF/DOCX/Vision tests in a working Xcode/macOS runner.
+- Run the full SwiftData test suite.
+- Run the iOS Simulator build.
+- Perform a device/simulator UX pass for the system document picker and security-scoped URLs.
 
-V0.6 is currently an active stacked feature branch and is not ready to merge yet.
+## Deferred formats
+
+Native XLSX and PPTX structured extraction are intentionally deferred to the next ingestion milestone. CSV/TSV are supported now for spreadsheet-style text data.
+
+## V0.6 completion state
+
+Feature implementation is complete enough to be treated as a **V0.6 freeze candidate**.
+
+PR remains Draft until the Apple/Xcode validation gate can execute normally.
