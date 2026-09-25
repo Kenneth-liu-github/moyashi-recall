@@ -116,7 +116,7 @@ public struct ReviewReminderSettingsView: View {
             let status = await service.authorizationStatus()
 
             if preferences.enabled {
-                if isAuthorized(status) {
+                if ReviewReminderService.isAuthorized(status) {
                     await scheduleCurrentReminder()
                 } else {
                     preferences.enabled = false
@@ -259,27 +259,10 @@ public struct ReviewReminderSettingsView: View {
         ) ?? now
     }
 
-    private func isAuthorized(
-        _ status: UNAuthorizationStatus
-    ) -> Bool {
-        if status == .authorized
-            || status == .provisional {
-            return true
-        }
-
-        #if os(iOS)
-        if status == .ephemeral {
-            return true
-        }
-        #endif
-
-        return false
-    }
-
     private func authorizationMessage(
         _ status: UNAuthorizationStatus
     ) -> String {
-        if isAuthorized(status) {
+        if ReviewReminderService.isAuthorized(status) {
             return language.text(
                 "通知权限已开启。",
                 "通知は許可されています。"
