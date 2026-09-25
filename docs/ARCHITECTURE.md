@@ -149,4 +149,4 @@ Portable algorithm/network/parser tests are isolated into a Linux-compatible Swi
 
 Full SwiftData + SwiftUI + iOS Simulator validation remains a macOS/Xcode validation step.
 
-Automatic GitHub Actions triggers are temporarily paused while repository Actions jobs are failing before their first workflow step starts. The workflow remains available through manual dispatch.
+GitHub Actions validation is available through manual dispatch. Release-candidate validation runs both the portable Linux test slice and the full macOS/Xcode + iOS Simulator gate before mainline promotion.
