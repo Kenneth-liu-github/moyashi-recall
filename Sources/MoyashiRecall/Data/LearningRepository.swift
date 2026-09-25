@@ -416,12 +416,17 @@ public struct LearningRepository {
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
-        let sourceKey = hintedSourceKey?.isEmpty == false
-            ? hintedSourceKey!
-            : SourceKeyResolver.resolve(
+
+        let sourceKey: String
+        if let hintedSourceKey,
+           !hintedSourceKey.isEmpty {
+            sourceKey = hintedSourceKey
+        } else {
+            sourceKey = SourceKeyResolver.resolve(
                 sourceKind: document.sourceKind,
                 sourcePath: document.sourcePath
             )
+        }
         let parentExternalID = document.parentExternalID ?? ""
         let rootExternalID = document.rootExternalID
 
