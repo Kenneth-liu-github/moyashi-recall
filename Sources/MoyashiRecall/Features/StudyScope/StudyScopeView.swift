@@ -392,6 +392,7 @@ public struct StudyScopeView: View {
                 .disabled(
                     selectedSources.isEmpty
                         || selectedCardTypes.isEmpty
+                        || selectedDocumentIDs.isEmpty
                 )
                 .accessibilityLabel(
                     language.text(
@@ -460,7 +461,7 @@ public struct StudyScopeView: View {
         } else {
             selectedSources.insert(key)
             refreshDocuments(
-                selectNewlyAvailable: true
+                selectSourceKey: key
             )
         }
 
@@ -647,8 +648,8 @@ public struct StudyScopeView: View {
             || selectedCardTypes.isEmpty
             || selectedDocumentIDs.isEmpty {
             presetStatusMessage = language.text(
-                "方案“\(preset.name)”包含当前不可用的来源或卡片类型，请重新选择后保存。",
-                "プリセット「\(preset.name)」には現在利用できないソースまたはカード種類が含まれています。選び直して保存してください。"
+                "方案“\(preset.name)”包含当前不可用的来源、资料或卡片类型，请重新选择后保存。",
+                "プリセット「\(preset.name)」には現在利用できないソース・資料・カード種類が含まれています。選び直して保存してください。"
             )
         } else {
             presetStatusMessage = language.text(
@@ -707,7 +708,7 @@ public struct StudyScopeView: View {
     private func refreshDocuments(
         selectedIDs: Set<UUID>? = nil,
         selectAllWhenUnspecified: Bool = false,
-        selectNewlyAvailable: Bool = false
+        selectSourceKey: String? = nil
     ) {
         guard !selectedSources.isEmpty,
               !selectedCardTypes.isEmpty
@@ -734,12 +735,10 @@ public struct StudyScopeView: View {
                     .intersection(refreshedIDs)
             } else if selectAllWhenUnspecified {
                 selectedDocumentIDs = refreshedIDs
-            } else if selectNewlyAvailable {
+            } else if let selectSourceKey {
                 let newlyAvailable = refreshed
                     .filter {
-                        selectedSources.contains(
-                            $0.sourceKey
-                        )
+                        $0.sourceKey == selectSourceKey
                     }
                     .map(\.id)
                 selectedDocumentIDs.formUnion(
