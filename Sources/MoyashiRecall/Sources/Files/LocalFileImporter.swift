@@ -29,6 +29,9 @@ public struct LocalFileImporter {
         )
         let lastEditedAt = modifiedAt
             ?? Self.modificationDate(for: url)
+        let sourceKey = Self.sourceKey(
+            from: rootID
+        )
 
         switch ext {
         case "txt", "md", "markdown":
@@ -56,7 +59,8 @@ public struct LocalFileImporter {
                             "Imported Files",
                             title
                         ],
-                        hierarchyDepth: 0
+                        hierarchyDepth: 0,
+                        sourceKeyHint: sourceKey
                     )
                 ]
             )
@@ -66,7 +70,8 @@ public struct LocalFileImporter {
                 url: url,
                 title: title,
                 rootID: rootID,
-                lastEditedAt: lastEditedAt
+                lastEditedAt: lastEditedAt,
+                sourceKey: sourceKey
             )
 
         default:
@@ -99,18 +104,31 @@ public struct LocalFileImporter {
         url: URL,
         title: String,
         rootID: String,
-        lastEditedAt: Date?
+        lastEditedAt: Date?,
+        sourceKey: String
     ) throws -> LocalFileImportResult {
         #if canImport(PDFKit)
         return try PDFTextExtractor.extract(
             url: url,
             title: title,
             rootID: rootID,
-            lastEditedAt: lastEditedAt
+            lastEditedAt: lastEditedAt,
+            sourceKey: sourceKey
         )
         #else
         throw LocalFileImportError.pdfUnavailable
         #endif
+    }
+
+    private static func sourceKey(
+        from rootID: String
+    ) -> String {
+        let suffix = rootID
+            .split(separator: ":")
+            .last
+            .map(String.init)
+            ?? "unknown"
+        return "file-\(suffix)"
     }
 
     private static func modificationDate(
@@ -156,7 +174,8 @@ private enum PDFTextExtractor {
         url: URL,
         title: String,
         rootID: String,
-        lastEditedAt: Date?
+        lastEditedAt: Date?,
+        sourceKey: String
     ) throws -> LocalFileImportResult {
         guard let pdf = PDFDocument(url: url) else {
             throw LocalFileImportError.unreadableFile
@@ -198,7 +217,8 @@ private enum PDFTextExtractor {
                         title,
                         pageTitle
                     ],
-                    hierarchyDepth: 1
+                    hierarchyDepth: 1,
+                    sourceKeyHint: sourceKey
                 )
             )
         }
@@ -219,7 +239,8 @@ private enum PDFTextExtractor {
                 "Imported Files",
                 title
             ],
-            hierarchyDepth: 0
+            hierarchyDepth: 0,
+            sourceKeyHint: sourceKey
         )
 
         return LocalFileImportResult(
