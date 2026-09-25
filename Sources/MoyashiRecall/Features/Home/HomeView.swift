@@ -245,36 +245,50 @@ public struct HomeView: View {
     private func weakness(
         _ item: WeakKnowledgeSummary
     ) -> some View {
-        HStack(
-            alignment: .top,
-            spacing: 10
-        ) {
-            Image(
-                systemName: "exclamationmark.circle"
+        NavigationLink {
+            ReviewView(
+                knowledgeItemIDs: [item.id],
+                sessionLimit: 20
             )
-            .foregroundStyle(AppTheme.accent)
-            .frame(width: 22)
-
-            VStack(
-                alignment: .leading,
-                spacing: 3
+        } label: {
+            HStack(
+                alignment: .top,
+                spacing: 10
             ) {
-                Text(item.title)
-                    .foregroundStyle(AppTheme.ink)
+                Image(
+                    systemName: "exclamationmark.circle"
+                )
+                .foregroundStyle(AppTheme.accent)
+                .frame(width: 22)
 
-                Text(
-                    language.text(
-                        "困难/重来 \(item.difficultReviews) / \(item.totalReviews) · \(item.sourceDisplay)",
-                        "Hard/Again \(item.difficultReviews) / \(item.totalReviews) · \(item.sourceDisplay)"
+                VStack(
+                    alignment: .leading,
+                    spacing: 3
+                ) {
+                    Text(item.title)
+                        .foregroundStyle(AppTheme.ink)
+
+                    Text(
+                        language.text(
+                            "困难/重来 \(item.difficultReviews) / \(item.totalReviews) · \(item.sourceDisplay)",
+                            "Hard/Again \(item.difficultReviews) / \(item.totalReviews) · \(item.sourceDisplay)"
+                        )
                     )
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
+                    .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(
+                    systemName: "chevron.right"
                 )
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
-                .lineLimit(2)
             }
-
-            Spacer()
+            .padding(.vertical, 6)
         }
-        .padding(.vertical, 6)
+        .buttonStyle(.plain)
     }
 }
