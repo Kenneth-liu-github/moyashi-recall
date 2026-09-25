@@ -123,19 +123,54 @@ public struct LearningDataExportService {
         exportedAt: Date = .now
     ) throws -> LearningDataExportPackage {
         let sources = try context.fetch(
-            FetchDescriptor<SourceDocumentEntity>()
+            FetchDescriptor<SourceDocumentEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.sourcePath,
+                        order: .forward
+                    )
+                ]
+            )
         )
         let knowledge = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>()
+            FetchDescriptor<KnowledgeItemEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.createdAt,
+                        order: .forward
+                    )
+                ]
+            )
         )
         let cards = try context.fetch(
-            FetchDescriptor<FlashcardEntity>()
+            FetchDescriptor<FlashcardEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.createdAt,
+                        order: .forward
+                    )
+                ]
+            )
         )
         let states = try context.fetch(
-            FetchDescriptor<ReviewStateEntity>()
+            FetchDescriptor<ReviewStateEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.due,
+                        order: .forward
+                    )
+                ]
+            )
         )
         let history = try context.fetch(
-            FetchDescriptor<ReviewHistoryEntity>()
+            FetchDescriptor<ReviewHistoryEntity>(
+                sortBy: [
+                    SortDescriptor(
+                        \.reviewedAt,
+                        order: .forward
+                    )
+                ]
+            )
         )
 
         return LearningDataExportPackage(
