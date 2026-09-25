@@ -69,6 +69,25 @@ public struct SettingsView: View {
 
                 Section(
                     language.text(
+                        "数据",
+                        "データ"
+                    )
+                ) {
+                    NavigationLink {
+                        DataExportView()
+                    } label: {
+                        LabeledContent(
+                            language.text(
+                                "导出学习数据",
+                                "学習データを書き出す"
+                            ),
+                            value: "JSON"
+                        )
+                    }
+                }
+
+                Section(
+                    language.text(
                         "复习",
                         "復習"
                     )
