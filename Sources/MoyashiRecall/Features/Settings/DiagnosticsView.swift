@@ -58,11 +58,45 @@ public struct DiagnosticsView: View {
                     )
                     LabeledContent(
                         language.text(
+                            "知识点",
+                            "知識項目"
+                        ),
+                        value: "\(snapshot.activeKnowledgeCount)"
+                    )
+                    LabeledContent(
+                        language.text(
                             "可复习卡片",
                             "復習可能カード"
                         ),
                         value: "\(snapshot.activeCardCount)"
                     )
+                    LabeledContent(
+                        language.text(
+                            "当前到期",
+                            "現在の期限カード"
+                        ),
+                        value: "\(snapshot.dueCardCount)"
+                    )
+                    LabeledContent(
+                        language.text(
+                            "复习记录",
+                            "復習履歴"
+                        ),
+                        value: "\(snapshot.reviewHistoryCount)"
+                    )
+
+                    if let latestReviewAt = snapshot.latestReviewAt {
+                        LabeledContent(
+                            language.text(
+                                "最近复习",
+                                "最終復習"
+                            ),
+                            value: latestReviewAt.formatted(
+                                date: .abbreviated,
+                                time: .shortened
+                            )
+                        )
+                    }
                 }
 
                 Section(
@@ -88,6 +122,28 @@ public struct DiagnosticsView: View {
                             "復習システム"
                         ),
                         ready: snapshot.readyForReview
+                    )
+                }
+
+                Section(
+                    language.text(
+                        "App",
+                        "App"
+                    )
+                ) {
+                    LabeledContent(
+                        language.text(
+                            "版本",
+                            "バージョン"
+                        ),
+                        value: appVersion
+                    )
+                    LabeledContent(
+                        language.text(
+                            "Build",
+                            "Build"
+                        ),
+                        value: appBuild
                     )
                 }
 
@@ -193,6 +249,18 @@ public struct DiagnosticsView: View {
                     : AppTheme.muted
             )
         }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleVersion"
+        ) as? String ?? "—"
     }
 
     private func loadSnapshot() {
