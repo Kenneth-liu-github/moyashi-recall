@@ -49,6 +49,7 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let lastAIProcessedAt: Date?
     public let lastAIProviderID: String
     public let lastAIModelID: String
+    public let canGenerateAI: Bool
     public let needsAIRefresh: Bool
 
     public init(entity: SourceDocumentEntity) {
@@ -69,11 +70,19 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
         self.lastAIProcessedAt = entity.lastAIProcessedAt
         self.lastAIProviderID = entity.lastAIProviderID
         self.lastAIModelID = entity.lastAIModelID
+        self.canGenerateAI = !entity.content
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .isEmpty
         self.needsAIRefresh =
-            entity.lastAIProcessedAt == nil
-            || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
-            || entity.lastAIExtractionVersion
-                != KnowledgeExtractionService.extractionVersion
+            self.canGenerateAI
+            && (
+                entity.lastAIProcessedAt == nil
+                || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
+                || entity.lastAIExtractionVersion
+                    != KnowledgeExtractionService.extractionVersion
+            )
     }
 }
 
@@ -412,10 +421,21 @@ public struct LearningRepository {
         descriptor.fetchLimit = 1
 
         let sourcePath = document.sourcePath.joined(separator: " / ")
-        let sourceKey = SourceKeyResolver.resolve(
-            sourceKind: document.sourceKind,
-            sourcePath: document.sourcePath
-        )
+        let hintedSourceKey = document.sourceKeyHint?
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        let sourceKey: String
+        if let hintedSourceKey,
+           !hintedSourceKey.isEmpty {
+            sourceKey = hintedSourceKey
+        } else {
+            sourceKey = SourceKeyResolver.resolve(
+                sourceKind: document.sourceKind,
+                sourcePath: document.sourcePath
+            )
+        }
         let parentExternalID = document.parentExternalID ?? ""
         let rootExternalID = document.rootExternalID
 
@@ -504,6 +524,9 @@ public struct LearningRepository {
                     && (sourceKind == nil || item.sourceKind == sourceKind)
             }
             .map(ImportedDocumentSummary.init)
+            .sorted(
+                by: Self.importedDocumentOrder
+            )
     }
 
     @discardableResult
@@ -558,6 +581,20 @@ public struct LearningRepository {
         return deactivated
     }
 
+    @discardableResult
+    public func archiveImportedSource(
+        sourceKind: String,
+        rootExternalID: String,
+        now: Date = .now
+    ) throws -> Int {
+        try reconcileImportedTree(
+            sourceKind: sourceKind,
+            rootExternalID: rootExternalID,
+            activeExternalIDs: [],
+            now: now
+        )
+    }
+
     public func sourceDocument(
         id: UUID
     ) throws -> SourceDocumentSnapshot? {
@@ -570,6 +607,34 @@ public struct LearningRepository {
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
             .map(SourceDocumentSnapshot.init)
+    }
+
+    public func sourceDocuments(
+        rootExternalID: String,
+        textOnly: Bool = false
+    ) throws -> [SourceDocumentSnapshot] {
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter {
+            $0.isSourceActive
+                && $0.rootExternalSourceID == rootExternalID
+                && (
+                    !textOnly
+                    || !$0.content
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .isEmpty
+                )
+        }
+        .map(SourceDocumentSnapshot.init)
+
+        return documents.sorted {
+            $0.sourcePath.localizedStandardCompare(
+                $1.sourcePath
+            ) == .orderedAscending
+        }
     }
 
     public func generatedKnowledgeItems(
@@ -1120,6 +1185,28 @@ public struct LearningRepository {
         )
     }
 
+    private static func importedDocumentOrder(
+        _ lhs: ImportedDocumentSummary,
+        _ rhs: ImportedDocumentSummary
+    ) -> Bool {
+        if lhs.rootExternalSourceID
+            != rhs.rootExternalSourceID {
+            return lhs.sourcePath.localizedStandardCompare(
+                rhs.sourcePath
+            ) == .orderedAscending
+        }
+
+        if lhs.hierarchyDepth
+            != rhs.hierarchyDepth {
+            return lhs.hierarchyDepth
+                < rhs.hierarchyDepth
+        }
+
+        return lhs.sourcePath.localizedStandardCompare(
+            rhs.sourcePath
+        ) == .orderedAscending
+    }
+
     private static func categoryTitle(
         from sourcePath: String
     ) -> String {
@@ -1130,6 +1217,11 @@ public struct LearningRepository {
             .filter { !$0.isEmpty }
 
         if components.first == "Learning Home",
+           components.count >= 2 {
+            return components[1]
+        }
+
+        if components.first == "Imported Files",
            components.count >= 2 {
             return components[1]
         }

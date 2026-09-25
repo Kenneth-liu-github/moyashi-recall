@@ -38,6 +38,35 @@ final class SourceKeyResolverTests: XCTestCase {
         )
     }
 
+    func testImportedFilesUseFilenameAsSourceCategory() {
+        let first = SourceKeyResolver.resolve(
+            sourceKind: "file",
+            sourcePath: [
+                "Imported Files",
+                "lesson-one.pdf",
+                "Page 1"
+            ]
+        )
+        let second = SourceKeyResolver.resolve(
+            sourceKind: "file",
+            sourcePath: [
+                "Imported Files",
+                "lesson-two.pdf",
+                "Page 1"
+            ]
+        )
+
+        XCTAssertEqual(
+            first,
+            "file-lesson-one-pdf"
+        )
+        XCTAssertEqual(
+            second,
+            "file-lesson-two-pdf"
+        )
+        XCTAssertNotEqual(first, second)
+    }
+
     func testUnknownNonLatinCategoriesDoNotCollide() {
         let grammar = SourceKeyResolver.resolve(
             sourceKind: "notion",

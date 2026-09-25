@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/v0.6-engagement-tts
+      - feature/v0.6-file-ingestion
 
 concurrency:
   group: swift-validation-${{ github.workflow }}-${{ github.ref }}

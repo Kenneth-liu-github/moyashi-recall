@@ -8,6 +8,9 @@ public struct ImportedPageDetailView: View {
 
     @State private var isProcessing = false
     @State private var generationRequestID: UUID?
+    @State private var batchRequestID: UUID?
+    @State private var childTextUnits: [SourceDocumentSnapshot] = []
+    @State private var showingBatchConfirmation = false
     @State private var aiStatusMessage: String?
     @State private var isAIUpToDate: Bool
     @State private var lastAIProviderID: String
@@ -19,6 +22,28 @@ public struct ImportedPageDetailView: View {
     @State private var generatedKnowledge: [GeneratedKnowledgeSummary] = []
 
     private let item: ImportedDocumentSummary
+
+    private var batchTargets: [SourceDocumentSnapshot] {
+        var result: [SourceDocumentSnapshot] = []
+        var totalCharacters = 0
+
+        for unit in childTextUnits {
+            guard result.count < 10 else {
+                break
+            }
+
+            let nextTotal = totalCharacters
+                + unit.content.count
+            guard nextTotal <= 60_000 else {
+                break
+            }
+
+            result.append(unit)
+            totalCharacters = nextTotal
+        }
+
+        return result
+    }
 
     public init(item: ImportedDocumentSummary) {
         self.item = item
@@ -59,6 +84,31 @@ public struct ImportedPageDetailView: View {
                         )
                     )
                     .foregroundStyle(AppTheme.muted)
+
+                    if item.sourceKind == "file",
+                       item.hierarchyDepth == 0,
+                       !batchTargets.isEmpty {
+                        Button {
+                            showingBatchConfirmation = true
+                        } label: {
+                            Label(
+                                language.text(
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AI 处理全部 \(batchTargets.count) 个文本单元"
+                                        : "AI 批量处理前 \(batchTargets.count) / \(childTextUnits.count) 个单元",
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AIで全 \(batchTargets.count) テキスト単位を処理"
+                                        : "AIで先頭 \(batchTargets.count) / \(childTextUnits.count) 単位を処理"
+                                ),
+                                systemImage: "sparkles.rectangle.stack"
+                            )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .disabled(isProcessing)
+                    }
                 } else {
                     Text(item.content)
                         .font(.body)
@@ -117,31 +167,33 @@ public struct ImportedPageDetailView: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
 
-                HStack(spacing: 8) {
-                    Image(
-                        systemName: isAIUpToDate
-                            ? "checkmark.circle"
-                            : "sparkles"
-                    )
-                    .foregroundStyle(
-                        isAIUpToDate
-                            ? AppTheme.muted
-                            : AppTheme.accent
-                    )
+                if item.canGenerateAI {
+                    HStack(spacing: 8) {
+                        Image(
+                            systemName: isAIUpToDate
+                                ? "checkmark.circle"
+                                : "sparkles"
+                        )
+                        .foregroundStyle(
+                            isAIUpToDate
+                                ? AppTheme.muted
+                                : AppTheme.accent
+                        )
 
-                    Text(
-                        isAIUpToDate
-                            ? language.text(
-                                "AI 内容与当前资料一致",
-                                "AI内容は現在の資料と一致しています"
-                            )
-                            : language.text(
-                                "资料有新内容，建议重新生成",
-                                "資料が更新されています。再生成を推奨します"
-                            )
-                    )
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.muted)
+                        Text(
+                            isAIUpToDate
+                                ? language.text(
+                                    "AI 内容与当前资料一致",
+                                    "AI内容は現在の資料と一致しています"
+                                )
+                                : language.text(
+                                    "资料有新内容，建议重新生成",
+                                    "資料が更新されています。再生成を推奨します"
+                                )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                    }
                 }
 
                 if let aiStatusMessage {
@@ -268,6 +320,43 @@ public struct ImportedPageDetailView: View {
         )
         .onAppear {
             loadGeneratedSummary()
+            loadChildTextUnits()
+        }
+        .confirmationDialog(
+            language.text(
+                "批量生成 AI 知识与卡片？",
+                "AI知識とカードを一括生成しますか？"
+            ),
+            isPresented: $showingBatchConfirmation
+        ) {
+            Button(
+                language.text(
+                    "继续处理 \(batchTargets.count) 个单元",
+                    "\(batchTargets.count)単位を処理"
+                )
+            ) {
+                batchRequestID = UUID()
+            }
+
+            Button(
+                language.text(
+                    "取消",
+                    "キャンセル"
+                ),
+                role: .cancel
+            ) {}
+        } message: {
+            Text(
+                batchTargets.count < childTextUnits.count
+                    ? language.text(
+                        "为控制 AI 成本和单次任务长度，批量任务最多处理 10 个文本单元且总文本不超过约 6 万字符。其余内容可逐页处理。",
+                        "AIコストと処理時間を抑えるため、一括処理は最大10単位・合計約6万文字までです。残りは個別に処理できます。"
+                    )
+                    : language.text(
+                        "这会依次调用当前 AI Provider，并为每个文本单元生成知识点和复习卡片。",
+                        "現在のAI Providerを順番に呼び出し、各テキスト単位から知識と復習カードを生成します。"
+                    )
+            )
         }
         .task(id: generationRequestID) {
             guard generationRequestID != nil else {
@@ -276,6 +365,97 @@ public struct ImportedPageDetailView: View {
 
             await processWithAI()
             generationRequestID = nil
+        }
+        .task(id: batchRequestID) {
+            guard batchRequestID != nil else {
+                return
+            }
+
+            await processBatchWithAI()
+            batchRequestID = nil
+        }
+    }
+
+    private func loadChildTextUnits() {
+        guard item.sourceKind == "file",
+              item.hierarchyDepth == 0
+        else {
+            childTextUnits = []
+            return
+        }
+
+        do {
+            childTextUnits = try LearningRepository(
+                context: modelContext
+            )
+            .sourceDocuments(
+                rootExternalID: item.rootExternalSourceID,
+                textOnly: true
+            )
+            .filter {
+                $0.id != item.id
+            }
+        } catch {
+            childTextUnits = []
+        }
+    }
+
+    @MainActor
+    private func processBatchWithAI() async {
+        let targets = batchTargets
+        guard !targets.isEmpty else {
+            return
+        }
+
+        isProcessing = true
+        aiStatusMessage = language.text(
+            "正在批量处理 \(targets.count) 个文本单元…",
+            "\(targets.count)個のテキスト単位を一括処理中…"
+        )
+        defer {
+            isProcessing = false
+        }
+
+        do {
+            let provider = try AIProviderFactory
+                .makeConfiguredProvider()
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            let service = AIProcessingService(
+                repository: repository,
+                provider: provider
+            )
+
+            var processed = 0
+            var cardsInserted = 0
+            var cardsUpdated = 0
+
+            for target in targets {
+                try Task.checkCancellation()
+
+                let result = try await service.process(
+                    sourceDocumentID: target.id
+                )
+                processed += 1
+                cardsInserted += result.persistence.cardsInserted
+                cardsUpdated += result.persistence.cardsUpdated
+            }
+
+            aiStatusMessage = language.text(
+                "批量完成：处理 \(processed) 个文本单元；新增卡片 \(cardsInserted)，更新 \(cardsUpdated)。",
+                "一括処理完了：\(processed)単位を処理；カード追加 \(cardsInserted)、更新 \(cardsUpdated)。"
+            )
+            loadChildTextUnits()
+        } catch is CancellationError {
+            aiStatusMessage = nil
+        } catch let error as AIProviderError {
+            aiStatusMessage = providerErrorMessage(error)
+        } catch {
+            aiStatusMessage = language.text(
+                "批量 AI 处理未完成，请检查配置或逐页重试。",
+                "AI一括処理が完了しませんでした。設定を確認するか、個別に再試行してください。"
+            )
         }
     }
 
