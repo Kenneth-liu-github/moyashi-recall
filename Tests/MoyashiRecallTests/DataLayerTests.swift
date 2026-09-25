@@ -1552,4 +1552,50 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testEmptyDocumentScopeReturnsNoDueCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let knowledge = KnowledgeItemEntity(
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "Item",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: UUID(),
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        XCTAssertTrue(
+            try repository.dueSessionCards(
+                sourceDocumentIDs: []
+            ).isEmpty
+        )
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                sourceDocumentIDs: []
+            ),
+            0
+        )
+    }
+
+
 }
