@@ -609,6 +609,34 @@ public struct LearningRepository {
             .map(SourceDocumentSnapshot.init)
     }
 
+    public func sourceDocuments(
+        rootExternalID: String,
+        textOnly: Bool = false
+    ) throws -> [SourceDocumentSnapshot] {
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter {
+            $0.isSourceActive
+                && $0.rootExternalSourceID == rootExternalID
+                && (
+                    !textOnly
+                    || !$0.content
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .isEmpty
+                )
+        }
+        .map(SourceDocumentSnapshot.init)
+
+        return documents.sorted {
+            $0.sourcePath.localizedStandardCompare(
+                $1.sourcePath
+            ) == .orderedAscending
+        }
+    }
+
     public func generatedKnowledgeItems(
         sourceDocumentID: UUID
     ) throws -> [GeneratedKnowledgeSummary] {
