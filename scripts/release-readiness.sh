@@ -54,16 +54,22 @@ else
   fail "Build number is not 10"
 fi
 
-if [[ -d "$APPICON" ]]; then
-  pass "AppIcon asset set exists"
+if [[ -d "$APPICON" && -f "$APPICON/Contents.json" ]]; then
+  pass "AppIcon asset set is scaffolded"
 else
-  block "Final AppIcon asset set is not supplied yet"
+  fail "AppIcon asset set is missing from the project"
 fi
 
-if grep -q "ASSETCATALOG_COMPILER_APPICON_NAME" "$PROJECT"; then
-  pass "App target declares an AppIcon asset"
+if grep -q "ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;" "$PROJECT"; then
+  pass "App target declares AppIcon as its application icon"
 else
-  block "App target AppIcon setting remains pending the final icon asset"
+  fail "App target is not wired to the AppIcon asset set"
+fi
+
+if find "$APPICON" -maxdepth 1 -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) | grep -q .; then
+  pass "Final AppIcon image asset is present"
+else
+  block "Supply the final 1024x1024 AppIcon image before distribution"
 fi
 
 if grep -q "DEVELOPMENT_TEAM = " "$PROJECT"; then
