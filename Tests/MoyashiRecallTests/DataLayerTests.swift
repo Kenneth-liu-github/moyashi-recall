@@ -1340,4 +1340,243 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testDueQueueFiltersBySourceDocumentID() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+
+        let firstSource = SourceDocumentEntity(
+            title: "Page 1",
+            content: "one",
+            sourceKind: "file",
+            externalSourceID: "file#page-1",
+            rootExternalSourceID: "file",
+            sourcePath: "Imported Files / lesson.pdf / Page 1",
+            sourceKey: "file-source",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=1"
+        )
+        let secondSource = SourceDocumentEntity(
+            title: "Page 2",
+            content: "two",
+            sourceKind: "file",
+            externalSourceID: "file#page-2",
+            rootExternalSourceID: "file",
+            sourcePath: "Imported Files / lesson.pdf / Page 2",
+            sourceKey: "file-source",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=2"
+        )
+        let firstKnowledge = KnowledgeItemEntity(
+            sourceDocumentID: firstSource.id,
+            extractionKey: "one",
+            knowledgeType: "expression",
+            title: "One",
+            content: "one",
+            sourceKind: "file",
+            sourceKey: "file-source",
+            sourceDisplayPath: firstSource.sourcePath,
+            sourceReference: firstSource.sourceReference
+        )
+        let secondKnowledge = KnowledgeItemEntity(
+            sourceDocumentID: secondSource.id,
+            extractionKey: "two",
+            knowledgeType: "expression",
+            title: "Two",
+            content: "two",
+            sourceKind: "file",
+            sourceKey: "file-source",
+            sourceDisplayPath: secondSource.sourcePath,
+            sourceReference: secondSource.sourceReference
+        )
+        let firstCard = FlashcardEntity(
+            knowledgeItemID: firstKnowledge.id,
+            sourceDocumentID: firstSource.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q1",
+            answer: "A1",
+            sourceKey: "file-source",
+            sourceReference: firstSource.sourceReference
+        )
+        let secondCard = FlashcardEntity(
+            knowledgeItemID: secondKnowledge.id,
+            sourceDocumentID: secondSource.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q2",
+            answer: "A2",
+            sourceKey: "file-source",
+            sourceReference: secondSource.sourceReference
+        )
+
+        for entity in [
+            firstSource,
+            secondSource
+        ] {
+            context.insert(entity)
+        }
+        context.insert(firstKnowledge)
+        context.insert(secondKnowledge)
+        context.insert(firstCard)
+        context.insert(secondCard)
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let firstOnly = try repository.dueSessionCards(
+            now: now,
+            sourceDocumentIDs: [firstSource.id]
+        )
+        XCTAssertEqual(
+            firstOnly.map(\.id),
+            [firstCard.id]
+        )
+
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                now: now,
+                sourceDocumentIDs: [secondSource.id]
+            ),
+            1
+        )
+    }
+
+    @MainActor
+    func testReviewDocumentsReportsFilteredCardAndDueCounts() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-2",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-2"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "grammar",
+            title: "Grammar",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+        let zhCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "ZH",
+            answer: "JA",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+        let applicationCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Apply",
+            answer: "Answer",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(zhCard)
+        context.insert(applicationCard)
+        context.insert(
+            ReviewStateEntity(
+                cardID: applicationCard.id,
+                due: now.addingTimeInterval(86_400)
+            )
+        )
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let allTypes = try repository.reviewDocuments(
+            now: now,
+            sourceKeys: ["office-japanese"]
+        )
+        XCTAssertEqual(allTypes.count, 1)
+        XCTAssertEqual(allTypes.first?.cardCount, 2)
+        XCTAssertEqual(allTypes.first?.dueCardCount, 1)
+
+        let applicationOnly = try repository.reviewDocuments(
+            now: now,
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.application.rawValue
+            ]
+        )
+        XCTAssertEqual(
+            applicationOnly.first?.cardCount,
+            1
+        )
+        XCTAssertEqual(
+            applicationOnly.first?.dueCardCount,
+            0
+        )
+    }
+
+
+    @MainActor
+    func testEmptyDocumentScopeReturnsNoDueCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let knowledge = KnowledgeItemEntity(
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "Item",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: UUID(),
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        XCTAssertTrue(
+            try repository.dueSessionCards(
+                sourceDocumentIDs: []
+            ).isEmpty
+        )
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                sourceDocumentIDs: []
+            ),
+            0
+        )
+    }
+
+
 }

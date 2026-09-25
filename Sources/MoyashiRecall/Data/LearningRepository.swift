@@ -962,6 +962,7 @@ public struct LearningRepository {
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        sourceDocumentIDs: Set<UUID>? = nil,
         knowledgeItemIDs: Set<UUID>? = nil,
         limit: Int? = nil
     ) throws -> [ReviewSessionCard] {
@@ -971,6 +972,7 @@ public struct LearningRepository {
                 now: now,
                 sourceKeys: sourceKeys,
                 cardTypes: cardTypes,
+                sourceDocumentIDs: sourceDocumentIDs,
                 knowledgeItemIDs: knowledgeItemIDs,
                 limit: limit
             )
@@ -981,6 +983,7 @@ public struct LearningRepository {
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        sourceDocumentIDs: Set<UUID>? = nil,
         knowledgeItemIDs: Set<UUID>? = nil
     ) throws -> Int {
         try queueService.dueCards(
@@ -988,6 +991,7 @@ public struct LearningRepository {
             now: now,
             sourceKeys: sourceKeys,
             cardTypes: cardTypes,
+            sourceDocumentIDs: sourceDocumentIDs,
             knowledgeItemIDs: knowledgeItemIDs,
             limit: nil
         ).count
@@ -1111,6 +1115,114 @@ public struct LearningRepository {
         .sorted {
             $0.title.localizedCompare(
                 $1.title
+            ) == .orderedAscending
+        }
+    }
+
+    public func reviewDocuments(
+        now: Date = .now,
+        sourceKeys: Set<String>? = nil,
+        cardTypes: Set<String>? = nil
+    ) throws -> [StudyDocument] {
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter(\.isActive)
+        let states = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter(\.isSourceActive)
+
+        let stateByCard = states.reduce(
+            into: [UUID: ReviewStateEntity]()
+        ) { result, state in
+            if let existing = result[state.cardID] {
+                if state.due < existing.due {
+                    result[state.cardID] = state
+                }
+            } else {
+                result[state.cardID] = state
+            }
+        }
+
+        let documentByID = Dictionary(
+            uniqueKeysWithValues: documents.map {
+                ($0.id, $0)
+            }
+        )
+
+        var counts: [
+            UUID: (
+                all: Int,
+                due: Int
+            )
+        ] = [:]
+
+        for card in cards {
+            guard let sourceDocumentID = card.sourceDocumentID,
+                  let document = documentByID[sourceDocumentID]
+            else {
+                continue
+            }
+
+            if let sourceKeys,
+               !sourceKeys.isEmpty,
+               !sourceKeys.contains(card.sourceKey) {
+                continue
+            }
+
+            if let cardTypes,
+               !cardTypes.isEmpty,
+               !cardTypes.contains(card.cardType) {
+                continue
+            }
+
+            counts[
+                sourceDocumentID,
+                default: (0, 0)
+            ].all += 1
+
+            let isDue: Bool
+            if let state = stateByCard[card.id] {
+                isDue = state.due <= now
+            } else {
+                isDue = true
+            }
+
+            if isDue {
+                counts[
+                    sourceDocumentID,
+                    default: (0, 0)
+                ].due += 1
+            }
+
+            _ = document
+        }
+
+        return counts.compactMap {
+            documentID,
+            count -> StudyDocument? in
+            guard let document = documentByID[
+                documentID
+            ] else {
+                return nil
+            }
+
+            return StudyDocument(
+                id: document.id,
+                sourceKey: document.sourceKey,
+                title: document.title,
+                path: document.sourcePath,
+                cardCount: count.all,
+                dueCardCount: count.due
+            )
+        }
+        .sorted {
+            $0.path.localizedStandardCompare(
+                $1.path
             ) == .orderedAscending
         }
     }
