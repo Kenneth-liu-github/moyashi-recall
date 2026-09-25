@@ -30,6 +30,33 @@ public struct LibraryView: View {
                     )
                 } else {
                     List {
+                        if importedItems.isEmpty {
+                            Section {
+                                Button {
+                                    showingFileImporter = true
+                                } label: {
+                                    Label(
+                                        language.text(
+                                            "导入本地学习资料",
+                                            "ローカル学習資料を読み込む"
+                                        ),
+                                        systemImage: "square.and.arrow.down"
+                                    )
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppTheme.accent)
+                                }
+
+                                Text(
+                                    language.text(
+                                        "支持 PDF、Word、RTF、ODT、TXT、Markdown、CSV/TSV，以及 PNG/JPG/HEIC 图片。",
+                                        "PDF、Word、RTF、ODT、TXT、Markdown、CSV/TSV、PNG/JPG/HEIC画像に対応しています。"
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.muted)
+                            }
+                        }
+
                         if let importStatusMessage {
                             Section {
                                 HStack(spacing: 10) {
