@@ -352,7 +352,8 @@ public struct KnowledgeExtractionService {
     - Do not invent facts not supported by the source.
     - Preserve source meaning and business context.
     - Split content into reusable semantic knowledge items.
-    - For Japanese learning output, annotate kanji with kana in the form 漢字（かんじ） whenever practical.
+    - For every Japanese learning string you generate, annotate every kanji with kana in the form 漢字（かんじ） unless that kanji is already annotated in the source.
+    - Never double-annotate Japanese text that already contains kana readings.
     - Keep Chinese explanations concise and natural.
     - Natural English is optional but should be idiomatic when present.
     - Generate only useful cards, avoiding near-duplicates.
