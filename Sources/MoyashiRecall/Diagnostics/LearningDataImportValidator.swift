@@ -62,6 +62,18 @@ public enum LearningDataImportValidationError: Error, Equatable {
     case duplicateSourceID(UUID)
     case duplicateKnowledgeID(UUID)
     case duplicateFlashcardID(UUID)
+    case duplicateSourceIdentity(
+        sourceKind: String,
+        externalSourceID: String
+    )
+    case duplicateKnowledgeIdentity(
+        sourceID: UUID,
+        extractionKey: String
+    )
+    case duplicateFlashcardIdentity(
+        knowledgeID: UUID,
+        generationKey: String
+    )
     case duplicateReviewStateCardID(UUID)
     case duplicateReviewHistoryID(UUID)
     case missingKnowledgeSource(
@@ -201,6 +213,57 @@ public enum LearningDataImportValidator {
                 .duplicateReviewHistoryID($0)
             }
         )
+
+        var sourceIdentities = Set<String>()
+        for source in package.sources
+        where !source.externalSourceID.isEmpty {
+            let identity = source.sourceKind
+                + "\u{1F}"
+                + source.externalSourceID
+            guard sourceIdentities.insert(identity).inserted else {
+                throw LearningDataImportValidationError
+                    .duplicateSourceIdentity(
+                        sourceKind: source.sourceKind,
+                        externalSourceID: source.externalSourceID
+                    )
+            }
+        }
+
+        var knowledgeIdentities = Set<String>()
+        for item in package.knowledgeItems {
+            guard
+                let sourceID = item.sourceDocumentID,
+                !item.extractionKey.isEmpty
+            else {
+                continue
+            }
+
+            let identity = sourceID.uuidString
+                + "\u{1F}"
+                + item.extractionKey
+            guard knowledgeIdentities.insert(identity).inserted else {
+                throw LearningDataImportValidationError
+                    .duplicateKnowledgeIdentity(
+                        sourceID: sourceID,
+                        extractionKey: item.extractionKey
+                    )
+            }
+        }
+
+        var flashcardIdentities = Set<String>()
+        for card in package.flashcards
+        where !card.generationKey.isEmpty {
+            let identity = card.knowledgeItemID.uuidString
+                + "\u{1F}"
+                + card.generationKey
+            guard flashcardIdentities.insert(identity).inserted else {
+                throw LearningDataImportValidationError
+                    .duplicateFlashcardIdentity(
+                        knowledgeID: card.knowledgeItemID,
+                        generationKey: card.generationKey
+                    )
+            }
+        }
 
         for item in package.knowledgeItems {
             if let sourceID = item.sourceDocumentID,
