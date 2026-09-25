@@ -99,7 +99,7 @@ public struct ReviewReminderSettingsView: View {
             }
 
             Task {
-                await scheduleCurrentReminder()
+                await scheduleCurrentReminderWithStatus()
             }
         }
     }
@@ -117,7 +117,7 @@ public struct ReviewReminderSettingsView: View {
 
             if preferences.enabled {
                 if ReviewReminderService.isAuthorized(status) {
-                    await scheduleCurrentReminder()
+                    await scheduleCurrentReminderWithStatus()
                 } else {
                     setEnabledWithoutSideEffects(false)
                     service.cancelDailyReminder()
@@ -204,30 +204,32 @@ public struct ReviewReminderSettingsView: View {
         }
 
         Task {
-            await scheduleCurrentReminder()
+            await scheduleCurrentReminderWithStatus()
         }
     }
 
     @MainActor
-    private func scheduleCurrentReminder() async {
-        do {
-            try await service.scheduleDaily(
-                hour: preferences.hour,
-                minute: preferences.minute,
-                title: language.text(
-                    "Moyashi Recall",
-                    "Moyashi Recall"
-                ),
-                body: language.text(
-                    "看看今天有哪些日语卡片到期了。",
-                    "今日の期限カードを復習しましょう。"
-                )
+    private func scheduleCurrentReminder() async throws {
+        try await service.scheduleDaily(
+            hour: preferences.hour,
+            minute: preferences.minute,
+            title: "Moyashi Recall",
+            body: language.text(
+                "看看今天有哪些日语卡片到期了。",
+                "今日の期限カードを復習しましょう。"
             )
+        )
 
-            statusMessage = language.text(
-                "每日提醒已安排在 \(timeText)。",
-                "毎日のリマインダーを\(timeText)に設定しました。"
-            )
+        statusMessage = language.text(
+            "每日提醒已安排在 \(timeText)。",
+            "毎日のリマインダーを\(timeText)に設定しました。"
+        )
+    }
+
+    @MainActor
+    private func scheduleCurrentReminderWithStatus() async {
+        do {
+            try await scheduleCurrentReminder()
         } catch {
             statusMessage = language.text(
                 "无法安排每日提醒。",
