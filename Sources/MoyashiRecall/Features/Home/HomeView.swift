@@ -105,7 +105,7 @@ public struct HomeView: View {
                         if let loadError {
                             Text(loadError)
                                 .font(.caption)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(AppTheme.accent)
                         } else {
                             Text(
                                 language.text(
