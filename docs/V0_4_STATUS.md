@@ -19,7 +19,7 @@ Turn normalized learning documents into structured Japanese-learning knowledge a
   - source-aware user prompt
   - response schema name
   - JSON Schema
-- HTTP error propagation and 429 `Retry-After` handling.
+- HTTP error propagation plus bounded retry for transient 408/429/5xx failures, respecting `Retry-After`.
 - Local AI configuration:
   - provider selection
   - provider-specific model ID
@@ -67,6 +67,9 @@ Turn normalized learning documents into structured Japanese-learning knowledge a
 - Imported page detail can directly trigger AI extraction/card generation.
 - Library shows AI freshness plus generated knowledge/card counts.
 - Settings UI exposes provider/model/credential configuration and connection testing.
+- AI generation is cancelled when the user leaves the source page, and cancellation is checked before additional provider calls and before persistence.
+- New API credentials are stored with device-bound Keychain accessibility.
+- Obsolete demo-data seeding has been removed from the production branch.
 - Non-destructive legacy migration from V0.3 imported Knowledge Items into Source Documents.
 
 ## Quality fixes made during V0.4
@@ -86,6 +89,10 @@ Turn normalized learning documents into structured Japanese-learning knowledge a
 - Added provider/model consistency checks across multi-chunk runs.
 - Added provider-specific model persistence so switching providers does not reuse the wrong model ID.
 - Added current-draft connection testing so unsaved UI selections are tested accurately.
+- Added cooperative cancellation to avoid unnecessary provider calls and token spend after navigation.
+- Centralized retry behavior for both providers and added transient 408/5xx handling.
+- Added visible handling for non-destructive local-data migration failures.
+- Added a one-command macOS validation script used by the manual CI workflow.
 - Added explicit refusal/incomplete-response handling for OpenAI and Anthropic.
 - Added immediate UI refresh of the provider/model metadata after successful generation.
 - Removed iOS-only text-input modifiers from shared SwiftUI package code.
@@ -116,12 +123,16 @@ SwiftData/full-app tests cover:
 - legacy source migration
 - chunk-limit and provider-consistency guards
 - provider-specific configuration behavior
+- shared transient HTTP retry policy
+- AI cancellation before persistence
 
 ## Validation state
 
 The portable V0.4 AI core has previously been compiled independently with Swift 6.2 on Linux during development.
 
 A fresh controlled validation attempt (run #137) was made after the latest V0.4 work. Both Ubuntu core tests and the macOS simulator job again failed before their first workflow step started (`steps: null`). The workflow was immediately returned to manual-only mode, so this remains an Actions execution/account issue rather than a reported Swift build/test failure.
+
+The repository now includes `scripts/validate-v0.4-macos.sh` for a single local/macOS validation command.
 
 The only remaining release gate is a normal macOS/Xcode validation pass covering:
 
