@@ -399,27 +399,23 @@ public struct StudyScopeView: View {
                 selectedSources = saved.sourceKeys
                     .intersection(availableKeys)
 
-                let savedTypes = Set(
+                selectedCardTypes = Set(
                     saved.cardTypes.compactMap {
                         ReviewCardType(rawValue: $0)
                     }
                 )
-                if !savedTypes.isEmpty {
-                    selectedCardTypes = savedTypes
-                }
 
-                if [10, 20, 30].contains(
+                reviewCount = [10, 20, 30].contains(
                     saved.reviewCount
-                ) {
-                    reviewCount = saved.reviewCount
-                }
+                )
+                    ? saved.reviewCount
+                    : 20
             } else {
-                selectedSources = selectedSources
-                    .intersection(availableKeys)
-            }
-
-            if selectedSources.isEmpty {
                 selectedSources = availableKeys
+                selectedCardTypes = Set(
+                    ReviewCardType.allCases
+                )
+                reviewCount = 20
             }
 
             persistPreferences()
@@ -476,15 +472,6 @@ public struct StudyScopeView: View {
             }
         )
 
-        if selectedSources.isEmpty {
-            selectedSources = availableKeys
-        }
-        if selectedCardTypes.isEmpty {
-            selectedCardTypes = Set(
-                ReviewCardType.allCases
-            )
-        }
-
         reviewCount = [10, 20, 30].contains(
             preset.reviewCount
         )
@@ -493,10 +480,19 @@ public struct StudyScopeView: View {
 
         persistPreferences()
         refreshFilteredDueCount()
-        presetStatusMessage = language.text(
-            "已应用：\(preset.name)",
-            "適用済み：\(preset.name)"
-        )
+
+        if selectedSources.isEmpty
+            || selectedCardTypes.isEmpty {
+            presetStatusMessage = language.text(
+                "方案“\(preset.name)”包含当前不可用的来源或卡片类型，请重新选择后保存。",
+                "プリセット「\(preset.name)」には現在利用できないソースまたはカード種類が含まれています。選び直して保存してください。"
+            )
+        } else {
+            presetStatusMessage = language.text(
+                "已应用：\(preset.name)",
+                "適用済み：\(preset.name)"
+            )
+        }
     }
 
     private func deletePreset(
