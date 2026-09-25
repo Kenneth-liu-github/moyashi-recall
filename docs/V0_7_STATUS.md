@@ -1,71 +1,66 @@
-# V0.7 Status — Granular Study Scope
+# V0.7 Status — Granular Study Scope, Diagnostics & Data Export
 
 ## Goal
 
-Let learners narrow a review session beyond a top-level source and down to specific imported documents/pages while preserving saved scopes and presets.
+Make review scope more precise while improving release readiness, diagnostics, onboarding, and backup capability.
 
 ## Implemented
 
-- Added page/document-level study scope using stable `SourceDocumentEntity.id` values.
-- Review queue now supports:
-  - source keys
-  - card types
-  - source document IDs
-  - knowledge item IDs
-- Study Scope now supports multi-select at three levels:
-  - source
-  - concrete document/page
-  - card type
-- Concrete scope works for:
-  - Notion pages
-  - PDF pages
-  - imported Word/text/image documents
-- Document rows show:
-  - source path
-  - total matching card count
-  - due matching card count
-- Added Select All / Clear document actions.
-- Adding a new source selects documents only from that source and does not re-select manually excluded documents from existing sources.
-- Card-type changes preserve a manually narrowed document subset; if the user had all documents selected, newly available documents remain selected.
-- Filtered due count now includes document scope.
-- Empty document scope explicitly means no cards and can never silently broaden to all cards.
-- Review sessions receive the selected document IDs.
-- Last-used Study Scope persists document IDs.
-- Named presets persist document IDs.
-- Old V0.5 preferences/presets that do not contain document IDs remain backward-compatible and are interpreted as all currently available documents.
-- Added an explicit “全部 / すべて” review-count option:
-  - stored as `reviewCount = 0`
-  - means all currently due cards in the selected scope
-  - positive counts remain bounded
+### Granular Study Scope
+- Source-level, document/page-level, and card-type filtering.
+- Stable `SourceDocumentEntity.id` scope persisted in last-used preferences and named presets.
+- Works with Notion pages, PDF pages, and imported Word/text/image documents.
+- Per-document total-card and due-card counts.
+- Explicit Select All / Clear document actions.
+- Empty document scope means no cards and never broadens silently.
+- Legacy V0.5 preferences/presets without document IDs remain backward-compatible.
+- Review-count value `0` means all currently due cards in the selected scope.
 
-## Quality fixes
+### Release readiness and diagnostics
+- System Status screen with Notion, learning-source, AI, knowledge/card, due, history, and latest-review diagnostics.
+- Credential checks expose presence only; secret values are never shown.
+- App version/build reporting and manual refresh.
+- First-run guidance is source-agnostic:
+  - local files are a valid learning source,
+  - Notion is optional rather than mandatory,
+  - AI setup is requested only after learning material exists,
+  - users with generated cards do not see onboarding guidance.
+- Keychain read failures degrade to “not configured” rather than breaking diagnostics.
 
-- Removed an initial granular-scope loading defect where document selection was incorrectly required before documents could load.
-- Removed an invalid repository parameter introduced during the first UI wiring pass.
-- Fixed a stale parameter call after the document-selection API changed.
-- Prevented adding a source from re-selecting documents the user had manually excluded from another source.
-- Defined safe optional-scope semantics:
-  - `nil` document IDs = unrestricted / legacy all-documents behavior
-  - empty document IDs = intentionally no documents
-- No production force unwraps, `try!`, `fatalError`, or unresolved TODO/FIXME markers were introduced in V0.7.
+### Learning-data export
+- Native JSON file export from Settings.
+- Versioned schema `v1`.
+- Includes source documents, generated knowledge, flashcards, FSRS states, Review History, inactive preservation records, and AI provenance metadata.
+- ISO-8601 dates and deterministic ordering.
+- Excludes Notion tokens, AI API keys, Keychain credentials, passwords, and other secrets.
+- No destructive restore path is introduced in V0.7.
 
-## Test coverage
+## Validation
 
-Added/extended tests for:
+Engineering validation is green:
 
-- source-document filtered due queues
-- source-document filtered due counts
-- document-level card and due counts
-- empty document scope never expanding to all cards
-- legacy Study Scope JSON without document IDs
-- legacy named preset JSON without document IDs
-- named preset document-ID persistence
-- all-due preset semantics
+- Granular Study Scope validation: run #150
+- Combined V0.7 validation: run #153
+- combined commit: `60cef505519ce1364d610d82325e08915d6938d5`
+- portable Linux core tests: passed
+- full macOS Swift package / SwiftData tests: passed
+- iOS Simulator build: passed
+- V0.6 reminders, Japanese TTS, local-file ingestion, and earlier milestones remained in the regression suite
 
-## Remaining validation gate
+## Quality checks
 
-- Full SwiftData test suite on macOS/Xcode
-- iOS Simulator build
-- device/simulator UX pass with a large Notion/PDF hierarchy
+- Explicit `nil` vs empty document-scope semantics are covered by tests.
+- Local-file learning can satisfy readiness without Notion.
+- Export tests cover JSON round-trip, deterministic ordering, inactive-card/history preservation, and absence of credential field names.
+- No new production `try!`, `fatalError`, TODO, or FIXME markers were identified during the V0.7 audit.
+- PR #10 and PR #8 were both merge-clean before integration.
 
-V0.7 is a freeze candidate pending the Apple/Xcode validation gate.
+## Freeze state
+
+**V0.7 engineering freeze: PASSED.**
+
+Remaining interactive checks belong to release readiness rather than engineering freeze:
+- large Notion/PDF hierarchy UX
+- real local/iCloud document-picker flow
+- diagnostics navigation on device
+- JSON file-export UX and Files app destination handling
