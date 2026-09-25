@@ -39,4 +39,19 @@ V0.9 can be promoted to `main` only after the release-candidate branch passes:
 
 ## Current state
 
-Release candidate created from V0.8 integration. Final validation pending.
+Release candidate validation passed in GitHub Actions run #167.
+
+Validated commit:
+
+`e5d5a55d15c85667652d31cee92b80347d0a1e3f`
+
+Results:
+
+- portable Linux core tests: passed
+- full macOS Swift package / SwiftData tests: passed
+- iOS Simulator build: passed
+- V0.1–V0.8 regression suite: passed
+- static release-candidate scan found no TODO, FIXME, `try!`, or `fatalError` markers
+- PR #12 is merge-clean against `main`
+
+**V0.9 release candidate: PASSED.**
