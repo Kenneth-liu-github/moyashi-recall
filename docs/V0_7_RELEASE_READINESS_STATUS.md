@@ -30,9 +30,10 @@ Make the MVP easier to configure, diagnose, support, and back up without exposin
 ### First-run guidance
 
 - Home detects when there are no reviewable cards.
-- If Notion is incomplete, Home links directly to Notion setup.
-- If Notion is ready but AI is incomplete, Home links directly to AI setup.
-- If Notion + AI are ready but there are no cards yet, Home explains that the next step is generating cards from Library.
+- Learning-source readiness is source-agnostic: local files and Notion are both valid inputs.
+- If no learning material exists, Home links to Library and Notion setup.
+- If learning material exists but AI is incomplete, Home links directly to AI setup.
+- If learning material + AI are ready but there are no cards yet, Home explains that the next step is generating cards from Library.
 - Existing users with reviewable cards do not see the onboarding card.
 
 ### Learning-data export
@@ -63,8 +64,14 @@ Make the MVP easier to configure, diagnose, support, and back up without exposin
 
 ## Validation state
 
-The same GitHub Actions account/runner limitation remains: jobs are created but fail before their first workflow step executes. V0.7 therefore remains a stacked Draft milestone pending a normal macOS/Xcode validation environment.
+Combined V0.7 engineering validation passed in GitHub Actions run #153:
+
+- portable Linux core tests: passed
+- full macOS / SwiftData tests: passed
+- iOS Simulator build: passed
+
+The previous runner provisioning issue is no longer blocking validation.
 
 ## V0.7 completion state
 
-V0.7 is a **feature-complete freeze candidate** pending full Apple-platform build/test validation.
+Release readiness, diagnostics, and data export are included in the **V0.7 engineering freeze**.
