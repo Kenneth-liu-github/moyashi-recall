@@ -4,6 +4,7 @@ import SwiftData
 public struct ReviewView: View {
     private let sourceKeys: Set<String>?
     private let cardTypes: Set<String>?
+    private let sourceDocumentIDs: Set<UUID>?
     private let knowledgeItemIDs: Set<UUID>?
     private let sessionLimit: Int
 
@@ -21,11 +22,13 @@ public struct ReviewView: View {
     public init(
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        sourceDocumentIDs: Set<UUID>? = nil,
         knowledgeItemIDs: Set<UUID>? = nil,
         sessionLimit: Int = 20
     ) {
         self.sourceKeys = sourceKeys
         self.cardTypes = cardTypes
+        self.sourceDocumentIDs = sourceDocumentIDs
         self.knowledgeItemIDs = knowledgeItemIDs
         self.sessionLimit = max(1, sessionLimit)
     }
@@ -334,6 +337,7 @@ public struct ReviewView: View {
             sessionCards = try repository.dueSessionCards(
                 sourceKeys: sourceKeys,
                 cardTypes: cardTypes,
+                sourceDocumentIDs: sourceDocumentIDs,
                 knowledgeItemIDs: knowledgeItemIDs,
                 limit: sessionLimit
             )
