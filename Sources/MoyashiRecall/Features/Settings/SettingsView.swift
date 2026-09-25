@@ -47,6 +47,47 @@ public struct SettingsView: View {
 
                 Section(
                     language.text(
+                        "状态",
+                        "ステータス"
+                    )
+                ) {
+                    NavigationLink {
+                        DiagnosticsView()
+                    } label: {
+                        LabeledContent(
+                            language.text(
+                                "系统状态",
+                                "システム状態"
+                            ),
+                            value: language.text(
+                                "配置与数据检查",
+                                "設定とデータ確認"
+                            )
+                        )
+                    }
+                }
+
+                Section(
+                    language.text(
+                        "数据",
+                        "データ"
+                    )
+                ) {
+                    NavigationLink {
+                        DataExportView()
+                    } label: {
+                        LabeledContent(
+                            language.text(
+                                "导出学习数据",
+                                "学習データを書き出す"
+                            ),
+                            value: "JSON"
+                        )
+                    }
+                }
+
+                Section(
+                    language.text(
                         "复习",
                         "復習"
                     )

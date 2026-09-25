@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/v0.7-granular-study-scope
+      - feature/v0.7-release-readiness
 
 concurrency:
   group: swift-validation-${{ github.workflow }}-${{ github.ref }}
