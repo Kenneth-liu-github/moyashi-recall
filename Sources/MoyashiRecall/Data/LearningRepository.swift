@@ -412,10 +412,16 @@ public struct LearningRepository {
         descriptor.fetchLimit = 1
 
         let sourcePath = document.sourcePath.joined(separator: " / ")
-        let sourceKey = SourceKeyResolver.resolve(
-            sourceKind: document.sourceKind,
-            sourcePath: document.sourcePath
-        )
+        let hintedSourceKey = document.sourceKeyHint?
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        let sourceKey = hintedSourceKey?.isEmpty == false
+            ? hintedSourceKey!
+            : SourceKeyResolver.resolve(
+                sourceKind: document.sourceKind,
+                sourcePath: document.sourcePath
+            )
         let parentExternalID = document.parentExternalID ?? ""
         let rootExternalID = document.rootExternalID
 
