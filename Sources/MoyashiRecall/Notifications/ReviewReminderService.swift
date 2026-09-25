@@ -44,7 +44,7 @@ public final class ReviewReminderService {
 
     public func requestAuthorization() async throws -> Bool {
         try await center.requestAuthorization(
-            options: [.alert, .sound, .badge]
+            options: [.alert, .sound]
         )
     }
 
