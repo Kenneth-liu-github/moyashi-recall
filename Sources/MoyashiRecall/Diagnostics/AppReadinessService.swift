@@ -83,7 +83,9 @@ public struct AppReadinessService {
             )
             .isEmpty
 
-        let documents = try repository.importedDocuments()
+        let documents = try repository.importedDocuments(
+            sourceKind: "notion"
+        )
 
         let aiConfiguration = AIConfigurationStore()
             .load(defaults: defaults)
