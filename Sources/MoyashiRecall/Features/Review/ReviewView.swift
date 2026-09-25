@@ -30,7 +30,9 @@ public struct ReviewView: View {
         self.cardTypes = cardTypes
         self.sourceDocumentIDs = sourceDocumentIDs
         self.knowledgeItemIDs = knowledgeItemIDs
-        self.sessionLimit = max(1, sessionLimit)
+        self.sessionLimit = sessionLimit == 0
+            ? Int.max
+            : max(1, sessionLimit)
     }
 
     private var currentCard: ReviewSessionCard? {
