@@ -5,6 +5,7 @@ public struct SavedStudyPreset: Identifiable, Codable, Equatable, Sendable {
     public var name: String
     public var sourceKeys: Set<String>
     public var cardTypes: Set<String>
+    public var documentIDs: Set<UUID>?
     public var reviewCount: Int
     public var createdAt: Date
     public var updatedAt: Date
@@ -14,6 +15,7 @@ public struct SavedStudyPreset: Identifiable, Codable, Equatable, Sendable {
         name: String,
         sourceKeys: Set<String>,
         cardTypes: Set<String>,
+        documentIDs: Set<UUID>? = nil,
         reviewCount: Int,
         createdAt: Date = .now,
         updatedAt: Date = .now
@@ -24,6 +26,7 @@ public struct SavedStudyPreset: Identifiable, Codable, Equatable, Sendable {
         )
         self.sourceKeys = sourceKeys
         self.cardTypes = cardTypes
+        self.documentIDs = documentIDs
         self.reviewCount = min(max(reviewCount, 1), 100)
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -64,6 +67,7 @@ public struct StudyPresetStore {
         name: String,
         sourceKeys: Set<String>,
         cardTypes: Set<String>,
+        documentIDs: Set<UUID>? = nil,
         reviewCount: Int,
         now: Date = .now,
         defaults: UserDefaults = .standard
@@ -92,6 +96,7 @@ public struct StudyPresetStore {
                 name: trimmedName,
                 sourceKeys: sourceKeys,
                 cardTypes: cardTypes,
+                documentIDs: documentIDs,
                 reviewCount: reviewCount,
                 createdAt: existing.createdAt,
                 updatedAt: now
@@ -102,6 +107,7 @@ public struct StudyPresetStore {
                     name: trimmedName,
                     sourceKeys: sourceKeys,
                     cardTypes: cardTypes,
+                    documentIDs: documentIDs,
                     reviewCount: reviewCount,
                     createdAt: now,
                     updatedAt: now
