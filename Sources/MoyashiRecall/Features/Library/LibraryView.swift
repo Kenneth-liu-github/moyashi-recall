@@ -57,6 +57,24 @@ public struct LibraryView: View {
                                     } label: {
                                         importedRow(item)
                                     }
+                                    .swipeActions {
+                                        if item.sourceKind == "file",
+                                           item.hierarchyDepth == 0 {
+                                            Button(
+                                                role: .destructive
+                                            ) {
+                                                archiveFileSource(item)
+                                            } label: {
+                                                Label(
+                                                    language.text(
+                                                        "归档",
+                                                        "アーカイブ"
+                                                    ),
+                                                    systemImage: "archivebox"
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -277,6 +295,13 @@ public struct LibraryView: View {
 
                 importedFiles += 1
                 importedDocuments += report.documentCount
+            } catch let error as LocalFileImportError {
+                failures.append(
+                    url.lastPathComponent
+                        + "（"
+                        + importErrorLabel(error)
+                        + "）"
+                )
             } catch {
                 failures.append(
                     url.lastPathComponent
@@ -295,6 +320,62 @@ public struct LibraryView: View {
             importStatusMessage = language.text(
                 "已导入 \(importedFiles) 个文件；\(failures.count) 个失败：\(failures.joined(separator: "、"))",
                 "\(importedFiles)ファイルを読み込み、\(failures.count)件失敗しました：\(failures.joined(separator: "、"))"
+            )
+        }
+    }
+
+    private func archiveFileSource(
+        _ item: ImportedDocumentSummary
+    ) {
+        do {
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            _ = try repository.archiveImportedSource(
+                sourceKind: item.sourceKind,
+                rootExternalID: item.rootExternalSourceID
+            )
+            importStatusMessage = language.text(
+                "已归档：\(item.title)。相关学习历史仍然保留。",
+                "アーカイブ済み：\(item.title)。学習履歴は保持されています。"
+            )
+            loadLibrary()
+        } catch {
+            importStatusMessage = language.text(
+                "无法归档该文件。",
+                "このファイルをアーカイブできませんでした。"
+            )
+        }
+    }
+
+    private func importErrorLabel(
+        _ error: LocalFileImportError
+    ) -> String {
+        switch error {
+        case let .unsupportedExtension(ext):
+            return language.text(
+                "暂不支持 .\(ext)",
+                ".\(ext) は未対応"
+            )
+        case .unreadableFile:
+            return language.text(
+                "无法读取",
+                "読み取り不可"
+            )
+        case .emptyContent:
+            return language.text(
+                "未提取到文本",
+                "テキストを抽出できません"
+            )
+        case .pdfUnavailable:
+            return language.text(
+                "当前平台不支持 PDF",
+                "現在の環境ではPDF未対応"
+            )
+        case .imageTextRecognitionUnavailable:
+            return language.text(
+                "当前平台不支持图片文字识别",
+                "現在の環境では画像文字認識未対応"
             )
         }
     }
