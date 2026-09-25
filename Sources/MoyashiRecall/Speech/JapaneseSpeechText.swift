@@ -5,7 +5,7 @@ public enum JapaneseSpeechText {
         _ text: String
     ) -> String {
         text.replacingOccurrences(
-            of: "（[ぁ-ゖァ-ヺー]+）",
+            of: "(?<=[一-龯々〆ヵヶ])（[ぁ-ゖァ-ヺー]+）",
             with: "",
             options: .regularExpression
         )
