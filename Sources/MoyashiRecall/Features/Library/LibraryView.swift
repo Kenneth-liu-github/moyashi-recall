@@ -158,6 +158,7 @@ public struct LibraryView: View {
         var types: [UTType] = [
             .pdf,
             .plainText,
+            .commaSeparatedText,
             .image
         ]
 
@@ -166,7 +167,8 @@ public struct LibraryView: View {
             "docx",
             "doc",
             "rtf",
-            "odt"
+            "odt",
+            "tsv"
         ] {
             if let type = UTType(
                 filenameExtension: ext
