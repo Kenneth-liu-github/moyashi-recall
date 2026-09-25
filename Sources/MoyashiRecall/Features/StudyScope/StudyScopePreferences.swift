@@ -15,7 +15,9 @@ public struct StudyScopePreferences: Codable, Equatable, Sendable {
         self.sourceKeys = sourceKeys
         self.cardTypes = cardTypes
         self.documentIDs = documentIDs
-        self.reviewCount = min(max(reviewCount, 1), 100)
+        self.reviewCount = reviewCount == 0
+            ? 0
+            : min(max(reviewCount, 1), 100)
     }
 }
 
