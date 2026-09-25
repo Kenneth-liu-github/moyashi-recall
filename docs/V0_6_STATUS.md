@@ -79,6 +79,8 @@ Source → Source Document → AI Knowledge Extraction → Flashcards → Review
 - Imported file roots can be archived with confirmation.
 - Archiving deactivates source documents and generated learning without deleting Review History.
 - Imported filenames appear as separate Study Scope sources.
+- PDF/file container pages can batch-run AI over text-bearing child units.
+- Batch AI is explicitly confirmed and bounded to at most 10 units / about 60,000 source characters per run to control cost.
 
 ## Quality and tests
 
@@ -97,6 +99,7 @@ Added coverage for:
 - file-source archive/history preservation
 - imported filename Study Scope titles
 - natural PDF page ordering
+- text-bearing child-unit selection for batch AI
 - non-Apple Vision fallback
 - non-Apple rich-document fallback
 - Apple-platform PDF text fixture
