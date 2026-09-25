@@ -19,6 +19,29 @@ public final class ReviewReminderService {
             .authorizationStatus
     }
 
+    public func isAuthorized() async -> Bool {
+        Self.isAuthorized(
+            await authorizationStatus()
+        )
+    }
+
+    public static func isAuthorized(
+        _ status: UNAuthorizationStatus
+    ) -> Bool {
+        if status == .authorized
+            || status == .provisional {
+            return true
+        }
+
+        #if os(iOS)
+        if status == .ephemeral {
+            return true
+        }
+        #endif
+
+        return false
+    }
+
     public func requestAuthorization() async throws -> Bool {
         try await center.requestAuthorization(
             options: [.alert, .sound, .badge]
