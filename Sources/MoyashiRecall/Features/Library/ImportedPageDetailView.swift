@@ -7,6 +7,7 @@ public struct ImportedPageDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var isProcessing = false
+    @State private var generationRequestID: UUID?
     @State private var aiStatusMessage: String?
     @State private var isAIUpToDate: Bool
     @State private var lastAIProviderID: String
@@ -64,9 +65,7 @@ public struct ImportedPageDetailView: View {
                         .textSelection(.enabled)
 
                     Button {
-                        Task {
-                            await processWithAI()
-                        }
+                        generationRequestID = UUID()
                     } label: {
                         HStack {
                             if isProcessing {
@@ -270,6 +269,14 @@ public struct ImportedPageDetailView: View {
         .onAppear {
             loadGeneratedSummary()
         }
+        .task(id: generationRequestID) {
+            guard generationRequestID != nil else {
+                return
+            }
+
+            await processWithAI()
+            generationRequestID = nil
+        }
     }
 
     @MainActor
@@ -306,6 +313,8 @@ public struct ImportedPageDetailView: View {
                 "完成：提取 \(result.extractedItems) 个知识点；新增卡片 \(result.persistence.cardsInserted)，更新 \(result.persistence.cardsUpdated)，未变化 \(result.persistence.cardsUnchanged)。",
                 "完了：\(result.extractedItems)件の知識を抽出；カード追加 \(result.persistence.cardsInserted)、更新 \(result.persistence.cardsUpdated)、変更なし \(result.persistence.cardsUnchanged)。"
             )
+        } catch is CancellationError {
+            aiStatusMessage = nil
         } catch let error as AIProviderError {
             aiStatusMessage = providerErrorMessage(error)
         } catch let error as AIProcessingError {
