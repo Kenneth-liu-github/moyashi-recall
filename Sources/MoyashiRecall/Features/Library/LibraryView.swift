@@ -349,6 +349,10 @@ public struct LibraryView: View {
 
         var importedFiles = 0
         var importedDocuments = 0
+        var insertedDocuments = 0
+        var updatedDocuments = 0
+        var unchangedDocuments = 0
+        var deactivatedDocuments = 0
         var failures: [String] = []
 
         for url in urls {
@@ -378,6 +382,10 @@ public struct LibraryView: View {
 
                 importedFiles += 1
                 importedDocuments += report.documentCount
+                insertedDocuments += report.inserted
+                updatedDocuments += report.updated
+                unchangedDocuments += report.unchanged
+                deactivatedDocuments += report.deactivated
             } catch let error as LocalFileImportError {
                 failures.append(
                     url.lastPathComponent
@@ -396,8 +404,8 @@ public struct LibraryView: View {
 
         if failures.isEmpty {
             importStatusMessage = language.text(
-                "导入完成：\(importedFiles) 个文件，\(importedDocuments) 个资料单元。",
-                "読み込み完了：\(importedFiles)ファイル、\(importedDocuments)資料単位。"
+                "导入完成：\(importedFiles) 个文件，\(importedDocuments) 个资料单元；新增 \(insertedDocuments)，更新 \(updatedDocuments)，未变化 \(unchangedDocuments)，归档旧单元 \(deactivatedDocuments)。",
+                "読み込み完了：\(importedFiles)ファイル、\(importedDocuments)資料単位；追加 \(insertedDocuments)、更新 \(updatedDocuments)、変更なし \(unchangedDocuments)、旧単位をアーカイブ \(deactivatedDocuments)。"
             )
         } else {
             importStatusMessage = language.text(
