@@ -1128,7 +1128,7 @@ public struct LearningRepository {
         ) ?? today
 
         let reviewDays = Set(
-            activeHistory.map {
+            history.map {
                 calendar.startOfDay(for: $0.reviewedAt)
             }
         )
@@ -1154,10 +1154,10 @@ public struct LearningRepository {
             }
         }
 
-        let todayHistory = activeHistory.filter {
+        let todayHistory = history.filter {
             calendar.isDate($0.reviewedAt, inSameDayAs: now)
         }
-        let recentHistory = activeHistory.filter {
+        let recentHistory = history.filter {
             $0.reviewedAt >= sevenDaysAgo
                 && $0.reviewedAt <= now
         }
@@ -1179,6 +1179,16 @@ public struct LearningRepository {
         let knowledgeByID = Dictionary(
             uniqueKeysWithValues: knowledge.map {
                 ($0.id, $0)
+            }
+        )
+
+        let dueKnowledgeIDs = Set(
+            cards.compactMap { card -> UUID? in
+                if let state = stateByCard[card.id],
+                   state.due > now {
+                    return nil
+                }
+                return card.knowledgeItemID
             }
         )
 
@@ -1214,6 +1224,7 @@ public struct LearningRepository {
             .compactMap { knowledgeID, values
                 -> WeakKnowledgeSummary? in
                 guard values.difficult > 0,
+                      dueKnowledgeIDs.contains(knowledgeID),
                       let item = knowledgeByID[knowledgeID]
                 else {
                     return nil
