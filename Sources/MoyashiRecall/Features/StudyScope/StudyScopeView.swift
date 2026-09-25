@@ -11,6 +11,7 @@ public struct StudyScopeView: View {
         ReviewCardType.allCases
     )
     @State private var reviewCount = 20
+    @State private var filteredDueCount = 0
 
     public init() {}
 
@@ -22,18 +23,8 @@ public struct StudyScopeView: View {
         Set(selectedCardTypes.map(\.rawValue))
     }
 
-    private var selectedDueCount: Int {
-        sources
-            .filter {
-                selectedSources.contains($0.key)
-            }
-            .reduce(0) {
-                $0 + $1.dueCardCount
-            }
-    }
-
     private var effectiveSessionCount: Int {
-        min(reviewCount, selectedDueCount)
+        min(reviewCount, filteredDueCount)
     }
 
     public var body: some View {
@@ -178,7 +169,7 @@ public struct StudyScopeView: View {
                 .disabled(
                     selectedSources.isEmpty
                         || selectedCardTypes.isEmpty
-                        || selectedDueCount == 0
+                        || filteredDueCount == 0
                 )
             } footer: {
                 if selectedSources.isEmpty {
@@ -195,7 +186,7 @@ public struct StudyScopeView: View {
                             "カードタイプを1つ以上選択してください。"
                         )
                     )
-                } else if selectedDueCount == 0 {
+                } else if filteredDueCount == 0 {
                     Text(
                         language.text(
                             "当前选择范围没有到期卡片。",
@@ -224,6 +215,7 @@ public struct StudyScopeView: View {
         } else {
             selectedSources.insert(key)
         }
+        refreshFilteredDueCount()
     }
 
     private func toggleCardType(
@@ -234,6 +226,7 @@ public struct StudyScopeView: View {
         } else {
             selectedCardTypes.insert(type)
         }
+        refreshFilteredDueCount()
     }
 
     private func cardTypeLabel(
@@ -281,9 +274,32 @@ public struct StudyScopeView: View {
             if selectedSources.isEmpty {
                 selectedSources = availableKeys
             }
+            refreshFilteredDueCount()
         } catch {
             sources = []
             selectedSources = []
+            filteredDueCount = 0
+        }
+    }
+
+    private func refreshFilteredDueCount() {
+        guard !selectedSources.isEmpty,
+              !selectedCardTypes.isEmpty
+        else {
+            filteredDueCount = 0
+            return
+        }
+
+        do {
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            filteredDueCount = try repository.dueCardCount(
+                sourceKeys: selectedSourceKeys,
+                cardTypes: selectedCardTypeIDs
+            )
+        } catch {
+            filteredDueCount = 0
         }
     }
 }
