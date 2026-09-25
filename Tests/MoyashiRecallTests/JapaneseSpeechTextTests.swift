@@ -18,6 +18,12 @@ final class JapaneseSpeechTextTests: XCTestCase {
             ),
             "Version（V2）"
         )
+        XCTAssertEqual(
+            JapaneseSpeechText.normalized(
+                "これは（テスト）です"
+            ),
+            "これは（テスト）です"
+        )
     }
 
     func testDetectsJapaneseText() {
