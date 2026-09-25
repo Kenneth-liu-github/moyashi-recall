@@ -96,6 +96,33 @@ Source → Source Document → AI Knowledge Item → Flashcard → Review Histor
 - explicit restore preview and confirmation
 - credentials and settings excluded from restore
 
+### V0.9 — Mainline consolidation
+
+- consolidated validated milestone history onto `main`
+- final release-candidate regression validation
+- historical stacked PR cleanup
+
+### V0.10 — TestFlight release hardening
+
+- privacy manifest and required-reason declarations
+- explicit release version/build metadata
+- release-readiness audit
+- App Store privacy/distribution prerequisite documentation
+
+### V0.11 — Versioned SwiftData baseline
+
+- explicit `VersionedSchema` V1
+- migration-plan baseline
+- tested compatibility with the legacy unversioned store
+- safe startup behavior if the persistent store cannot open
+
+### V0.12 — Release archive gate
+
+- Debug Simulator and full SwiftData regression gate
+- unsigned generic-iOS Release archive validation
+- archive-level Privacy Manifest verification
+- clear separation of engineering failures from signing/App Store blockers
+
 ## Development workflow
 
 Feature work is isolated on stacked branches and draft pull requests. A milestone is not merged until its validation gate is satisfied.

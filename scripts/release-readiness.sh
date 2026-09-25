@@ -8,11 +8,13 @@ ASSETS="$ROOT/App/MoyashiRecall/Assets.xcassets"
 APPICON="$ASSETS/AppIcon.appiconset"
 
 failures=0
+blockers=0
 warnings=0
 
-pass() { printf 'PASS  %s\n' "$1"; }
-warn() { printf 'WARN  %s\n' "$1"; warnings=$((warnings + 1)); }
-fail() { printf 'FAIL  %s\n' "$1"; failures=$((failures + 1)); }
+pass() { printf 'PASS   %s\n' "$1"; }
+warn() { printf 'WARN   %s\n' "$1"; warnings=$((warnings + 1)); }
+block() { printf 'BLOCK  %s\n' "$1"; blockers=$((blockers + 1)); }
+fail() { printf 'FAIL   %s\n' "$1"; failures=$((failures + 1)); }
 
 if [[ -f "$PRIVACY" ]]; then
   pass "PrivacyInfo.xcprivacy exists"
@@ -55,29 +57,35 @@ fi
 if [[ -d "$APPICON" ]]; then
   pass "AppIcon asset set exists"
 else
-  fail "AppIcon asset set is missing"
+  block "Final AppIcon asset set is not supplied yet"
 fi
 
 if grep -q "ASSETCATALOG_COMPILER_APPICON_NAME" "$PROJECT"; then
   pass "App target declares an AppIcon asset"
 else
-  fail "App target has no AppIcon build setting"
+  block "App target AppIcon setting remains pending the final icon asset"
 fi
 
 if grep -q "DEVELOPMENT_TEAM = " "$PROJECT"; then
   pass "Apple Development Team is configured"
 else
-  warn "Apple Development Team is not committed; configure signing in Xcode before archive/upload"
+  block "Apple Development Team must be selected before signed archive/upload"
 fi
 
 if grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.moyashi.recall;' "$PROJECT"; then
-  warn "Bundle identifier is com.moyashi.recall; verify it is registered in the intended Apple Developer account"
+  block "Verify/register com.moyashi.recall in the intended Apple Developer account"
 else
-  pass "Bundle identifier differs from the development default"
+  warn "Bundle identifier differs from the documented release identifier"
 fi
 
-printf '\nSummary: %d failure(s), %d warning(s)\n' "$failures" "$warnings"
+printf '\nSummary: %d engineering failure(s), %d distribution blocker(s), %d warning(s)\n' \
+  "$failures" "$blockers" "$warnings"
 
 if [[ "${1:-}" == "--strict" && "$failures" -gt 0 ]]; then
+  exit 1
+fi
+
+if [[ "${1:-}" == "--distribution" &&
+      $((failures + blockers)) -gt 0 ]]; then
   exit 1
 fi
