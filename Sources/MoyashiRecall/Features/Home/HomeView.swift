@@ -282,6 +282,10 @@ public struct HomeView: View {
             .onAppear {
                 loadSnapshot()
                 loadLastSessionSummary()
+
+                Task {
+                    await refreshReviewReminder()
+                }
             }
         }
     }
@@ -291,6 +295,41 @@ public struct HomeView: View {
             return "—"
         }
         return "\(Int((rate * 100).rounded()))%"
+    }
+
+    @MainActor
+    private func refreshReviewReminder() async {
+        let preferences = ReviewReminderPreferencesStore()
+            .load()
+
+        guard preferences.enabled else {
+            return
+        }
+
+        let service = ReviewReminderService()
+        guard await service.isAuthorized() else {
+            return
+        }
+
+        let body: String
+        if snapshot.dueCount > 0 {
+            body = language.text(
+                "今天有 \(snapshot.dueCount) 张日语卡片到期。",
+                "今日は\(snapshot.dueCount)枚の日本語カードが期限です。"
+            )
+        } else {
+            body = language.text(
+                "打开 Moyashi Recall 看看今天的复习计划。",
+                "Moyashi Recallで今日の復習予定を確認しましょう。"
+            )
+        }
+
+        try? await service.scheduleDaily(
+            hour: preferences.hour,
+            minute: preferences.minute,
+            title: "Moyashi Recall",
+            body: body
+        )
     }
 
     private func loadLastSessionSummary() {
