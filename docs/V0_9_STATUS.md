@@ -55,3 +55,16 @@ Results:
 - PR #12 is merge-clean against `main`
 
 **V0.9 release candidate: PASSED.**
+
+
+## Mainline promotion
+
+PR #12 was merged to `main`.
+
+Mainline promotion merge commit:
+
+`d7cf47fc3ae451b8972fafc8bf7a760c7850fdf7`
+
+Historical stacked PRs #1–#6 are closed. Their validated functionality is represented by the consolidated mainline; the alternate early Notion-content-source branch was reviewed and determined to be superseded by the current unified source architecture.
+
+**V0.9 mainline consolidation: PASSED.**
