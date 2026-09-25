@@ -422,6 +422,7 @@ public struct StudyScopeView: View {
             }
 
             persistPreferences()
+            refreshSourceDueCounts()
             refreshFilteredDueCount()
         } catch {
             sources = []
@@ -482,6 +483,7 @@ public struct StudyScopeView: View {
             : 20
 
         persistPreferences()
+        refreshSourceDueCounts()
         refreshFilteredDueCount()
 
         if selectedSources.isEmpty
