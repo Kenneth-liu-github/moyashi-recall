@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 public struct LibraryView: View {
     @EnvironmentObject private var language: LanguageStore
@@ -8,6 +9,10 @@ public struct LibraryView: View {
     @State private var reviewSources: [StudySource] = []
     @State private var importedItems: [ImportedDocumentSummary] = []
     @State private var loadError: String?
+    @State private var showingFileImporter = false
+    @State private var isImportingFiles = false
+    @State private var importStatusMessage: String?
+    @State private var pendingArchiveItem: ImportedDocumentSummary?
 
     public init() {}
 
@@ -25,11 +30,51 @@ public struct LibraryView: View {
                     )
                 } else {
                     List {
+                        if importedItems.isEmpty {
+                            Section {
+                                Button {
+                                    showingFileImporter = true
+                                } label: {
+                                    Label(
+                                        language.text(
+                                            "导入本地学习资料",
+                                            "ローカル学習資料を読み込む"
+                                        ),
+                                        systemImage: "square.and.arrow.down"
+                                    )
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppTheme.accent)
+                                }
+
+                                Text(
+                                    language.text(
+                                        "支持 PDF、Word、RTF、ODT、TXT、Markdown、CSV/TSV，以及 PNG/JPG/HEIC 图片。",
+                                        "PDF、Word、RTF、ODT、TXT、Markdown、CSV/TSV、PNG/JPG/HEIC画像に対応しています。"
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.muted)
+                            }
+                        }
+
+                        if let importStatusMessage {
+                            Section {
+                                HStack(spacing: 10) {
+                                    if isImportingFiles {
+                                        ProgressView()
+                                    }
+                                    Text(importStatusMessage)
+                                        .font(.caption)
+                                        .foregroundStyle(AppTheme.muted)
+                                }
+                            }
+                        }
+
                         if !importedItems.isEmpty {
                             Section(
                                 language.text(
-                                    "已同步资料",
-                                    "同期済み資料"
+                                    "学习资料",
+                                    "学習資料"
                                 )
                             ) {
                                 ForEach(importedItems) { item in
@@ -39,6 +84,24 @@ public struct LibraryView: View {
                                         )
                                     } label: {
                                         importedRow(item)
+                                    }
+                                    .swipeActions {
+                                        if item.sourceKind == "file",
+                                           item.hierarchyDepth == 0 {
+                                            Button(
+                                                role: .destructive
+                                            ) {
+                                                pendingArchiveItem = item
+                                            } label: {
+                                                Label(
+                                                    language.text(
+                                                        "归档",
+                                                        "アーカイブ"
+                                                    ),
+                                                    systemImage: "archivebox"
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -75,10 +138,119 @@ public struct LibraryView: View {
                     "ライブラリ"
                 )
             )
+            .toolbar {
+                ToolbarItem(
+                    placement: .primaryAction
+                ) {
+                    Button {
+                        showingFileImporter = true
+                    } label: {
+                        Image(
+                            systemName: "square.and.arrow.down"
+                        )
+                    }
+                    .disabled(isImportingFiles)
+                    .accessibilityLabel(
+                        language.text(
+                            "导入文件",
+                            "ファイルを読み込む"
+                        )
+                    )
+                }
+            }
+            .confirmationDialog(
+                language.text(
+                    "归档此文件？",
+                    "このファイルをアーカイブしますか？"
+                ),
+                isPresented: Binding(
+                    get: {
+                        pendingArchiveItem != nil
+                    },
+                    set: { presented in
+                        if !presented {
+                            pendingArchiveItem = nil
+                        }
+                    }
+                ),
+                presenting: pendingArchiveItem
+            ) { item in
+                Button(
+                    language.text(
+                        "归档 \(item.title)",
+                        "\(item.title) をアーカイブ"
+                    ),
+                    role: .destructive
+                ) {
+                    archiveFileSource(item)
+                    pendingArchiveItem = nil
+                }
+
+                Button(
+                    language.text(
+                        "取消",
+                        "キャンセル"
+                    ),
+                    role: .cancel
+                ) {
+                    pendingArchiveItem = nil
+                }
+            } message: { _ in
+                Text(
+                    language.text(
+                        "资料及其生成卡片会从当前学习范围中停用，但复习历史会保留。",
+                        "資料と生成カードは現在の学習対象から外れますが、復習履歴は保持されます。"
+                    )
+                )
+            }
+            .fileImporter(
+                isPresented: $showingFileImporter,
+                allowedContentTypes: supportedFileTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case let .success(urls):
+                    Task {
+                        await importFiles(urls)
+                    }
+
+                case let .failure(error):
+                    importStatusMessage = language.text(
+                        "无法打开文件：\(error.localizedDescription)",
+                        "ファイルを開けません：\(error.localizedDescription)"
+                    )
+                }
+            }
             .onAppear {
                 loadLibrary()
             }
         }
+    }
+
+    private var supportedFileTypes: [UTType] {
+        var types: [UTType] = [
+            .pdf,
+            .plainText,
+            .commaSeparatedText,
+            .image
+        ]
+
+        for ext in [
+            "md",
+            "docx",
+            "doc",
+            "rtf",
+            "odt",
+            "tsv"
+        ] {
+            if let type = UTType(
+                filenameExtension: ext
+            ) {
+                types.append(type)
+            }
+        }
+
+        return Array(Set(types))
     }
 
     private func importedRow(
@@ -94,9 +266,10 @@ public struct LibraryView: View {
                 )
 
             Image(
-                systemName: item.hierarchyDepth == 0
-                    ? "square.stack.3d.up"
-                    : "doc.text"
+                systemName: sourceIcon(
+                    item.sourceKind,
+                    depth: item.hierarchyDepth
+                )
             )
             .foregroundStyle(AppTheme.accent)
             .frame(width: 20)
@@ -110,22 +283,30 @@ public struct LibraryView: View {
                     .lineLimit(2)
 
                 Label(
-                    item.needsAIRefresh
+                    !item.canGenerateAI
                         ? language.text(
-                            "待 AI 生成/更新",
-                            "AI生成・更新待ち"
+                            "文档容器 · 请打开子页面",
+                            "文書コンテナ · 子ページを開いてください"
                         )
-                        : language.text(
-                            "AI 已同步",
-                            "AI同期済み"
-                        ),
-                    systemImage: item.needsAIRefresh
-                        ? "sparkles"
-                        : "checkmark.circle"
+                        : item.needsAIRefresh
+                            ? language.text(
+                                "待 AI 生成/更新",
+                                "AI生成・更新待ち"
+                            )
+                            : language.text(
+                                "AI 已同步",
+                                "AI同期済み"
+                            ),
+                    systemImage: !item.canGenerateAI
+                        ? "folder"
+                        : item.needsAIRefresh
+                            ? "sparkles"
+                            : "checkmark.circle"
                 )
                 .font(.caption2)
                 .foregroundStyle(
-                    item.needsAIRefresh
+                    item.canGenerateAI
+                        && item.needsAIRefresh
                         ? AppTheme.accent
                         : AppTheme.muted
                 )
@@ -134,15 +315,174 @@ public struct LibraryView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func sourceIcon(
+        _ sourceKind: String,
+        depth: Int
+    ) -> String {
+        if sourceKind == "file" {
+            return depth == 0
+                ? "doc"
+                : "doc.text"
+        }
+
+        return depth == 0
+            ? "square.stack.3d.up"
+            : "doc.text"
+    }
+
+    @MainActor
+    private func importFiles(
+        _ urls: [URL]
+    ) async {
+        guard !urls.isEmpty else {
+            return
+        }
+
+        isImportingFiles = true
+        importStatusMessage = language.text(
+            "正在导入 \(urls.count) 个文件…",
+            "\(urls.count)個のファイルを読み込み中…"
+        )
+        defer {
+            isImportingFiles = false
+        }
+
+        var importedFiles = 0
+        var importedDocuments = 0
+        var insertedDocuments = 0
+        var updatedDocuments = 0
+        var unchangedDocuments = 0
+        var deactivatedDocuments = 0
+        var failures: [String] = []
+
+        for url in urls {
+            let didAccess = url
+                .startAccessingSecurityScopedResource()
+            defer {
+                if didAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let parsed = try await Task.detached(
+                    priority: .userInitiated
+                ) {
+                    try LocalFileImporter()
+                        .importFile(at: url)
+                }.value
+
+                let repository = LearningRepository(
+                    context: modelContext
+                )
+                let report = try LocalFileImportService(
+                    repository: repository
+                )
+                .persist(parsed)
+
+                importedFiles += 1
+                importedDocuments += report.documentCount
+                insertedDocuments += report.inserted
+                updatedDocuments += report.updated
+                unchangedDocuments += report.unchanged
+                deactivatedDocuments += report.deactivated
+            } catch let error as LocalFileImportError {
+                failures.append(
+                    url.lastPathComponent
+                        + "（"
+                        + importErrorLabel(error)
+                        + "）"
+                )
+            } catch {
+                failures.append(
+                    url.lastPathComponent
+                )
+            }
+        }
+
+        loadLibrary()
+
+        if failures.isEmpty {
+            importStatusMessage = language.text(
+                "导入完成：\(importedFiles) 个文件，\(importedDocuments) 个资料单元；新增 \(insertedDocuments)，更新 \(updatedDocuments)，未变化 \(unchangedDocuments)，归档旧单元 \(deactivatedDocuments)。",
+                "読み込み完了：\(importedFiles)ファイル、\(importedDocuments)資料単位；追加 \(insertedDocuments)、更新 \(updatedDocuments)、変更なし \(unchangedDocuments)、旧単位をアーカイブ \(deactivatedDocuments)。"
+            )
+        } else {
+            importStatusMessage = language.text(
+                "已导入 \(importedFiles) 个文件；\(failures.count) 个失败：\(failures.joined(separator: "、"))",
+                "\(importedFiles)ファイルを読み込み、\(failures.count)件失敗しました：\(failures.joined(separator: "、"))"
+            )
+        }
+    }
+
+    private func archiveFileSource(
+        _ item: ImportedDocumentSummary
+    ) {
+        do {
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            _ = try repository.archiveImportedSource(
+                sourceKind: item.sourceKind,
+                rootExternalID: item.rootExternalSourceID
+            )
+            importStatusMessage = language.text(
+                "已归档：\(item.title)。相关学习历史仍然保留。",
+                "アーカイブ済み：\(item.title)。学習履歴は保持されています。"
+            )
+            loadLibrary()
+        } catch {
+            importStatusMessage = language.text(
+                "无法归档该文件。",
+                "このファイルをアーカイブできませんでした。"
+            )
+        }
+    }
+
+    private func importErrorLabel(
+        _ error: LocalFileImportError
+    ) -> String {
+        switch error {
+        case let .unsupportedExtension(ext):
+            return language.text(
+                "暂不支持 .\(ext)",
+                ".\(ext) は未対応"
+            )
+        case .unreadableFile:
+            return language.text(
+                "无法读取",
+                "読み取り不可"
+            )
+        case .emptyContent:
+            return language.text(
+                "未提取到文本",
+                "テキストを抽出できません"
+            )
+        case .pdfUnavailable:
+            return language.text(
+                "当前平台不支持 PDF",
+                "現在の環境ではPDF未対応"
+            )
+        case .imageTextRecognitionUnavailable:
+            return language.text(
+                "当前平台不支持图片文字识别",
+                "現在の環境では画像文字認識未対応"
+            )
+        case .richDocumentUnavailable:
+            return language.text(
+                "当前平台不支持此文档格式",
+                "現在の環境ではこの文書形式に対応していません"
+            )
+        }
+    }
+
     private func loadLibrary() {
         do {
             let repository = LearningRepository(
                 context: modelContext
             )
             reviewSources = try repository.reviewSources()
-            importedItems = try repository.importedDocuments(
-                sourceKind: "notion"
-            )
+            importedItems = try repository.importedDocuments()
             loadError = nil
         } catch {
             loadError = language.text(

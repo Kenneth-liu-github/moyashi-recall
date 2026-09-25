@@ -1,61 +1,62 @@
-# V0.6 Status — Daily Reminders & Japanese TTS
+# V0.6 Status — Engagement, Japanese TTS & Local File Ingestion
 
 ## Goal
 
-Improve daily-use engagement and accessibility after the V0.5 learning loop by adding local review reminders and native Japanese text-to-speech.
+Extend the V0.5 learning loop with daily-use engagement features and direct local-file ingestion while preserving the same traceable learning pipeline:
+
+Source → Source Document → AI Knowledge Extraction → Flashcards → Review → FSRS.
 
 ## Implemented
 
+### Daily reminders
+- Local UserNotifications-based daily reminders.
+- Opt-in enable/disable and configurable time.
+- Alert + sound permission only.
+- Permission-state reconciliation.
+- Due-aware reminder copy refreshed from Home.
+- Localized reminder copy follows the selected interface language.
+
 ### Japanese TTS
+- Native AVSpeechSynthesizer playback for Japanese review prompts and answers.
+- Kana reading annotations such as `進（すす）め方（かた）` are normalized before speech.
+- Slow / normal / fast speech rates.
+- Optional answer auto-play, default off.
+- Speech stops when leaving Review.
 
-- Native AVSpeechSynthesizer-based Japanese playback.
-- Speaker controls on Japanese review prompts.
-- Speaker controls on Japanese review answers.
-- Speech stops when the review screen is left.
-- Kana reading annotations such as `進（すす）め方（かた）` are removed before speech so words are not read twice.
-- Standalone Japanese parentheses such as `これは（テスト）です` are preserved.
-- Configurable speech speed:
-  - slow
-  - normal
-  - fast
-- Optional automatic answer playback after revealing a Japanese answer.
-- Speech preferences are persisted locally.
+### Local file ingestion
+- PDF with page-level text extraction and hierarchy.
+- DOCX / DOC / RTF / ODT rich-document extraction.
+- TXT / Markdown / CSV / TSV.
+- PNG / JPG / JPEG / HEIC OCR through Apple Vision.
+- Multi-file import and security-scoped access.
+- Idempotent re-import and stale-child reconciliation.
+- Archive flow that deactivates current learning while preserving Review History.
+- Source identity avoids persisting raw local filesystem paths.
+- Imported files appear as distinct Study Scope sources.
+- Bounded batch AI generation for text-bearing file units.
 
-### Daily review reminders
+## Validation
 
-- Local notifications using UserNotifications.
-- Opt-in daily reminder toggle.
-- Configurable reminder time.
-- Notification permission is requested only when enabling reminders.
-- Only alert + sound permission is requested; badge permission is not requested.
-- Disabling reminders cancels the pending daily request.
-- Stored reminder preferences are reconciled with the current system authorization state.
-- Programmatic permission corrections do not recursively trigger Toggle side effects.
-- Reminder content is refreshed from Home with the current due-card count when available.
-- Changing interface language while reminder settings are open reschedules localized notification copy.
+Engineering validation is green on GitHub Actions:
 
-### Settings
+- Run #148
+- commit: `5b65e048a5be09b4256a14dbc526117672403c0e`
+- portable Linux core tests: passed
+- full macOS Swift package / SwiftData tests: passed
+- Apple-platform PDF and DOCX fixture coverage: passed
+- iOS Simulator build: passed
 
-Settings now includes:
+The earlier runner/budget provisioning issue was resolved after the repository was made public.
 
-- Daily review reminder settings.
-- Japanese speech speed and auto-play settings.
+## Quality checks
 
-## Quality work
+- No new production `try!`, `fatalError`, TODO, or FIXME markers were found in the V0.6 audit.
+- Local source references persist filename/page metadata, not raw filesystem paths.
+- V0.5 FSRS, review queue, history, presets, weak-item review, and dashboard regression coverage remained green.
+- V0.4 AI extraction and V0.3 Notion ingestion remain covered by the combined test suite.
 
-- TTS text normalization is independently testable without AVFoundation.
-- Reminder preferences are independently testable without UserNotifications.
-- Speech preferences are independently testable without AVFoundation.
-- New pure V0.6 components are included in the portable Linux package test slice.
-- Notification authorization handling is kept cross-platform-safe for the shared iOS/macOS package target.
-- TTS ObservableObject explicitly imports Combine.
-- Reminder scheduling errors propagate correctly during initial enable.
-- No new force unwraps, TODOs, fatal errors, or extra palette colors were introduced.
+## Freeze state
 
-## Validation state
+V0.6 is **engineering-frozen**.
 
-GitHub Actions is still affected by the repository/account-level runner issue where jobs fail before the first workflow step starts. V0.6 therefore remains dependent on the same final macOS/Xcode validation gate used by the previous stacked milestones.
-
-## V0.6 completion state
-
-V0.6 is a **feature-complete freeze candidate** pending normal Apple-platform build/test validation.
+The automated engineering gate is complete. A physical-device UX smoke test for the system document picker, security-scoped URLs, notifications, and spoken-audio behavior remains a release-readiness check rather than an engineering-freeze blocker.

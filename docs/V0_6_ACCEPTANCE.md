@@ -1,45 +1,67 @@
 # V0.6 Acceptance Checklist
 
-## 1. Japanese TTS
+## Automated engineering gate
 
-- Japanese prompts show a speaker control.
-- Japanese answers show a speaker control after reveal.
-- Chinese/English-only text does not show unnecessary Japanese speech controls.
-- `進（すす）め方（かた）について` is spoken as `進め方について`, without repeating the readings.
-- Standalone parentheses remain intact.
-- Slow / Standard / Fast settings visibly change playback speed.
-- Auto-play answer is opt-in and defaults off.
-- Leaving Review stops ongoing speech.
+Validated by GitHub Actions run #148 on commit `5b65e048a5be09b4256a14dbc526117672403c0e`.
 
-## 2. Reminder preferences
+- [x] Portable Linux core tests
+- [x] Full macOS Swift package tests
+- [x] SwiftData/data-layer tests
+- [x] Apple-platform PDF fixture
+- [x] Apple-platform DOCX fixture
+- [x] iOS Simulator build
+- [x] V0.5 regression coverage
 
-- Daily reminders default off.
-- Enabling reminders requests notification permission.
-- Denied permission turns the feature back off and keeps preferences consistent.
-- Changing reminder time reschedules the request.
-- Disabling reminders cancels the pending daily notification.
-- Reopening Settings restores the selected time and enabled state.
-- The app requests only alert and sound notification permissions.
+## Japanese TTS
 
-## 3. Due-aware reminder copy
+- [x] Japanese prompts and answers support speech controls.
+- [x] Kana reading annotations are normalized before speech.
+- [x] Non-reading parentheses are preserved.
+- [x] Slow / normal / fast settings are persisted.
+- [x] Answer auto-play is opt-in and defaults off.
+- [x] Leaving Review stops speech.
 
-- Opening Home while reminders are enabled refreshes the daily notification.
-- If cards are due, notification copy includes the current due-card count.
-- If none are due, notification copy stays generic rather than showing a false count.
-- Reminder copy follows the selected interface language when rescheduled.
+## Daily reminders
 
-## 4. Data/privacy
+- [x] Daily reminders default off.
+- [x] Permission is requested only when enabling.
+- [x] Denied authorization returns preferences to a consistent disabled state.
+- [x] Reminder time changes reschedule notifications.
+- [x] Disabling removes the pending reminder.
+- [x] Reminder copy can include current due-card count.
+- [x] Reminder copy follows the selected interface language.
 
-- No audio recordings are created or stored.
-- TTS uses on-device/system speech synthesis.
-- Reminder preferences and speech preferences contain no secrets.
-- Existing Notion/AI credentials remain in Keychain and are unaffected.
+## Local file ingestion
 
-## 5. Regression
+- [x] TXT / Markdown / CSV / TSV parsing.
+- [x] PDF page-level extraction and natural page ordering.
+- [x] DOCX / DOC / RTF / ODT rich-document path implemented.
+- [x] PNG / JPG / JPEG / HEIC OCR path implemented with Apple Vision.
+- [x] Same-path re-import is idempotent.
+- [x] Same-named files in different folders receive distinct identities.
+- [x] Removed child pages are deactivated rather than deleted.
+- [x] Archive preserves Review History while deactivating generated learning.
+- [x] Imported filenames become Study Scope sources.
+- [x] Batch AI generation is bounded.
 
-- V0.5 review queue, FSRS ratings, history, presets, weak-item review, and dashboard analytics continue to work.
-- V0.4 AI generation and V0.3 Notion sync remain unchanged.
+## Privacy and quality
 
-## Freeze rule
+- [x] Raw local filesystem paths are not persisted in Source Documents.
+- [x] Existing Notion/AI secrets remain Keychain-backed.
+- [x] No new production `try!`, `fatalError`, TODO, or FIXME markers found in the V0.6 audit.
+- [x] Combined PR #7 + PR #9 integration is merge-clean and validated.
 
-PR #7 remains Draft until the full macOS/Xcode test suite and iOS Simulator build can execute successfully.
+## Release-readiness smoke checks
+
+These require interactive simulator/device use and are intentionally not claimed as automated:
+
+- [ ] Exercise the system document picker with real iCloud/local files.
+- [ ] Confirm security-scoped access with externally provided files.
+- [ ] Confirm notification delivery on a device/simulator with permission transitions.
+- [ ] Listen to Japanese TTS on-device and confirm audio/voice behavior.
+
+## Freeze decision
+
+**V0.6 engineering freeze: PASSED.**
+
+The remaining interactive smoke checks belong to release readiness and do not block the V0.6 engineering freeze.

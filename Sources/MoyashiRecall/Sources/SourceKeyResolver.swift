@@ -14,6 +14,10 @@ public enum SourceKeyResolver {
            sourcePath.first == "Learning Home",
            sourcePath.count >= 2 {
             categoryTitle = sourcePath[1]
+        } else if sourceKind == "file",
+                  sourcePath.first == "Imported Files",
+                  sourcePath.count >= 2 {
+            categoryTitle = sourcePath[1]
         } else {
             categoryTitle = sourcePath[0]
         }
