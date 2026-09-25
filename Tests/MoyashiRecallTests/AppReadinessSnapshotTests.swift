@@ -10,12 +10,22 @@ final class AppReadinessSnapshotTests: XCTestCase {
             aiProviderName: "OpenAI",
             aiModelConfigured: true,
             aiCredentialConfigured: true,
-            activeCardCount: 20
+            activeKnowledgeCount: 8,
+            activeCardCount: 20,
+            dueCardCount: 5,
+            reviewHistoryCount: 42,
+            latestReviewAt: Date(
+                timeIntervalSince1970: 1_700_000_000
+            )
         )
 
         XCTAssertTrue(ready.notionReady)
         XCTAssertTrue(ready.aiReady)
         XCTAssertTrue(ready.readyForReview)
+        XCTAssertEqual(ready.activeKnowledgeCount, 8)
+        XCTAssertEqual(ready.dueCardCount, 5)
+        XCTAssertEqual(ready.reviewHistoryCount, 42)
+        XCTAssertNotNil(ready.latestReviewAt)
 
         let notReady = AppReadinessSnapshot(
             notionCredentialConfigured: false,
@@ -40,10 +50,16 @@ final class AppReadinessSnapshotTests: XCTestCase {
             aiProviderName: "OpenAI",
             aiModelConfigured: false,
             aiCredentialConfigured: false,
-            activeCardCount: -5
+            activeKnowledgeCount: -2,
+            activeCardCount: -5,
+            dueCardCount: -3,
+            reviewHistoryCount: -7
         )
 
         XCTAssertEqual(snapshot.syncedDocumentCount, 0)
+        XCTAssertEqual(snapshot.activeKnowledgeCount, 0)
         XCTAssertEqual(snapshot.activeCardCount, 0)
+        XCTAssertEqual(snapshot.dueCardCount, 0)
+        XCTAssertEqual(snapshot.reviewHistoryCount, 0)
     }
 }
