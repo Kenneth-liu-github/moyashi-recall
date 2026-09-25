@@ -17,6 +17,12 @@ public struct RestoreMutationCounts: Equatable, Sendable {
     }
 }
 
+public enum LearningDataRestoreError: Error, Equatable {
+    case sourceIdentityConflict(UUID)
+    case knowledgeIdentityConflict(UUID)
+    case flashcardIdentityConflict(UUID)
+}
+
 public struct LearningDataRestoreReport: Equatable, Sendable {
     public let sources: RestoreMutationCounts
     public let knowledgeItems: RestoreMutationCounts
@@ -132,6 +138,15 @@ public struct LearningDataRestoreService {
                 ? semanticMatches[0]
                 : nil
 
+            if let idMatch = sourceByID[record.id],
+               !Self.sameSourceIdentity(
+                    idMatch,
+                    record
+               ) {
+                throw LearningDataRestoreError
+                    .sourceIdentityConflict(record.id)
+            }
+
             if let existing =
                 sourceByID[record.id] ?? semanticMatch {
                 sourceIDMap[record.id] = existing.id
@@ -191,6 +206,15 @@ public struct LearningDataRestoreService {
             let semanticMatch = semanticMatches.count == 1
                 ? semanticMatches[0]
                 : nil
+
+            if let idMatch = knowledgeByID[record.id],
+               (
+                    idMatch.sourceDocumentID != mappedSourceID
+                    || idMatch.extractionKey != record.extractionKey
+               ) {
+                throw LearningDataRestoreError
+                    .knowledgeIdentityConflict(record.id)
+            }
 
             if let existing =
                 knowledgeByID[record.id] ?? semanticMatch {
@@ -260,6 +284,15 @@ public struct LearningDataRestoreService {
             let semanticMatch = semanticMatches.count == 1
                 ? semanticMatches[0]
                 : nil
+
+            if let idMatch = cardByID[record.id],
+               (
+                    idMatch.knowledgeItemID != mappedKnowledgeID
+                    || idMatch.generationKey != record.generationKey
+               ) {
+                throw LearningDataRestoreError
+                    .flashcardIdentityConflict(record.id)
+            }
 
             if let existing =
                 cardByID[record.id] ?? semanticMatch {
@@ -401,6 +434,15 @@ public struct LearningDataRestoreService {
         }
 
         return false
+    }
+
+    private static func sameSourceIdentity(
+        _ entity: SourceDocumentEntity,
+        _ record: LearningDataExportPackage.SourceRecord
+    ) -> Bool {
+        entity.sourceKind == record.sourceKind
+            && entity.externalSourceID
+                == record.externalSourceID
     }
 
     private static func sourceStableKey(
