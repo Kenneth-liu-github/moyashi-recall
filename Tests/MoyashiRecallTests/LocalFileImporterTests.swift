@@ -214,4 +214,29 @@ final class LocalFileImporterTests: XCTestCase {
             secondDocument.sourcePath
         )
     }
+    #if !canImport(Vision)
+    func testImageImportReportsUnavailableWithoutVision() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(UUID().uuidString).png"
+            )
+        try Data([0, 1, 2]).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(
+                at: url
+            )
+        }
+
+        XCTAssertThrowsError(
+            try LocalFileImporter().importFile(at: url)
+        ) { error in
+            XCTAssertEqual(
+                error as? LocalFileImportError,
+                .imageTextRecognitionUnavailable
+            )
+        }
+    }
+    #endif
+
+
 }
