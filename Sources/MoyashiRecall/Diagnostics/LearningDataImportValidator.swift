@@ -1,6 +1,7 @@
 import Foundation
 
 public struct LearningDataImportValidationLimits: Equatable, Sendable {
+    public let maximumBytes: Int
     public let maximumSources: Int
     public let maximumKnowledgeItems: Int
     public let maximumFlashcards: Int
@@ -8,12 +9,14 @@ public struct LearningDataImportValidationLimits: Equatable, Sendable {
     public let maximumReviewHistory: Int
 
     public init(
+        maximumBytes: Int = 100 * 1024 * 1024,
         maximumSources: Int = 10_000,
         maximumKnowledgeItems: Int = 100_000,
         maximumFlashcards: Int = 250_000,
         maximumReviewStates: Int = 250_000,
         maximumReviewHistory: Int = 500_000
     ) {
+        self.maximumBytes = max(1, maximumBytes)
         self.maximumSources = max(1, maximumSources)
         self.maximumKnowledgeItems = max(1, maximumKnowledgeItems)
         self.maximumFlashcards = max(1, maximumFlashcards)
@@ -50,6 +53,7 @@ public struct LearningDataImportValidationReport: Equatable, Sendable {
 public enum LearningDataImportValidationError: Error, Equatable {
     case decodingFailed
     case unsupportedSchema(String)
+    case backupTooLarge(Int)
     case tooManySources(Int)
     case tooManyKnowledgeItems(Int)
     case tooManyFlashcards(Int)
@@ -96,6 +100,11 @@ public enum LearningDataImportValidator {
         package: LearningDataExportPackage,
         report: LearningDataImportValidationReport
     ) {
+        guard data.count <= limits.maximumBytes else {
+            throw LearningDataImportValidationError
+                .backupTooLarge(data.count)
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
