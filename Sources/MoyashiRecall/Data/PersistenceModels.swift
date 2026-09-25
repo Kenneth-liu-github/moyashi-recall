@@ -23,7 +23,7 @@ public final class SourceDocumentEntity {
     public var lastAIModelID: String = ""
     public var sourceReference: String
     public var createdAt: Date
-    public var updatedAt: Date = .distantPast
+    public var updatedAt: Date = Foundation.Date.distantPast
 
     public init(
         id: UUID = UUID(),
@@ -105,7 +105,7 @@ public final class KnowledgeItemEntity {
     public var extractionVersion: String = ""
     public var isActive: Bool = true
     public var createdAt: Date
-    public var updatedAt: Date = .distantPast
+    public var updatedAt: Date = Foundation.Date.distantPast
 
     public init(
         id: UUID = UUID(),
@@ -186,7 +186,7 @@ public final class FlashcardEntity {
     public var sourceReference: String
     public var isActive: Bool = true
     public var createdAt: Date
-    public var updatedAt: Date = .distantPast
+    public var updatedAt: Date = Foundation.Date.distantPast
 
     public init(
         id: UUID = UUID(),
