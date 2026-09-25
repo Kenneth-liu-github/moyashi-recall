@@ -43,6 +43,16 @@ public struct LocalFileImportService {
         now: Date = .now
     ) throws -> FileImportReport {
         let result = try importer.importFile(at: url)
+        return try persist(
+            result,
+            now: now
+        )
+    }
+
+    public func persist(
+        _ result: LocalFileImportResult,
+        now: Date = .now
+    ) throws -> FileImportReport {
         guard let root = result.documents.first else {
             throw LocalFileImportError.emptyContent
         }
