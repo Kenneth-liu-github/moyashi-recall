@@ -11,7 +11,8 @@ Convert the validated product mainline into a distribution-ready iOS/iPadOS proj
   - `UserDefaults` → `CA92.1`
   - user-selected file timestamps → `3B52.1`
 - Declared no tracking in the privacy manifest.
-- Declared no app-collected data in the privacy manifest based on the current architecture.
+- Privacy manifest currently declares no tracking.
+- App Store privacy disclosure for user-provided learning content sent to configured AI providers remains a release-policy item: the final App Store Connect answers must reflect provider retention behavior and the published privacy policy.
 - Set marketing version to `0.10.0`.
 - Set build number to `10`.
 - Added `scripts/release-readiness.sh` to audit release metadata and external blockers.
@@ -31,6 +32,10 @@ This requires a product/brand asset decision. V0.10 will not silently fabricate 
 The Xcode target uses automatic signing but no `DEVELOPMENT_TEAM` is committed.
 
 This is intentionally treated as an external/account-specific setting. A valid Apple Developer team must be selected before archive/upload.
+
+### App privacy metadata
+
+App Store Connect requires a public privacy policy URL for iOS apps. The final privacy answers must also account for user-provided learning content sent to configured AI providers if that content is retained beyond real-time request servicing.
 
 ### Bundle ID ownership
 
@@ -56,4 +61,5 @@ TestFlight upload readiness additionally requires:
 
 - final App Icon asset,
 - valid Apple Developer signing team,
-- confirmed bundle ID ownership.
+- confirmed bundle ID ownership,
+- public privacy policy URL and reviewed App Store privacy answers.
