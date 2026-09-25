@@ -3,15 +3,18 @@ import Foundation
 public struct StudyScopePreferences: Codable, Equatable, Sendable {
     public let sourceKeys: Set<String>
     public let cardTypes: Set<String>
+    public let documentIDs: Set<UUID>?
     public let reviewCount: Int
 
     public init(
         sourceKeys: Set<String>,
         cardTypes: Set<String>,
+        documentIDs: Set<UUID>? = nil,
         reviewCount: Int
     ) {
         self.sourceKeys = sourceKeys
         self.cardTypes = cardTypes
+        self.documentIDs = documentIDs
         self.reviewCount = min(max(reviewCount, 1), 100)
     }
 }
