@@ -161,13 +161,21 @@ public struct LibraryView: View {
             .image
         ]
 
-        if let markdown = UTType(
-            filenameExtension: "md"
-        ) {
-            types.append(markdown)
+        for ext in [
+            "md",
+            "docx",
+            "doc",
+            "rtf",
+            "odt"
+        ] {
+            if let type = UTType(
+                filenameExtension: ext
+            ) {
+                types.append(type)
+            }
         }
 
-        return types
+        return Array(Set(types))
     }
 
     private func importedRow(
@@ -376,6 +384,11 @@ public struct LibraryView: View {
             return language.text(
                 "当前平台不支持图片文字识别",
                 "現在の環境では画像文字認識未対応"
+            )
+        case .richDocumentUnavailable:
+            return language.text(
+                "当前平台不支持此文档格式",
+                "現在の環境ではこの文書形式に対応していません"
             )
         }
     }
