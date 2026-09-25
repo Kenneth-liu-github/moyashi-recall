@@ -860,4 +860,51 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testRecentReviewHistoryPreservesInactiveCardHistory() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let card = FlashcardEntity(
+            knowledgeItemID: UUID(),
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "过去的问题",
+            answer: "过去的答案",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceReference: "notion://page",
+            isActive: false
+        )
+        let reviewedAt = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+        let event = ReviewHistoryEntity(
+            cardID: card.id,
+            reviewedAt: reviewedAt,
+            ratingRawValue: ReviewRating.hard.rawValue,
+            elapsedDays: 1,
+            scheduledDays: 2,
+            stabilityBefore: 1,
+            stabilityAfter: 2,
+            difficultyBefore: 5,
+            difficultyAfter: 5
+        )
+
+        context.insert(card)
+        context.insert(event)
+        try context.save()
+
+        let history = try LearningRepository(
+            context: context
+        ).recentReviewHistory()
+
+        XCTAssertEqual(history.count, 1)
+        XCTAssertEqual(history.first?.cardID, card.id)
+        XCTAssertEqual(history.first?.rating, .hard)
+        XCTAssertEqual(
+            history.first?.sourceDisplay,
+            "Learning Home / 办公室日语学习 / 第二课"
+        )
+    }
+
+
 }
