@@ -10,10 +10,10 @@
 - [x] Marketing version is 0.10.0.
 - [x] Build number is 10.
 - [x] Release-readiness audit script exists.
-- [ ] Portable Linux regression tests pass.
-- [ ] Full macOS / SwiftData regression tests pass.
-- [ ] iOS Simulator build passes.
-- [ ] Privacy manifest is present in the built app bundle.
+- [x] Portable Linux regression tests pass.
+- [x] Full macOS / SwiftData regression tests pass.
+- [x] iOS Simulator build passes.
+- [x] Privacy manifest is present in the built app bundle.
 
 ## External distribution prerequisites
 
@@ -28,4 +28,4 @@
 
 ## Decision
 
-**V0.10 engineering freeze: PENDING CI AND RELEASE-ASSET GAPS.**
+**V0.10 engineering freeze: PASSED. TestFlight upload readiness remains pending external distribution prerequisites.**
