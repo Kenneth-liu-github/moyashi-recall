@@ -798,6 +798,7 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(snapshot.dueCount, 1)
         XCTAssertEqual(snapshot.reviewedToday, 1)
         XCTAssertEqual(snapshot.reviewedLast7Days, 4)
+        XCTAssertEqual(snapshot.latestReviewAt, now)
         XCTAssertEqual(
             snapshot.successRateLast7Days,
             0.75,
