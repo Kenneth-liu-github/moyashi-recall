@@ -33,3 +33,29 @@ public struct StudySource: Identifiable, Hashable, Sendable {
         self.dueCardCount = dueCardCount
     }
 }
+
+
+public struct StudyDocument: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let sourceKey: String
+    public let title: String
+    public let path: String
+    public let cardCount: Int
+    public let dueCardCount: Int
+
+    public init(
+        id: UUID,
+        sourceKey: String,
+        title: String,
+        path: String,
+        cardCount: Int,
+        dueCardCount: Int
+    ) {
+        self.id = id
+        self.sourceKey = sourceKey
+        self.title = title
+        self.path = path
+        self.cardCount = cardCount
+        self.dueCardCount = dueCardCount
+    }
+}
