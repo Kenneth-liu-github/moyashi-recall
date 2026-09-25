@@ -41,6 +41,7 @@ let package = Package(
                 "DocumentChunkerTests.swift",
                 "OpenAIResponsesProviderTests.swift",
                 "AnthropicMessagesProviderTests.swift",
+                "AIHTTPRetryPolicyTests.swift",
                 "AIProviderConfigurationTests.swift"
             ]
         )
