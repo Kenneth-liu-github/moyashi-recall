@@ -3,9 +3,10 @@
 ## 1. First-run readiness
 
 - Fresh install with no cards shows a setup card on Home.
-- Missing Notion setup links to Notion configuration.
-- Notion complete + AI incomplete links to AI configuration.
-- Notion + AI complete + zero cards explains the Library generation step.
+- No learning material links to Library and Notion configuration.
+- Local files can satisfy learning-source readiness without Notion.
+- Learning material present + AI incomplete links to AI configuration.
+- Learning material + AI complete + zero cards explains the Library generation step.
 - Once active cards exist, the setup card disappears.
 
 ## 2. Diagnostics
@@ -35,6 +36,10 @@
 - V0.5 study presets, weak-item review, history, and dashboard continue to work.
 - V0.4 AI extraction and V0.3 Notion sync remain unchanged.
 
+## Validation result
+
+Combined macOS/Xcode and iOS Simulator validation passed in GitHub Actions run #153.
+
 ## Freeze rule
 
-PR #8 remains Draft until the complete macOS/Xcode test suite and iOS Simulator build can execute successfully.
+**V0.7 engineering freeze: PASSED.**
