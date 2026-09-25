@@ -1080,4 +1080,121 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testImportedFileUsesFilenameAsStudySourceTitle() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let source = SourceDocumentEntity(
+            title: "lesson.pdf",
+            content: "",
+            sourceKind: "file",
+            externalSourceID: "local-file:lesson:abc",
+            rootExternalSourceID: "local-file:lesson:abc",
+            sourcePath: "Imported Files / lesson.pdf",
+            sourceKey: "file-abc",
+            sourceReference: "local-file://lesson.pdf"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "表現（ひょうげん）",
+            content: "content",
+            sourceKind: "file",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "card",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        let sources = try LearningRepository(
+            context: context
+        ).reviewSources()
+
+        XCTAssertEqual(sources.count, 1)
+        XCTAssertEqual(
+            sources.first?.title,
+            "lesson.pdf"
+        )
+        XCTAssertEqual(
+            sources.first?.key,
+            "file-abc"
+        )
+    }
+
+    @MainActor
+    func testImportedPDFPagesSortNaturally() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let rootID = "local-file:lesson:abc"
+
+        for page in [10, 2, 1] {
+            context.insert(
+                SourceDocumentEntity(
+                    title: "Page \(page)",
+                    content: "page \(page)",
+                    sourceKind: "file",
+                    externalSourceID:
+                        "\(rootID)#page-\(page)",
+                    parentExternalSourceID: rootID,
+                    rootExternalSourceID: rootID,
+                    sourcePath:
+                        "Imported Files / lesson.pdf / Page \(page)",
+                    sourceKey: "file-abc",
+                    hierarchyDepth: 1,
+                    sourceReference:
+                        "local-file://lesson.pdf#page=\(page)"
+                )
+            )
+        }
+
+        context.insert(
+            SourceDocumentEntity(
+                title: "lesson.pdf",
+                content: "",
+                sourceKind: "file",
+                externalSourceID: rootID,
+                rootExternalSourceID: rootID,
+                sourcePath: "Imported Files / lesson.pdf",
+                sourceKey: "file-abc",
+                hierarchyDepth: 0,
+                sourceReference: "local-file://lesson.pdf"
+            )
+        )
+        try context.save()
+
+        let items = try LearningRepository(
+            context: context
+        ).importedDocuments(
+            sourceKind: "file"
+        )
+
+        XCTAssertEqual(
+            items.map(\.title),
+            [
+                "lesson.pdf",
+                "Page 1",
+                "Page 2",
+                "Page 10"
+            ]
+        )
+    }
+
+
 }
