@@ -16,13 +16,18 @@ public struct LearningDataExportPackage: Codable, Equatable, Sendable {
         public let content: String
         public let sourceKind: String
         public let externalSourceID: String
+        public let parentExternalSourceID: String
+        public let rootExternalSourceID: String
         public let sourcePath: String
         public let sourceKey: String
+        public let hierarchyDepth: Int
         public let isSourceActive: Bool
         public let sourceReference: String
         public let sourceLastEditedAt: Date?
         public let lastSyncedAt: Date?
         public let lastAIProcessedAt: Date?
+        public let aiProcessedSourceUpdatedAt: Date?
+        public let lastAIExtractionVersion: String
         public let lastAIProviderID: String
         public let lastAIModelID: String
         public let createdAt: Date
@@ -41,9 +46,18 @@ public struct LearningDataExportPackage: Codable, Equatable, Sendable {
         public let naturalEnglish: String
         public let content: String
         public let tags: String
+        public let sourceKind: String
         public let sourceKey: String
         public let sourceDisplayPath: String
         public let sourceReference: String
+        public let externalSourceID: String
+        public let parentExternalSourceID: String
+        public let rootExternalSourceID: String
+        public let sourcePath: String
+        public let hierarchyDepth: Int
+        public let isSourceActive: Bool
+        public let sourceLastEditedAt: Date?
+        public let lastSyncedAt: Date?
         public let aiProvider: String
         public let aiModel: String
         public let extractionVersion: String
@@ -134,13 +148,18 @@ public struct LearningDataExportService {
                     content: $0.content,
                     sourceKind: $0.sourceKind,
                     externalSourceID: $0.externalSourceID,
+                    parentExternalSourceID: $0.parentExternalSourceID,
+                    rootExternalSourceID: $0.rootExternalSourceID,
                     sourcePath: $0.sourcePath,
                     sourceKey: $0.sourceKey,
+                    hierarchyDepth: $0.hierarchyDepth,
                     isSourceActive: $0.isSourceActive,
                     sourceReference: $0.sourceReference,
                     sourceLastEditedAt: $0.sourceLastEditedAt,
                     lastSyncedAt: $0.lastSyncedAt,
                     lastAIProcessedAt: $0.lastAIProcessedAt,
+                    aiProcessedSourceUpdatedAt: $0.aiProcessedSourceUpdatedAt,
+                    lastAIExtractionVersion: $0.lastAIExtractionVersion,
                     lastAIProviderID: $0.lastAIProviderID,
                     lastAIModelID: $0.lastAIModelID,
                     createdAt: $0.createdAt,
@@ -160,9 +179,18 @@ public struct LearningDataExportService {
                     naturalEnglish: $0.naturalEnglish,
                     content: $0.content,
                     tags: $0.tags,
+                    sourceKind: $0.sourceKind,
                     sourceKey: $0.sourceKey,
                     sourceDisplayPath: $0.sourceDisplayPath,
                     sourceReference: $0.sourceReference,
+                    externalSourceID: $0.externalSourceID,
+                    parentExternalSourceID: $0.parentExternalSourceID,
+                    rootExternalSourceID: $0.rootExternalSourceID,
+                    sourcePath: $0.sourcePath,
+                    hierarchyDepth: $0.hierarchyDepth,
+                    isSourceActive: $0.isSourceActive,
+                    sourceLastEditedAt: $0.sourceLastEditedAt,
+                    lastSyncedAt: $0.lastSyncedAt,
                     aiProvider: $0.aiProvider,
                     aiModel: $0.aiModel,
                     extractionVersion: $0.extractionVersion,
