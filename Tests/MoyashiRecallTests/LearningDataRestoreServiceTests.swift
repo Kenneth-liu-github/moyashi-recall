@@ -295,6 +295,186 @@ final class LearningDataRestoreServiceTests: XCTestCase {
     }
 
     @MainActor
+    func testRestoreRejectsSourceUUIDIdentityCollision() throws {
+        let older = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+        let newer = older.addingTimeInterval(3_600)
+
+        let backupContainer = try makeContainer()
+        let fixture = try insertFixture(
+            into: backupContainer.mainContext,
+            updatedAt: newer
+        )
+        let package = try LearningDataExportService(
+            context: backupContainer.mainContext
+        ).makePackage()
+
+        let targetContainer = try makeContainer()
+        let context = targetContainer.mainContext
+        let local = SourceDocumentEntity(
+            id: fixture.sourceID,
+            title: "Local unrelated source",
+            content: "keep",
+            sourceKind: "notion",
+            externalSourceID: "different-page",
+            sourceReference: "notion://different-page",
+            createdAt: older,
+            updatedAt: older
+        )
+        context.insert(local)
+        try context.save()
+
+        XCTAssertThrowsError(
+            try LearningDataRestoreService(
+                context: context
+            ).restore(package: package)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataRestoreError,
+                .sourceIdentityConflict(fixture.sourceID)
+            )
+        }
+
+        XCTAssertEqual(local.title, "Local unrelated source")
+        XCTAssertEqual(local.externalSourceID, "different-page")
+    }
+
+    @MainActor
+    func testKnowledgeIdentityConflictRollsBackEarlierSourceUpdate() throws {
+        let older = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+        let newer = older.addingTimeInterval(3_600)
+
+        let backupContainer = try makeContainer()
+        let fixture = try insertFixture(
+            into: backupContainer.mainContext,
+            updatedAt: newer
+        )
+        let package = try LearningDataExportService(
+            context: backupContainer.mainContext
+        ).makePackage()
+
+        let targetContainer = try makeContainer()
+        let context = targetContainer.mainContext
+        let source = SourceDocumentEntity(
+            id: fixture.sourceID,
+            title: "Local source",
+            content: "local",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourceReference: "notion://page-1",
+            createdAt: older,
+            updatedAt: older
+        )
+        let knowledge = KnowledgeItemEntity(
+            id: fixture.knowledgeID,
+            sourceDocumentID: fixture.sourceID,
+            extractionKey: "different-item",
+            knowledgeType: "expression",
+            title: "Local knowledge",
+            content: "local",
+            sourceKind: "notion",
+            sourceReference: "notion://page-1",
+            createdAt: older,
+            updatedAt: older
+        )
+        context.insert(source)
+        context.insert(knowledge)
+        try context.save()
+
+        XCTAssertThrowsError(
+            try LearningDataRestoreService(
+                context: context
+            ).restore(package: package)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataRestoreError,
+                .knowledgeIdentityConflict(fixture.knowledgeID)
+            )
+        }
+
+        XCTAssertEqual(source.title, "Local source")
+        XCTAssertEqual(knowledge.title, "Local knowledge")
+        XCTAssertEqual(knowledge.extractionKey, "different-item")
+    }
+
+    @MainActor
+    func testFlashcardIdentityConflictRollsBackEarlierUpdates() throws {
+        let older = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+        let newer = older.addingTimeInterval(3_600)
+
+        let backupContainer = try makeContainer()
+        let fixture = try insertFixture(
+            into: backupContainer.mainContext,
+            updatedAt: newer
+        )
+        let package = try LearningDataExportService(
+            context: backupContainer.mainContext
+        ).makePackage()
+
+        let targetContainer = try makeContainer()
+        let context = targetContainer.mainContext
+        let source = SourceDocumentEntity(
+            id: fixture.sourceID,
+            title: "Local source",
+            content: "local",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourceReference: "notion://page-1",
+            createdAt: older,
+            updatedAt: older
+        )
+        let knowledge = KnowledgeItemEntity(
+            id: fixture.knowledgeID,
+            sourceDocumentID: fixture.sourceID,
+            extractionKey: "item-1",
+            knowledgeType: "expression",
+            title: "Local knowledge",
+            content: "local",
+            sourceKind: "notion",
+            sourceReference: "notion://page-1",
+            createdAt: older,
+            updatedAt: older
+        )
+        let card = FlashcardEntity(
+            id: fixture.cardID,
+            knowledgeItemID: fixture.knowledgeID,
+            sourceDocumentID: fixture.sourceID,
+            generationKey: "different-card",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Local prompt",
+            answer: "Local answer",
+            sourceReference: "notion://page-1",
+            createdAt: older,
+            updatedAt: older
+        )
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        XCTAssertThrowsError(
+            try LearningDataRestoreService(
+                context: context
+            ).restore(package: package)
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataRestoreError,
+                .flashcardIdentityConflict(fixture.cardID)
+            )
+        }
+
+        XCTAssertEqual(source.title, "Local source")
+        XCTAssertEqual(knowledge.title, "Local knowledge")
+        XCTAssertEqual(card.prompt, "Local prompt")
+        XCTAssertEqual(card.generationKey, "different-card")
+    }
+
+    @MainActor
     private func insertFixture(
         into context: ModelContext,
         updatedAt: Date
