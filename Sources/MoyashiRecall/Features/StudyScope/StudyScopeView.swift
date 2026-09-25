@@ -63,8 +63,8 @@ public struct StudyScopeView: View {
 
                                     Text(
                                         language.text(
-                                            "\(preset.sourceKeys.count) 个来源 · \(preset.cardTypes.count) 种卡片 · \(preset.reviewCount) 张",
-                                            "\(preset.sourceKeys.count)ソース · \(preset.cardTypes.count)種類 · \(preset.reviewCount)枚"
+                                            "\(preset.sourceKeys.count) 个来源 · \(preset.documentIDs?.count ?? 0) 个资料 · \(preset.cardTypes.count) 种卡片 · \(preset.reviewCount) 张",
+                                            "\(preset.sourceKeys.count)ソース · \(preset.documentIDs?.count ?? 0)資料 · \(preset.cardTypes.count)種類 · \(preset.reviewCount)枚"
                                         )
                                     )
                                     .font(.caption)
@@ -472,16 +472,22 @@ public struct StudyScopeView: View {
     private func toggleCardType(
         _ type: ReviewCardType
     ) {
+        let hadAllDocumentsSelected =
+            !documents.isEmpty
+            && selectedDocumentIDs == availableDocumentIDs
+
         if selectedCardTypes.contains(type) {
             selectedCardTypes.remove(type)
         } else {
             selectedCardTypes.insert(type)
         }
-        persistPreferences()
+
         refreshSourceDueCounts()
         refreshDocuments(
-            selectNewlyAvailable: false
+            selectAllWhenUnspecified:
+                hadAllDocumentsSelected
         )
+        persistPreferences()
         refreshFilteredDueCount()
     }
 
