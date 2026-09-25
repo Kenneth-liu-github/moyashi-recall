@@ -37,7 +37,9 @@ public struct StudyScopeView: View {
     }
 
     private var effectiveSessionCount: Int {
-        min(reviewCount, filteredDueCount)
+        reviewCount == 0
+            ? filteredDueCount
+            : min(reviewCount, filteredDueCount)
     }
 
     public var body: some View {
@@ -63,8 +65,8 @@ public struct StudyScopeView: View {
 
                                     Text(
                                         language.text(
-                                            "\(preset.sourceKeys.count) 个来源 · \(preset.documentIDs?.count ?? 0) 个资料 · \(preset.cardTypes.count) 种卡片 · \(preset.reviewCount) 张",
-                                            "\(preset.sourceKeys.count)ソース · \(preset.documentIDs?.count ?? 0)資料 · \(preset.cardTypes.count)種類 · \(preset.reviewCount)枚"
+                                            "\(preset.sourceKeys.count) 个来源 · \(preset.documentIDs?.count ?? 0) 个资料 · \(preset.cardTypes.count) 种卡片 · \(presetCountLabel(preset.reviewCount))",
+                                            "\(preset.sourceKeys.count)ソース · \(preset.documentIDs?.count ?? 0)資料 · \(preset.cardTypes.count)種類 · \(presetCountLabel(preset.reviewCount))"
                                         )
                                     )
                                     .font(.caption)
@@ -266,6 +268,13 @@ public struct StudyScopeView: View {
                     Text("10").tag(10)
                     Text("20").tag(20)
                     Text("30").tag(30)
+                    Text(
+                        language.text(
+                            "全部",
+                            "すべて"
+                        )
+                    )
+                    .tag(0)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: reviewCount) { _, _ in
@@ -501,6 +510,20 @@ public struct StudyScopeView: View {
         refreshFilteredDueCount()
     }
 
+    private func presetCountLabel(
+        _ count: Int
+    ) -> String {
+        count == 0
+            ? language.text(
+                "全部到期",
+                "期限分すべて"
+            )
+            : language.text(
+                "\(count) 张",
+                "\(count)枚"
+            )
+    }
+
     private func cardTypeLabel(
         _ type: ReviewCardType
     ) -> String {
@@ -634,7 +657,7 @@ public struct StudyScopeView: View {
             }
         )
 
-        reviewCount = [10, 20, 30].contains(
+        reviewCount = [0, 10, 20, 30].contains(
             preset.reviewCount
         )
             ? preset.reviewCount
