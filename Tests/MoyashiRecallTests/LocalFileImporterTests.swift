@@ -1,6 +1,12 @@
 import XCTest
 @testable import MoyashiRecall
 
+#if canImport(PDFKit)
+import PDFKit
+import CoreGraphics
+import CoreText
+#endif
+
 final class LocalFileImporterTests: XCTestCase {
     func testImportsUTF8TextFile() throws {
         let directory = FileManager.default.temporaryDirectory
@@ -122,7 +128,7 @@ final class LocalFileImporterTests: XCTestCase {
     func testRejectsUnsupportedExtension() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(
-                "\(UUID().uuidString).docx"
+                "\(UUID().uuidString).xyz"
             )
         try Data("test".utf8).write(to: url)
         defer {
@@ -136,7 +142,7 @@ final class LocalFileImporterTests: XCTestCase {
         ) { error in
             XCTAssertEqual(
                 error as? LocalFileImportError,
-                .unsupportedExtension("docx")
+                .unsupportedExtension("xyz")
             )
         }
     }
@@ -266,23 +272,20 @@ final class LocalFileImporterTests: XCTestCase {
 
     #if canImport(PDFKit)
     func testPDFImportCreatesPageLevelDocuments() throws {
-        let base64 = """
-        JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCAzMDAgMzAwIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjQgMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyA2IDAgUiAvVHlwZSAvQ2F0YWxvZwo+PgplbmRvYmoKNSAwIG9iago8PAovQXV0aG9yIChhbm9ueW1vdXMpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjA5MjUwNTA5MDgrMDAnMDAnKSAvQ3JlYXRvciAoYW5vbnltb3VzKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAyNjA5MjUwNTA5MDgrMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIFwob3BlbnNvdXJjZVwpKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAodW50aXRsZWQpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNiAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDMgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDExMgo+PgpzdHJlYW0KR2FwUWgwRT1GLDBVXEgzVFxwTllUXlFLaz90Yz5JUCw7VydVMV4yM2loUEVNXz9DVzRLSVNpNjpiWFheOj5HOUNkLiM7YDlKJEsxPChaR183O1s+b2Y6SzkqdTwhXlREI2dpXWY7O19LVVIwIikiPn5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzw5YjRhZTE2MjNlZjlhODYxOTdlNzk5OGM4YTZlZWYxMD48OWI0YWUxNjIzZWY5YTg2MTk3ZTc5OThjOGE2ZWVmMTA+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjk4MgolJUVPRgo=
-        """
-
-        let data = try XCTUnwrap(
-            Data(base64Encoded: base64)
-        )
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(
                 "\(UUID().uuidString).pdf"
             )
-        try data.write(to: url)
         defer {
             try? FileManager.default.removeItem(
                 at: url
             )
         }
+
+        try makeTextPDF(
+            text: "Moyashi PDF Page 1",
+            at: url
+        )
 
         let result = try LocalFileImporter()
             .importFile(at: url)
@@ -317,6 +320,66 @@ final class LocalFileImporterTests: XCTestCase {
             )
         )
     }
+
+    private func makeTextPDF(
+        text: String,
+        at url: URL
+    ) throws {
+        guard
+            let consumer = CGDataConsumer(
+                url: url as CFURL
+            )
+        else {
+            XCTFail("Unable to create PDF consumer")
+            return
+        }
+
+        var mediaBox = CGRect(
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 300
+        )
+        guard
+            let context = CGContext(
+                consumer: consumer,
+                mediaBox: &mediaBox,
+                nil
+            )
+        else {
+            XCTFail("Unable to create PDF context")
+            return
+        }
+
+        context.beginPDFPage(nil)
+
+        let attributed = NSAttributedString(
+            string: text,
+            attributes: [
+                NSAttributedString.Key(
+                    kCTFontAttributeName as String
+                ): CTFontCreateWithName(
+                    "Helvetica" as CFString,
+                    18,
+                    nil
+                )
+            ]
+        )
+        let line = CTLineCreateWithAttributedString(
+            attributed
+        )
+        context.textPosition = CGPoint(
+            x: 40,
+            y: 150
+        )
+        CTLineDraw(
+            line,
+            context
+        )
+
+        context.endPDFPage()
+        context.closePDF()
+    }
     #endif
 
 
@@ -331,7 +394,7 @@ final class LocalFileImporterTests: XCTestCase {
         )
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(
-                "\(UUID().uuidString).docx"
+                "\(UUID().uuidString).xyz"
             )
         try data.write(to: url)
         defer {
