@@ -710,8 +710,7 @@ public struct StudyScopeView: View {
         selectNewlyAvailable: Bool = false
     ) {
         guard !selectedSources.isEmpty,
-              !selectedCardTypes.isEmpty,
-              !selectedDocumentIDs.isEmpty
+              !selectedCardTypes.isEmpty
         else {
             documents = []
             selectedDocumentIDs = []
@@ -724,8 +723,7 @@ public struct StudyScopeView: View {
             )
             let refreshed = try repository.reviewDocuments(
                 sourceKeys: selectedSourceKeys,
-                cardTypes: selectedCardTypeIDs,
-                sourceDocumentIDs: selectedDocumentIDs
+                cardTypes: selectedCardTypeIDs
             )
             let refreshedIDs = Set(
                 refreshed.map(\.id)
@@ -765,7 +763,8 @@ public struct StudyScopeView: View {
 
     private func refreshFilteredDueCount() {
         guard !selectedSources.isEmpty,
-              !selectedCardTypes.isEmpty
+              !selectedCardTypes.isEmpty,
+              !selectedDocumentIDs.isEmpty
         else {
             filteredDueCount = 0
             return
@@ -777,7 +776,8 @@ public struct StudyScopeView: View {
             )
             filteredDueCount = try repository.dueCardCount(
                 sourceKeys: selectedSourceKeys,
-                cardTypes: selectedCardTypeIDs
+                cardTypes: selectedCardTypeIDs,
+                sourceDocumentIDs: selectedDocumentIDs
             )
         } catch {
             filteredDueCount = 0
