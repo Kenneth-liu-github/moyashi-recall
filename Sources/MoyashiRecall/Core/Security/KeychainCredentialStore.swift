@@ -28,9 +28,7 @@ public struct KeychainCredentialStore {
         ]
 
         let update: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String:
-                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            kSecValueData as String: data
         ]
 
         let updateStatus = SecItemUpdate(
