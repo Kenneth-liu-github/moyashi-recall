@@ -139,7 +139,8 @@ public struct LibraryView: View {
     private var supportedFileTypes: [UTType] {
         var types: [UTType] = [
             .pdf,
-            .plainText
+            .plainText,
+            .image
         ]
 
         if let markdown = UTType(
