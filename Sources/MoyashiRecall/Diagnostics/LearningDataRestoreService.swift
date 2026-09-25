@@ -91,6 +91,8 @@ public struct LearningDataRestoreService {
             try context.save()
         }
 
+        try preflightIdentityConflicts(package)
+
         let previousAutosave = context.autosaveEnabled
         context.autosaveEnabled = false
 
@@ -110,6 +112,145 @@ public struct LearningDataRestoreService {
         }
     }
 
+    private func preflightIdentityConflicts(
+        _ package: LearningDataExportPackage
+    ) throws {
+        let localSources = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        let localKnowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        let localCards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+
+        let sourcesByID = Dictionary(
+            grouping: localSources,
+            by: \.id
+        )
+        let sourcesByStableKey = Dictionary(
+            grouping: localSources.filter {
+                !$0.externalSourceID.isEmpty
+            },
+            by: Self.sourceStableKey
+        )
+        var sourceIDMap: [UUID: UUID] = [:]
+
+        for record in package.sources {
+            let idMatch = sourcesByID[record.id]?.first
+            if let idMatch,
+               !Self.sameSourceIdentity(
+                    idMatch,
+                    record
+               ) {
+                throw LearningDataRestoreError
+                    .sourceIdentityConflict(record.id)
+            }
+
+            let semanticMatch: SourceDocumentEntity?
+            if record.externalSourceID.isEmpty {
+                semanticMatch = nil
+            } else {
+                let matches = sourcesByStableKey[
+                    Self.sourceStableKey(record)
+                ] ?? []
+                semanticMatch = matches.count == 1
+                    ? matches[0]
+                    : nil
+            }
+
+            sourceIDMap[record.id] =
+                idMatch?.id
+                ?? semanticMatch?.id
+                ?? record.id
+        }
+
+        let knowledgeByID = Dictionary(
+            grouping: localKnowledge,
+            by: \.id
+        )
+        let knowledgeByStableKey = Dictionary(
+            grouping: localKnowledge.filter {
+                $0.sourceDocumentID != nil
+                    && !$0.extractionKey.isEmpty
+            },
+            by: Self.knowledgeStableKey
+        )
+        var knowledgeIDMap: [UUID: UUID] = [:]
+
+        for record in package.knowledgeItems {
+            let mappedSourceID = record.sourceDocumentID
+                .flatMap {
+                    sourceIDMap[$0] ?? $0
+                }
+
+            let idMatch = knowledgeByID[record.id]?.first
+            if let idMatch,
+               !Self.sameKnowledgeIdentity(
+                    idMatch,
+                    mappedSourceID: mappedSourceID,
+                    extractionKey: record.extractionKey
+               ) {
+                throw LearningDataRestoreError
+                    .knowledgeIdentityConflict(record.id)
+            }
+
+            let stableKey = Self.knowledgeStableKey(
+                sourceDocumentID: mappedSourceID,
+                extractionKey: record.extractionKey
+            )
+            let matches = stableKey.flatMap {
+                knowledgeByStableKey[$0]
+            } ?? []
+            let semanticMatch = matches.count == 1
+                ? matches[0]
+                : nil
+
+            knowledgeIDMap[record.id] =
+                idMatch?.id
+                ?? semanticMatch?.id
+                ?? record.id
+        }
+
+        let cardsByID = Dictionary(
+            grouping: localCards,
+            by: \.id
+        )
+        let cardsByStableKey = Dictionary(
+            grouping: localCards.filter {
+                !$0.generationKey.isEmpty
+            },
+            by: Self.cardStableKey
+        )
+
+        for record in package.flashcards {
+            let mappedKnowledgeID =
+                knowledgeIDMap[record.knowledgeItemID]
+                    ?? record.knowledgeItemID
+
+            if let idMatch = cardsByID[record.id]?.first,
+               !Self.sameFlashcardIdentity(
+                    idMatch,
+                    mappedKnowledgeID: mappedKnowledgeID,
+                    generationKey: record.generationKey
+               ) {
+                throw LearningDataRestoreError
+                    .flashcardIdentityConflict(record.id)
+            }
+
+            if !record.generationKey.isEmpty {
+                let stableKey = Self.cardStableKey(
+                    knowledgeItemID: mappedKnowledgeID,
+                    generationKey: record.generationKey
+                )
+                if let stableKey {
+                    _ = cardsByStableKey[stableKey]
+                }
+            }
+        }
+    }
+
     private func mergeValidatedPackage(
         _ package: LearningDataExportPackage
     ) throws -> LearningDataRestoreReport {
@@ -121,6 +262,18 @@ public struct LearningDataRestoreService {
 
         let localSources = try context.fetch(
             FetchDescriptor<SourceDocumentEntity>()
+        )
+        let localKnowledge = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        let localCards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        let localStates = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
+        let localHistory = try context.fetch(
+            FetchDescriptor<ReviewHistoryEntity>()
         )
         var sourceByID = Dictionary(
             uniqueKeysWithValues: localSources.map {
@@ -184,9 +337,6 @@ public struct LearningDataRestoreService {
             }
         }
 
-        let localKnowledge = try context.fetch(
-            FetchDescriptor<KnowledgeItemEntity>()
-        )
         var knowledgeByID = Dictionary(
             uniqueKeysWithValues: localKnowledge.map {
                 ($0.id, $0)
@@ -261,9 +411,6 @@ public struct LearningDataRestoreService {
             }
         }
 
-        let localCards = try context.fetch(
-            FetchDescriptor<FlashcardEntity>()
-        )
         var cardByID = Dictionary(
             uniqueKeysWithValues: localCards.map {
                 ($0.id, $0)
@@ -342,9 +489,6 @@ public struct LearningDataRestoreService {
             }
         }
 
-        let localStates = try context.fetch(
-            FetchDescriptor<ReviewStateEntity>()
-        )
         var stateByCardID = Dictionary(
             uniqueKeysWithValues: localStates.map {
                 ($0.cardID, $0)
@@ -377,9 +521,6 @@ public struct LearningDataRestoreService {
             }
         }
 
-        let localHistory = try context.fetch(
-            FetchDescriptor<ReviewHistoryEntity>()
-        )
         var historyIDs = Set(
             localHistory.map(\.id)
         )
