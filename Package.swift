@@ -29,7 +29,8 @@ let package = Package(
                 "Sources/Notion/NotionAPIClient.swift",
                 "Features/StudyScope/StudyScopePreferences.swift",
                 "Features/StudyScope/StudyPresetStore.swift",
-                "Features/Review/ReviewSessionSummaryStore.swift"
+                "Features/Review/ReviewSessionSummaryStore.swift",
+                "Speech/JapaneseSpeechText.swift"
             ]
         ),
         .testTarget(
@@ -48,7 +49,8 @@ let package = Package(
                 "AIProviderConfigurationTests.swift",
                 "StudyScopePreferencesTests.swift",
                 "StudyPresetStoreTests.swift",
-                "ReviewSessionSummaryStoreTests.swift"
+                "ReviewSessionSummaryStoreTests.swift",
+                "JapaneseSpeechTextTests.swift"
             ]
         )
     ]
