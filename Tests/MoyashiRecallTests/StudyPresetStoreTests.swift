@@ -130,4 +130,94 @@ final class StudyPresetStoreTests: XCTestCase {
             )
         }
     }
+    func testPresetPersistsDocumentIDs() throws {
+        let suiteName = "StudyPresetDocumentIDs.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(
+            UserDefaults(suiteName: suiteName)
+        )
+        defer {
+            defaults.removePersistentDomain(
+                forName: suiteName
+            )
+        }
+
+        let first = UUID()
+        let second = UUID()
+        let saved = try StudyPresetStore().save(
+            name: "第二课",
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.zhToJa.rawValue
+            ],
+            documentIDs: [first, second],
+            reviewCount: 20,
+            defaults: defaults
+        )
+
+        XCTAssertEqual(
+            saved.documentIDs,
+            [first, second]
+        )
+        XCTAssertEqual(
+            StudyPresetStore()
+                .load(defaults: defaults)
+                .first?
+                .documentIDs,
+            [first, second]
+        )
+    }
+
+    func testLegacyPresetWithoutDocumentIDsStillDecodes() throws {
+        struct LegacyPreset: Codable {
+            let id: UUID
+            let name: String
+            let sourceKeys: Set<String>
+            let cardTypes: Set<String>
+            let reviewCount: Int
+            let createdAt: Date
+            let updatedAt: Date
+        }
+
+        let suiteName = "StudyPresetLegacy.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(
+            UserDefaults(suiteName: suiteName)
+        )
+        defer {
+            defaults.removePersistentDomain(
+                forName: suiteName
+            )
+        }
+
+        let legacy = LegacyPreset(
+            id: UUID(),
+            name: "旧方案",
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.application.rawValue
+            ],
+            reviewCount: 10,
+            createdAt: Date(
+                timeIntervalSince1970: 1_700_000_000
+            ),
+            updatedAt: Date(
+                timeIntervalSince1970: 1_700_000_100
+            )
+        )
+
+        defaults.set(
+            try JSONEncoder().encode([legacy]),
+            forKey: "savedStudyPresets"
+        )
+
+        let loaded = try XCTUnwrap(
+            StudyPresetStore()
+                .load(defaults: defaults)
+                .first
+        )
+
+        XCTAssertEqual(loaded.name, "旧方案")
+        XCTAssertNil(loaded.documentIDs)
+    }
+
+
 }
