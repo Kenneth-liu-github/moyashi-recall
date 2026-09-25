@@ -11,6 +11,7 @@ public struct HomeView: View {
     )
     @State private var loadError: String?
     @State private var lastSessionSummary: ReviewSessionSummary?
+    @State private var readiness: AppReadinessSnapshot?
 
     public init() {}
 
@@ -75,6 +76,11 @@ public struct HomeView: View {
                                 "7日間成功率"
                             )
                         )
+                    }
+
+                    if let readiness,
+                       !readiness.readyForReview {
+                        setupCard(readiness)
                     }
 
                     VStack(
@@ -281,6 +287,7 @@ public struct HomeView: View {
             .navigationTitle("Moyashi Recall")
             .onAppear {
                 loadSnapshot()
+                loadReadiness()
                 loadLastSessionSummary()
 
                 Task {
@@ -288,6 +295,93 @@ public struct HomeView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func setupCard(
+        _ readiness: AppReadinessSnapshot
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: 12
+        ) {
+            Text(
+                language.text(
+                    "开始使用",
+                    "はじめに"
+                )
+            )
+            .font(.headline)
+
+            if !readiness.notionReady {
+                Text(
+                    language.text(
+                        "先连接 Notion 并同步学习资料。",
+                        "まずNotionを接続して学習資料を同期してください。"
+                    )
+                )
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.muted)
+
+                NavigationLink {
+                    NotionConnectionView()
+                } label: {
+                    Label(
+                        language.text(
+                            "配置 Notion",
+                            "Notionを設定"
+                        ),
+                        systemImage: "arrow.right.circle"
+                    )
+                }
+            }
+
+            if readiness.notionReady
+                && !readiness.aiReady {
+                Text(
+                    language.text(
+                        "资料已同步。下一步配置 AI Provider 和模型。",
+                        "資料は同期済みです。次にAI Providerとモデルを設定してください。"
+                    )
+                )
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.muted)
+
+                NavigationLink {
+                    AIProviderSettingsView()
+                } label: {
+                    Label(
+                        language.text(
+                            "配置 AI",
+                            "AIを設定"
+                        ),
+                        systemImage: "arrow.right.circle"
+                    )
+                }
+            }
+
+            if readiness.notionReady
+                && readiness.aiReady
+                && readiness.activeCardCount == 0 {
+                Text(
+                    language.text(
+                        "Notion 和 AI 已就绪。进入资料库，打开同步页面并生成第一批复习卡片。",
+                        "NotionとAIの準備が完了しました。ライブラリで同期ページを開き、最初の復習カードを生成してください。"
+                    )
+                )
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.muted)
+            }
+        }
+        .padding(16)
+        .background(
+            Color.gray.opacity(0.10)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: AppTheme.cornerRadius
+            )
+        )
     }
 
     private var successRateText: String {
@@ -330,6 +424,16 @@ public struct HomeView: View {
             title: "Moyashi Recall",
             body: body
         )
+    }
+
+    private func loadReadiness() {
+        do {
+            readiness = try AppReadinessService(
+                context: modelContext
+            ).snapshot()
+        } catch {
+            readiness = nil
+        }
     }
 
     private func loadLastSessionSummary() {
