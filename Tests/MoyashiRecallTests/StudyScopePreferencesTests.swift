@@ -42,14 +42,14 @@ final class StudyScopePreferencesTests: XCTestCase {
         )
     }
 
-    func testStudyScopeReviewCountIsClamped() {
+    func testStudyScopeReviewCountSupportsAllDueAndClampsPositiveValues() {
         XCTAssertEqual(
             StudyScopePreferences(
                 sourceKeys: [],
                 cardTypes: [],
                 reviewCount: 0
             ).reviewCount,
-            1
+            0
         )
 
         XCTAssertEqual(
