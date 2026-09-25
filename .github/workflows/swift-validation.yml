@@ -22,4 +22,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run full macOS and iOS validation
-        run: bash scripts/validate-v0.4-macos.sh
+        run: bash scripts/validate-macos.sh
