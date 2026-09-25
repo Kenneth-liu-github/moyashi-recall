@@ -13,12 +13,7 @@ public struct SpeechSettingsView: View {
 
     public var body: some View {
         Form {
-            Section(
-                language.text(
-                    "日语朗读",
-                    "日本語読み上げ"
-                )
-            ) {
+            Section {
                 Picker(
                     language.text(
                         "语速",
@@ -40,6 +35,13 @@ public struct SpeechSettingsView: View {
                         "答え表示後に自動読み上げ"
                     ),
                     isOn: $preferences.autoPlayAnswer
+                )
+            } header: {
+                Text(
+                    language.text(
+                        "日语朗读",
+                        "日本語読み上げ"
+                    )
                 )
             } footer: {
                 Text(
