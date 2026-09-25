@@ -23,6 +23,36 @@ Prove that the consolidated pre-1.0 codebase can build not only in Debug Simulat
 - No regression in V0.1–V0.11.
 - CI returns to manual-only after validation.
 
-## Current state
+## Validation
 
-V0.12 branch created from the latest mainline. Release-archive gate implementation pending validation.
+GitHub Actions run #178 passed on commit:
+
+`02fe0136a2bed37fd19547ab4ea6e5cadfbd9ff9`
+
+Results:
+
+- portable Linux core tests: passed
+- full macOS / SwiftData test suite: passed
+- Debug iOS Simulator build: passed
+- release-readiness audit: 0 engineering failures
+- unsigned Release archive for generic iOS: passed
+- archived app bundle: present
+- archived PrivacyInfo.xcprivacy: present
+- V0.1–V0.11 regression gate: passed
+
+The release audit now distinguishes engineering failures from external distribution blockers.
+
+Current external distribution blockers are:
+
+1. final App Icon asset is not yet supplied,
+2. AppIcon target build setting remains pending that asset,
+3. Apple Development Team must be selected for signed distribution,
+4. `com.moyashi.recall` must be verified/registered in the intended Apple Developer account.
+
+These blockers do not prevent the unsigned Release archive from succeeding and are intentionally not fabricated in source control.
+
+## Freeze state
+
+**V0.12 engineering freeze: PASSED.**
+
+Signed TestFlight/App Store distribution remains pending the documented external prerequisites.
