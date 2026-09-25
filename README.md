@@ -74,6 +74,16 @@ Source → Source Document → AI Knowledge Item → Flashcard → Review Histor
 - multi-file import
 - source archive with Review History preservation
 
+### V0.7 — Granular scope, diagnostics & export
+
+- document/page-level Study Scope
+- persisted granular scope in preferences and presets
+- all-due review sessions
+- source-agnostic first-run readiness
+- system diagnostics and recovery links
+- credential-free JSON learning-data export
+- deterministic backup schema with inactive-history preservation
+
 ## Development workflow
 
 Feature work is isolated on stacked branches and draft pull requests. A milestone is not merged until its validation gate is satisfied.
