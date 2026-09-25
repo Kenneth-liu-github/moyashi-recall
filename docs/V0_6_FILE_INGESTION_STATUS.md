@@ -107,12 +107,16 @@ Added coverage for:
 
 No new production force unwraps, `try!`, `fatalError`, or unresolved TODO/FIXME markers are present in the V0.6 changes.
 
-## Remaining V0.6 gates
+## Validation state
 
-- Execute Apple-platform PDF/DOCX/Vision tests in a working Xcode/macOS runner.
-- Run the full SwiftData test suite.
-- Run the iOS Simulator build.
-- Perform a device/simulator UX pass for the system document picker and security-scoped URLs.
+Automated engineering validation passed in GitHub Actions run #148:
+
+- portable Linux tests: passed
+- full macOS / SwiftData tests: passed
+- Apple-platform PDF and DOCX fixtures: passed
+- iOS Simulator build: passed
+
+Remaining release-readiness work is limited to an interactive device/simulator UX smoke pass for the document picker, security-scoped URLs, OCR on real images, and notification/audio behavior.
 
 ## Deferred formats
 
@@ -120,6 +124,4 @@ Native XLSX and PPTX structured extraction are intentionally deferred to the nex
 
 ## V0.6 completion state
 
-Feature implementation is complete enough to be treated as a **V0.6 freeze candidate**.
-
-PR remains Draft until the Apple/Xcode validation gate can execute normally.
+Local file ingestion has passed the automated engineering gate and is included in the **V0.6 engineering freeze**.
