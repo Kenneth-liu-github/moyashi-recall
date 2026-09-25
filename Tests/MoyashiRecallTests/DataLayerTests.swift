@@ -1000,4 +1000,84 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testArchivingLocalFilePreservesReviewHistory() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let source = SourceDocumentEntity(
+            title: "notes.txt",
+            content: "content",
+            sourceKind: "file",
+            externalSourceID: "local-file:notes:abc",
+            rootExternalSourceID: "local-file:notes:abc",
+            sourcePath: "Imported Files / notes.txt",
+            sourceKey: "file-abc",
+            sourceReference: "local-file://notes.txt"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "表現（ひょうげん）",
+            content: "content",
+            sourceKind: "file",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "card",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let event = ReviewHistoryEntity(
+            cardID: card.id,
+            reviewedAt: .now,
+            ratingRawValue: ReviewRating.good.rawValue,
+            elapsedDays: 1,
+            scheduledDays: 2,
+            stabilityBefore: 1,
+            stabilityAfter: 2,
+            difficultyBefore: 5,
+            difficultyAfter: 4
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        context.insert(event)
+        try context.save()
+
+        let archived = try repository.archiveImportedSource(
+            sourceKind: "file",
+            rootExternalID: source.rootExternalSourceID
+        )
+
+        XCTAssertEqual(archived, 1)
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "file"
+            ).count,
+            0
+        )
+        XCTAssertTrue(
+            try repository.dueSessionCards().isEmpty
+        )
+        XCTAssertEqual(
+            try repository.recentReviewHistory().count,
+            1
+        )
+    }
+
+
 }
