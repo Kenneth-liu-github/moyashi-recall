@@ -33,7 +33,9 @@ let package = Package(
                 "Features/Review/ReviewSessionSummaryStore.swift",
                 "Speech/JapaneseSpeechText.swift",
                 "Speech/JapaneseSpeechPreferences.swift",
-                "Notifications/ReviewReminderPreferences.swift"
+                "Notifications/ReviewReminderPreferences.swift",
+                "Diagnostics/LearningDataPackage.swift",
+                "Diagnostics/LearningDataImportValidator.swift"
             ]
         ),
         .testTarget(
@@ -56,7 +58,8 @@ let package = Package(
                 "LocalFileImporterTests.swift",
                 "JapaneseSpeechTextTests.swift",
                 "ReviewReminderPreferencesTests.swift",
-                "JapaneseSpeechPreferencesTests.swift"
+                "JapaneseSpeechPreferencesTests.swift",
+                "LearningDataImportValidatorTests.swift"
             ]
         )
     ]
