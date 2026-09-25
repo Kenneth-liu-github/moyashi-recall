@@ -21,6 +21,8 @@
 - [ ] App target points to the AppIcon asset.
 - [ ] Apple Developer signing team is selected.
 - [ ] Bundle identifier ownership/registration is confirmed.
+- [ ] Public privacy policy URL is available.
+- [ ] App Store Connect privacy answers are reviewed against AI-provider retention behavior.
 - [ ] Archive succeeds with distribution signing.
 - [ ] TestFlight upload succeeds.
 
