@@ -1193,6 +1193,11 @@ public struct LearningRepository {
             return components[1]
         }
 
+        if components.first == "Imported Files",
+           components.count >= 2 {
+            return components[1]
+        }
+
         return components.first ?? sourcePath
     }
 
