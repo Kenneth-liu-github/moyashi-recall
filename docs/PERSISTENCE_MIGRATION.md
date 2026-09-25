@@ -49,3 +49,24 @@ When the source changes later, Library marks the AI result as stale until knowle
 Before any incompatible schema change, introduce a SwiftData `VersionedSchema` and `SchemaMigrationPlan`. Store recreation is not an acceptable production migration strategy.
 
 No V0.4 code path intentionally deletes the local SwiftData store or review history.
+
+
+## V0.11 versioned schema baseline
+
+Before the first external TestFlight data becomes a durable compatibility commitment, Moyashi Recall establishes an explicit SwiftData schema baseline:
+
+- `MoyashiRecallSchemaV1` uses `Schema.Version(1, 0, 0)`.
+- `MoyashiRecallMigrationPlan` is now the canonical migration-plan entry point.
+- The App creates its persistent container from `Schema(versionedSchema: MoyashiRecallSchemaV1.self)`.
+- Container creation failure does not delete or recreate the local store. The App displays a blocking recovery message instead.
+- Future incompatible model changes must add a new VersionedSchema and an explicit MigrationStage.
+
+Compatibility was proven with an on-disk migration test that:
+
+1. creates the pre-V0.11 unversioned schema,
+2. writes a real SourceDocument to a temporary SQLite store,
+3. closes that container,
+4. reopens the same store through the V1 VersionedSchema + MigrationPlan,
+5. verifies the persisted record and content are preserved.
+
+This test passed in GitHub Actions run #174.
