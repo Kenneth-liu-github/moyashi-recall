@@ -197,5 +197,21 @@ final class LocalFileImporterTests: XCTestCase {
             .documents[0].id
 
         XCTAssertNotEqual(firstID, secondID)
+
+        let firstDocument = try importer
+            .importFile(at: first)
+            .documents[0]
+        let secondDocument = try importer
+            .importFile(at: second)
+            .documents[0]
+
+        XCTAssertNotEqual(
+            firstDocument.sourceKeyHint,
+            secondDocument.sourceKeyHint
+        )
+        XCTAssertEqual(
+            firstDocument.sourcePath,
+            secondDocument.sourcePath
+        )
     }
 }
