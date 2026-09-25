@@ -576,7 +576,7 @@ public struct StudyScopeView: View {
                     }
                 )
 
-                reviewCount = [10, 20, 30].contains(
+                reviewCount = [0, 10, 20, 30].contains(
                     saved.reviewCount
                 )
                     ? saved.reviewCount
