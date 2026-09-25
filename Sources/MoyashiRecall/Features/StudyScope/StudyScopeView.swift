@@ -352,6 +352,7 @@ public struct StudyScopeView: View {
             selectedCardTypes.insert(type)
         }
         persistPreferences()
+        refreshSourceDueCounts()
         refreshFilteredDueCount()
     }
 
@@ -389,7 +390,9 @@ public struct StudyScopeView: View {
             let repository = LearningRepository(
                 context: modelContext
             )
-            sources = try repository.reviewSources()
+            sources = try repository.reviewSources(
+                cardTypes: selectedCardTypeIDs
+            )
 
             let availableKeys = Set(
                 sources.map(\.key)
@@ -524,6 +527,19 @@ public struct StudyScopeView: View {
             )
         } catch {
             // Preferences are non-critical; the review flow can continue.
+        }
+    }
+
+    private func refreshSourceDueCounts() {
+        do {
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            sources = try repository.reviewSources(
+                cardTypes: selectedCardTypeIDs
+            )
+        } catch {
+            // Keep the last known source list if only the count refresh fails.
         }
     }
 
