@@ -35,6 +35,7 @@ public enum AIHTTPRetryPolicy {
         }
 
         let exponent = max(0, min(attempt, 3))
-        return min(pow(2.0, Double(exponent)), 8)
+        let seconds = Double(1 << exponent)
+        return min(seconds, 8)
     }
 }
