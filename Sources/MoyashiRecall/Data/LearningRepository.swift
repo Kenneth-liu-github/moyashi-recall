@@ -212,6 +212,34 @@ public enum LearningRepositoryError: Error, Equatable {
     case emptyExtractionWouldDeactivateExisting(UUID)
 }
 
+public struct ReviewHistorySummary: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let cardID: UUID
+    public let reviewedAt: Date
+    public let rating: ReviewRating
+    public let prompt: String
+    public let answer: String
+    public let sourceDisplay: String
+
+    public init(
+        id: UUID,
+        cardID: UUID,
+        reviewedAt: Date,
+        rating: ReviewRating,
+        prompt: String,
+        answer: String,
+        sourceDisplay: String
+    ) {
+        self.id = id
+        self.cardID = cardID
+        self.reviewedAt = reviewedAt
+        self.rating = rating
+        self.prompt = prompt
+        self.answer = answer
+        self.sourceDisplay = sourceDisplay
+    }
+}
+
 public struct WeakKnowledgeSummary: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let title: String
@@ -1010,6 +1038,54 @@ public struct LearningRepository {
             $0.title.localizedCompare(
                 $1.title
             ) == .orderedAscending
+        }
+    }
+
+    public func recentReviewHistory(
+        limit: Int = 100
+    ) throws -> [ReviewHistorySummary] {
+        let safeLimit = min(max(limit, 1), 500)
+        var descriptor = FetchDescriptor<ReviewHistoryEntity>(
+            sortBy: [
+                SortDescriptor(
+                    \.reviewedAt,
+                    order: .reverse
+                )
+            ]
+        )
+        descriptor.fetchLimit = safeLimit
+
+        let history = try context.fetch(descriptor)
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        let cardByID = Dictionary(
+            uniqueKeysWithValues: cards.map {
+                ($0.id, $0)
+            }
+        )
+
+        return history.compactMap { event in
+            guard
+                let rating = ReviewRating(
+                    rawValue: event.ratingRawValue
+                ),
+                let card = cardByID[event.cardID]
+            else {
+                return nil
+            }
+
+            return ReviewHistorySummary(
+                id: event.id,
+                cardID: event.cardID,
+                reviewedAt: event.reviewedAt,
+                rating: rating,
+                prompt: card.prompt,
+                answer: card.answer,
+                sourceDisplay: card.sourceDisplayPath.isEmpty
+                    ? card.sourceReference
+                    : card.sourceDisplayPath
+            )
         }
     }
 
