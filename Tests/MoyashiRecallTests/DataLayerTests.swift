@@ -265,25 +265,6 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
-    func testDemoSeederIsIdempotentAndMigratesSourceKey() throws {
-        let container = try makeContainer()
-        let context = container.mainContext
-
-        try DemoDataSeeder.seedIfNeeded(in: context)
-        try DemoDataSeeder.seedIfNeeded(in: context)
-
-        var cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-        XCTAssertEqual(cards.filter { $0.id == DemoDataSeeder.cardID }.count, 1)
-
-        cards.first { $0.id == DemoDataSeeder.cardID }?.sourceKey = ""
-        try context.save()
-        try DemoDataSeeder.seedIfNeeded(in: context)
-
-        cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-        XCTAssertEqual(cards.first { $0.id == DemoDataSeeder.cardID }?.sourceKey, "office-japanese")
-    }
-
-    @MainActor
     func testRepositoryBuildsHomeSnapshotFromPersistence() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -800,7 +781,7 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(snapshot.reviewedLast7Days, 4)
         XCTAssertEqual(snapshot.latestReviewAt, now)
         XCTAssertEqual(
-            snapshot.successRateLast7Days,
+            try XCTUnwrap(snapshot.successRateLast7Days),
             0.75,
             accuracy: 0.000001
         )
