@@ -26,7 +26,10 @@ let package = Package(
                 "AI/AnthropicMessagesProvider.swift",
                 "Sources/LearningContentSource.swift",
                 "Sources/SourceKeyResolver.swift",
-                "Sources/Notion/NotionAPIClient.swift"
+                "Sources/Notion/NotionAPIClient.swift",
+                "Features/StudyScope/StudyScopePreferences.swift",
+                "Features/StudyScope/StudyPresetStore.swift",
+                "Features/Review/ReviewSessionSummaryStore.swift"
             ]
         ),
         .testTarget(
@@ -42,7 +45,10 @@ let package = Package(
                 "OpenAIResponsesProviderTests.swift",
                 "AnthropicMessagesProviderTests.swift",
                 "AIHTTPRetryPolicyTests.swift",
-                "AIProviderConfigurationTests.swift"
+                "AIProviderConfigurationTests.swift",
+                "StudyScopePreferencesTests.swift",
+                "StudyPresetStoreTests.swift",
+                "ReviewSessionSummaryStoreTests.swift"
             ]
         )
     ]
