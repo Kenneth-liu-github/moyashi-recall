@@ -12,8 +12,13 @@ public struct StudyScopeView: View {
     )
     @State private var reviewCount = 20
     @State private var filteredDueCount = 0
+    @State private var presets: [SavedStudyPreset] = []
+    @State private var showingSavePreset = false
+    @State private var presetNameDraft = ""
+    @State private var presetStatusMessage: String?
 
     private let preferencesStore = StudyScopePreferencesStore()
+    private let presetStore = StudyPresetStore()
 
     public init() {}
 
@@ -31,6 +36,50 @@ public struct StudyScopeView: View {
 
     public var body: some View {
         List {
+            if !presets.isEmpty {
+                Section(
+                    language.text(
+                        "快速方案",
+                        "クイックプリセット"
+                    )
+                ) {
+                    ForEach(presets) { preset in
+                        HStack {
+                            Button {
+                                applyPreset(preset)
+                            } label: {
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 3
+                                ) {
+                                    Text(preset.name)
+                                        .foregroundStyle(AppTheme.ink)
+
+                                    Text(
+                                        language.text(
+                                            "\(preset.sourceKeys.count) 个来源 · \(preset.cardTypes.count) 种卡片 · \(preset.reviewCount) 张",
+                                            "\(preset.sourceKeys.count)ソース · \(preset.cardTypes.count)種類 · \(preset.reviewCount)枚"
+                                        )
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.muted)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+
+                            Button(role: .destructive) {
+                                deletePreset(preset)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+            }
+
             Section {
                 ForEach(sources) { source in
                     Button {
@@ -146,6 +195,14 @@ public struct StudyScopeView: View {
                 }
             }
 
+            if let presetStatusMessage {
+                Section {
+                    Text(presetStatusMessage)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                }
+            }
+
             Section {
                 NavigationLink {
                     ReviewView(
@@ -207,8 +264,70 @@ public struct StudyScopeView: View {
                 "学習範囲を選択"
             )
         )
+        .toolbar {
+            ToolbarItem(
+                placement: .primaryAction
+            ) {
+                Button {
+                    presetNameDraft = ""
+                    showingSavePreset = true
+                } label: {
+                    Image(
+                        systemName: "bookmark.badge.plus"
+                    )
+                }
+                .disabled(
+                    selectedSources.isEmpty
+                        || selectedCardTypes.isEmpty
+                )
+                .accessibilityLabel(
+                    language.text(
+                        "保存当前方案",
+                        "現在の設定を保存"
+                    )
+                )
+            }
+        }
+        .alert(
+            language.text(
+                "保存学习方案",
+                "学習プリセットを保存"
+            ),
+            isPresented: $showingSavePreset
+        ) {
+            TextField(
+                language.text(
+                    "方案名称",
+                    "プリセット名"
+                ),
+                text: $presetNameDraft
+            )
+            Button(
+                language.text(
+                    "保存",
+                    "保存"
+                )
+            ) {
+                saveCurrentPreset()
+            }
+            Button(
+                language.text(
+                    "取消",
+                    "キャンセル"
+                ),
+                role: .cancel
+            ) {}
+        } message: {
+            Text(
+                language.text(
+                    "使用同名方案时会更新原方案。",
+                    "同じ名前のプリセットは更新されます。"
+                )
+            )
+        }
         .onAppear {
             loadSources()
+            loadPresets()
         }
     }
 
@@ -309,6 +428,92 @@ public struct StudyScopeView: View {
             sources = []
             selectedSources = []
             filteredDueCount = 0
+        }
+    }
+
+    private func loadPresets() {
+        presets = presetStore.load()
+    }
+
+    private func saveCurrentPreset() {
+        do {
+            _ = try presetStore.save(
+                name: presetNameDraft,
+                sourceKeys: selectedSources,
+                cardTypes: selectedCardTypeIDs,
+                reviewCount: reviewCount
+            )
+            loadPresets()
+            presetStatusMessage = language.text(
+                "学习方案已保存。",
+                "学習プリセットを保存しました。"
+            )
+        } catch StudyPresetStoreError.emptyName {
+            presetStatusMessage = language.text(
+                "方案名称不能为空。",
+                "プリセット名を入力してください。"
+            )
+        } catch {
+            presetStatusMessage = language.text(
+                "无法保存学习方案。",
+                "学習プリセットを保存できませんでした。"
+            )
+        }
+    }
+
+    private func applyPreset(
+        _ preset: SavedStudyPreset
+    ) {
+        let availableKeys = Set(
+            sources.map(\.key)
+        )
+        selectedSources = preset.sourceKeys
+            .intersection(availableKeys)
+
+        selectedCardTypes = Set(
+            preset.cardTypes.compactMap {
+                ReviewCardType(rawValue: $0)
+            }
+        )
+
+        if selectedSources.isEmpty {
+            selectedSources = availableKeys
+        }
+        if selectedCardTypes.isEmpty {
+            selectedCardTypes = Set(
+                ReviewCardType.allCases
+            )
+        }
+
+        reviewCount = [10, 20, 30].contains(
+            preset.reviewCount
+        )
+            ? preset.reviewCount
+            : 20
+
+        persistPreferences()
+        refreshFilteredDueCount()
+        presetStatusMessage = language.text(
+            "已应用：\(preset.name)",
+            "適用済み：\(preset.name)"
+        )
+    }
+
+    private func deletePreset(
+        _ preset: SavedStudyPreset
+    ) {
+        do {
+            try presetStore.delete(id: preset.id)
+            loadPresets()
+            presetStatusMessage = language.text(
+                "已删除：\(preset.name)",
+                "削除済み：\(preset.name)"
+            )
+        } catch {
+            presetStatusMessage = language.text(
+                "无法删除学习方案。",
+                "学習プリセットを削除できませんでした。"
+            )
         }
     }
 
