@@ -22,6 +22,20 @@ public struct StudyScopeView: View {
         Set(selectedCardTypes.map(\.rawValue))
     }
 
+    private var selectedDueCount: Int {
+        sources
+            .filter {
+                selectedSources.contains($0.key)
+            }
+            .reduce(0) {
+                $0 + $1.dueCardCount
+            }
+    }
+
+    private var effectiveSessionCount: Int {
+        min(reviewCount, selectedDueCount)
+    }
+
     public var body: some View {
         List {
             Section {
@@ -55,11 +69,29 @@ public struct StudyScopeView: View {
 
                             Spacer()
 
-                            Text(
-                                "\(source.cardCount)"
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.muted)
+                            VStack(
+                                alignment: .trailing,
+                                spacing: 2
+                            ) {
+                                Text(
+                                    "\(source.dueCardCount)"
+                                )
+                                .font(.subheadline.bold())
+                                .foregroundStyle(
+                                    source.dueCardCount > 0
+                                        ? AppTheme.ink
+                                        : AppTheme.muted
+                                )
+
+                                Text(
+                                    language.text(
+                                        "到期 / 总 \(source.cardCount)",
+                                        "期限 / 合計 \(source.cardCount)"
+                                    )
+                                )
+                                .font(.caption2)
+                                .foregroundStyle(AppTheme.muted)
+                            }
                         }
                     }
                 }
@@ -130,8 +162,12 @@ public struct StudyScopeView: View {
                         Spacer()
                         Text(
                             language.text(
-                                "开始复习 · \(reviewCount) 张",
-                                "復習を開始 · \(reviewCount)枚"
+                                effectiveSessionCount == 0
+                                    ? "当前范围没有到期卡片"
+                                    : "开始复习 · \(effectiveSessionCount) 张",
+                                effectiveSessionCount == 0
+                                    ? "現在の範囲に期限カードはありません"
+                                    : "復習を開始 · \(effectiveSessionCount)枚"
                             )
                         )
                         .fontWeight(.semibold)
@@ -142,6 +178,7 @@ public struct StudyScopeView: View {
                 .disabled(
                     selectedSources.isEmpty
                         || selectedCardTypes.isEmpty
+                        || selectedDueCount == 0
                 )
             } footer: {
                 if selectedSources.isEmpty {
@@ -156,6 +193,13 @@ public struct StudyScopeView: View {
                         language.text(
                             "请至少选择一种卡片类型。",
                             "カードタイプを1つ以上選択してください。"
+                        )
+                    )
+                } else if selectedDueCount == 0 {
+                    Text(
+                        language.text(
+                            "当前选择范围没有到期卡片。",
+                            "現在選択した範囲に期限カードはありません。"
                         )
                     )
                 }
