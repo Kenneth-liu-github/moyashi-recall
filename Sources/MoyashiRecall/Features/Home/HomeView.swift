@@ -120,40 +120,74 @@ public struct HomeView: View {
                         }
 
                         NavigationLink {
-                            ReviewHistoryView()
-                        } label: {
-                            Label(
-                                language.text(
-                                    "查看复习记录",
-                                    "復習履歴を見る"
-                                ),
-                                systemImage: "clock.arrow.circlepath"
+                            ReviewView(
+                                sessionLimit: min(
+                                    max(snapshot.dueCount, 1),
+                                    20
+                                )
                             )
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accent)
-                        }
-
-                        NavigationLink {
-                            StudyScopeView()
                         } label: {
                             Label(
                                 language.text(
-                                    "选择范围并开始",
-                                    "範囲を選んで開始"
+                                    snapshot.dueCount == 0
+                                        ? "今天没有到期卡片"
+                                        : "开始今日复习 · \(min(snapshot.dueCount, 20)) 张",
+                                    snapshot.dueCount == 0
+                                        ? "今日は期限カードがありません"
+                                        : "今日の復習を開始 · \(min(snapshot.dueCount, 20))枚"
                                 ),
                                 systemImage: "play.fill"
                             )
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(AppTheme.accent)
-                            .foregroundStyle(.white)
+                            .background(
+                                snapshot.dueCount == 0
+                                    ? Color.gray.opacity(0.18)
+                                    : AppTheme.accent
+                            )
+                            .foregroundStyle(
+                                snapshot.dueCount == 0
+                                    ? AppTheme.muted
+                                    : .white
+                            )
                             .clipShape(
                                 RoundedRectangle(
                                     cornerRadius: 14
                                 )
                             )
                         }
+                        .disabled(snapshot.dueCount == 0)
+
+                        HStack {
+                            NavigationLink {
+                                StudyScopeView()
+                            } label: {
+                                Label(
+                                    language.text(
+                                        "选择学习范围",
+                                        "学習範囲を選択"
+                                    ),
+                                    systemImage: "slider.horizontal.3"
+                                )
+                            }
+
+                            Spacer()
+
+                            NavigationLink {
+                                ReviewHistoryView()
+                            } label: {
+                                Label(
+                                    language.text(
+                                        "复习记录",
+                                        "復習履歴"
+                                    ),
+                                    systemImage: "clock.arrow.circlepath"
+                                )
+                            }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
                     }
                     .padding(18)
                     .background(
