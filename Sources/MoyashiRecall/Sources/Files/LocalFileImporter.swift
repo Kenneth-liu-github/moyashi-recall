@@ -420,7 +420,22 @@ private enum ImageTextExtractor {
             throw LocalFileImportError.unreadableFile
         }
 
-        let observations = request.results ?? []
+        let observations = (request.results ?? [])
+            .sorted { lhs, rhs in
+                let verticalDelta = abs(
+                    lhs.boundingBox.maxY
+                        - rhs.boundingBox.maxY
+                )
+
+                if verticalDelta > 0.02 {
+                    return lhs.boundingBox.maxY
+                        > rhs.boundingBox.maxY
+                }
+
+                return lhs.boundingBox.minX
+                    < rhs.boundingBox.minX
+            }
+
         let lines = observations.compactMap {
             $0.topCandidates(1).first?.string
         }
