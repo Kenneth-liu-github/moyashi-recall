@@ -100,9 +100,9 @@ public struct AnthropicMessagesProvider: AICompletionProvider {
             withJSONObject: body
         )
 
-        let maxRateLimitRetries = 2
+        let maximumRetries = 2
 
-        for attempt in 0...maxRateLimitRetries {
+        for attempt in 0...maximumRetries {
             let (data, response) = try await transport.data(
                 for: urlRequest
             )
@@ -132,7 +132,7 @@ public struct AnthropicMessagesProvider: AICompletionProvider {
             if AIHTTPRetryPolicy.shouldRetry(
                 statusCode: http.statusCode,
                 attempt: attempt,
-                maximumRetries: maxRateLimitRetries
+                maximumRetries: maximumRetries
             ) {
                 let delay = AIHTTPRetryPolicy.delaySeconds(
                     response: http,
