@@ -9,6 +9,7 @@ public struct ReviewView: View {
 
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
+    @StateObject private var speech = JapaneseSpeechService()
 
     @State private var revealed = false
     @State private var reviewed = 0
@@ -67,6 +68,9 @@ public struct ReviewView: View {
         .onAppear {
             refreshFinishedSessionIfNeeded()
         }
+        .onDisappear {
+            speech.stop()
+        }
     }
 
     @ViewBuilder
@@ -85,9 +89,23 @@ public struct ReviewView: View {
 
                 Spacer(minLength: 30)
 
-                Text(card.prompt)
-                    .font(.title2.bold())
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 10) {
+                    Text(card.prompt)
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+
+                    if JapaneseSpeechText.containsJapanese(
+                        card.prompt
+                    ) {
+                        speechButton(
+                            text: card.prompt,
+                            label: language.text(
+                                "朗读问题",
+                                "問題を読み上げる"
+                            )
+                        )
+                    }
+                }
 
                 Text(card.sourceDisplay)
                     .font(.caption)
@@ -98,6 +116,18 @@ public struct ReviewView: View {
                     VStack(spacing: 12) {
                         Text(card.answer)
                             .font(.title3.bold())
+
+                        if JapaneseSpeechText.containsJapanese(
+                            card.answer
+                        ) {
+                            speechButton(
+                                text: card.answer,
+                                label: language.text(
+                                    "朗读答案",
+                                    "答えを読み上げる"
+                                )
+                            )
+                        }
                         if !card.explanation.isEmpty {
                             Text(card.explanation)
                                 .multilineTextAlignment(.center)
@@ -230,6 +260,23 @@ public struct ReviewView: View {
             }
             .padding()
         }
+    }
+
+    private func speechButton(
+        text: String,
+        label: String
+    ) -> some View {
+        Button {
+            speech.speak(text)
+        } label: {
+            Label(
+                label,
+                systemImage: "speaker.wave.2"
+            )
+            .font(.caption.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .tint(AppTheme.accent)
     }
 
     private func resultMetric(
