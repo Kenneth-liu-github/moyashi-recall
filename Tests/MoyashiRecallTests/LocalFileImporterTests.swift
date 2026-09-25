@@ -239,4 +239,29 @@ final class LocalFileImporterTests: XCTestCase {
     #endif
 
 
+    #if !(canImport(AppKit) || canImport(UIKit))
+    func testWordImportReportsUnavailableWithoutAppleTextSystem() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(UUID().uuidString).docx"
+            )
+        try Data([0, 1, 2]).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(
+                at: url
+            )
+        }
+
+        XCTAssertThrowsError(
+            try LocalFileImporter().importFile(at: url)
+        ) { error in
+            XCTAssertEqual(
+                error as? LocalFileImportError,
+                .richDocumentUnavailable
+            )
+        }
+    }
+    #endif
+
+
 }
