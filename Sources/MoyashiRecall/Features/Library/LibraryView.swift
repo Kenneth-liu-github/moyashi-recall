@@ -181,22 +181,30 @@ public struct LibraryView: View {
                     .lineLimit(2)
 
                 Label(
-                    item.needsAIRefresh
+                    !item.canGenerateAI
                         ? language.text(
-                            "待 AI 生成/更新",
-                            "AI生成・更新待ち"
+                            "文档容器 · 请打开子页面",
+                            "文書コンテナ · 子ページを開いてください"
                         )
-                        : language.text(
-                            "AI 已同步",
-                            "AI同期済み"
-                        ),
-                    systemImage: item.needsAIRefresh
-                        ? "sparkles"
-                        : "checkmark.circle"
+                        : item.needsAIRefresh
+                            ? language.text(
+                                "待 AI 生成/更新",
+                                "AI生成・更新待ち"
+                            )
+                            : language.text(
+                                "AI 已同步",
+                                "AI同期済み"
+                            ),
+                    systemImage: !item.canGenerateAI
+                        ? "folder"
+                        : item.needsAIRefresh
+                            ? "sparkles"
+                            : "checkmark.circle"
                 )
                 .font(.caption2)
                 .foregroundStyle(
-                    item.needsAIRefresh
+                    item.canGenerateAI
+                        && item.needsAIRefresh
                         ? AppTheme.accent
                         : AppTheme.muted
                 )
