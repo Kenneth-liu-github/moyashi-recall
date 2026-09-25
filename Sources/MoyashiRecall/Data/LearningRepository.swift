@@ -49,6 +49,7 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let lastAIProcessedAt: Date?
     public let lastAIProviderID: String
     public let lastAIModelID: String
+    public let canGenerateAI: Bool
     public let needsAIRefresh: Bool
 
     public init(entity: SourceDocumentEntity) {
@@ -69,11 +70,19 @@ public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
         self.lastAIProcessedAt = entity.lastAIProcessedAt
         self.lastAIProviderID = entity.lastAIProviderID
         self.lastAIModelID = entity.lastAIModelID
+        self.canGenerateAI = !entity.content
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .isEmpty
         self.needsAIRefresh =
-            entity.lastAIProcessedAt == nil
-            || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
-            || entity.lastAIExtractionVersion
-                != KnowledgeExtractionService.extractionVersion
+            self.canGenerateAI
+            && (
+                entity.lastAIProcessedAt == nil
+                || entity.aiProcessedSourceUpdatedAt != entity.updatedAt
+                || entity.lastAIExtractionVersion
+                    != KnowledgeExtractionService.extractionVersion
+            )
     }
 }
 
