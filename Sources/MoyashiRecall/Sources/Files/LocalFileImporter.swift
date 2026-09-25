@@ -6,6 +6,7 @@ public enum LocalFileImportError: Error, Equatable {
     case emptyContent
     case pdfUnavailable
     case imageTextRecognitionUnavailable
+    case richDocumentUnavailable
 }
 
 public struct LocalFileImportResult: Equatable, Sendable {
@@ -75,6 +76,16 @@ public struct LocalFileImporter {
                 sourceKey: sourceKey
             )
 
+        case "docx", "doc", "rtf", "odt":
+            return try importRichDocument(
+                url: url,
+                title: title,
+                rootID: rootID,
+                extension: ext,
+                lastEditedAt: lastEditedAt,
+                sourceKey: sourceKey
+            )
+
         case "png", "jpg", "jpeg", "heic":
             return try importImage(
                 url: url,
@@ -127,6 +138,82 @@ public struct LocalFileImporter {
         )
         #else
         throw LocalFileImportError.pdfUnavailable
+        #endif
+    }
+
+    private func importRichDocument(
+        url: URL,
+        title: String,
+        rootID: String,
+        extension ext: String,
+        lastEditedAt: Date?,
+        sourceKey: String
+    ) throws -> LocalFileImportResult {
+        #if canImport(AppKit) || canImport(UIKit)
+        let documentType: NSAttributedString.DocumentType
+        switch ext {
+        case "docx":
+            documentType = .officeOpenXML
+        case "doc":
+            documentType = .docFormat
+        case "rtf":
+            documentType = .rtf
+        case "odt":
+            documentType = .openDocument
+        default:
+            throw LocalFileImportError
+                .unsupportedExtension(ext)
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            throw LocalFileImportError.unreadableFile
+        }
+
+        let attributed: NSAttributedString
+        do {
+            attributed = try NSAttributedString(
+                data: data,
+                options: [
+                    .documentType: documentType
+                ],
+                documentAttributes: nil
+            )
+        } catch {
+            throw LocalFileImportError.unreadableFile
+        }
+
+        let text = attributed.string
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        guard !text.isEmpty else {
+            throw LocalFileImportError.emptyContent
+        }
+
+        return LocalFileImportResult(
+            documents: [
+                ImportedDocument(
+                    id: rootID,
+                    sourceKind: "file",
+                    title: title,
+                    sourceReference: "local-file://\(title)",
+                    content: text,
+                    lastEditedAt: lastEditedAt,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        title
+                    ],
+                    hierarchyDepth: 0,
+                    sourceKeyHint: sourceKey
+                )
+            ]
+        )
+        #else
+        throw LocalFileImportError.richDocumentUnavailable
         #endif
     }
 
