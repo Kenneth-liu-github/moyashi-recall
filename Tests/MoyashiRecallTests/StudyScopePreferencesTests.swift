@@ -61,4 +61,49 @@ final class StudyScopePreferencesTests: XCTestCase {
             100
         )
     }
+    func testLegacyPreferencesWithoutDocumentIDsStillDecode() throws {
+        struct LegacyPreferences: Codable {
+            let sourceKeys: Set<String>
+            let cardTypes: Set<String>
+            let reviewCount: Int
+        }
+
+        let suiteName = "StudyScopePreferencesLegacy.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(
+            UserDefaults(suiteName: suiteName)
+        )
+        defer {
+            defaults.removePersistentDomain(
+                forName: suiteName
+            )
+        }
+
+        let legacy = LegacyPreferences(
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.zhToJa.rawValue
+            ],
+            reviewCount: 20
+        )
+        let data = try JSONEncoder().encode(legacy)
+        defaults.set(
+            data,
+            forKey: "studyScopePreferences"
+        )
+
+        let loaded = try XCTUnwrap(
+            StudyScopePreferencesStore().load(
+                defaults: defaults
+            )
+        )
+
+        XCTAssertEqual(
+            loaded.sourceKeys,
+            ["office-japanese"]
+        )
+        XCTAssertNil(loaded.documentIDs)
+        XCTAssertEqual(loaded.reviewCount, 20)
+    }
+
+
 }
