@@ -119,7 +119,7 @@ public struct ReviewReminderSettingsView: View {
                 if ReviewReminderService.isAuthorized(status) {
                     await scheduleCurrentReminder()
                 } else {
-                    preferences.enabled = false
+                    setEnabledWithoutSideEffects(false)
                     service.cancelDailyReminder()
                     persistPreferences()
                     statusMessage = authorizationMessage(
@@ -158,7 +158,7 @@ public struct ReviewReminderSettingsView: View {
                 .requestAuthorization()
 
             guard granted else {
-                preferences.enabled = false
+                setEnabledWithoutSideEffects(false)
                 persistPreferences()
                 statusMessage = language.text(
                     "通知权限未开启，因此无法启用提醒。",
@@ -170,13 +170,21 @@ public struct ReviewReminderSettingsView: View {
             persistPreferences()
             try await scheduleCurrentReminder()
         } catch {
-            preferences.enabled = false
+            setEnabledWithoutSideEffects(false)
             persistPreferences()
             statusMessage = language.text(
                 "无法启用每日提醒。",
                 "毎日のリマインダーを有効にできませんでした。"
             )
         }
+    }
+
+    private func setEnabledWithoutSideEffects(
+        _ enabled: Bool
+    ) {
+        isLoadingPreferences = true
+        preferences.enabled = enabled
+        isLoadingPreferences = false
     }
 
     private func updateTime(
