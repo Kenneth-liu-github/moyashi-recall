@@ -10,6 +10,7 @@ public struct ReviewQueueService {
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        knowledgeItemIDs: Set<UUID>? = nil,
         limit: Int? = nil
     ) throws -> [FlashcardEntity] {
         let cards = try context.fetch(
@@ -43,6 +44,12 @@ public struct ReviewQueueService {
             if let cardTypes,
                !cardTypes.isEmpty,
                !cardTypes.contains(card.cardType) {
+                return false
+            }
+
+            if let knowledgeItemIDs,
+               !knowledgeItemIDs.isEmpty,
+               !knowledgeItemIDs.contains(card.knowledgeItemID) {
                 return false
             }
 
