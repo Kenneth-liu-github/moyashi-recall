@@ -264,4 +264,60 @@ final class LocalFileImporterTests: XCTestCase {
     #endif
 
 
+    #if canImport(PDFKit)
+    func testPDFImportCreatesPageLevelDocuments() throws {
+        let base64 = """
+        JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCAzMDAgMzAwIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjQgMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyA2IDAgUiAvVHlwZSAvQ2F0YWxvZwo+PgplbmRvYmoKNSAwIG9iago8PAovQXV0aG9yIChhbm9ueW1vdXMpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjA5MjUwNTA5MDgrMDAnMDAnKSAvQ3JlYXRvciAoYW5vbnltb3VzKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAyNjA5MjUwNTA5MDgrMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIFwob3BlbnNvdXJjZVwpKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAodW50aXRsZWQpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNiAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDMgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDExMgo+PgpzdHJlYW0KR2FwUWgwRT1GLDBVXEgzVFxwTllUXlFLaz90Yz5JUCw7VydVMV4yM2loUEVNXz9DVzRLSVNpNjpiWFheOj5HOUNkLiM7YDlKJEsxPChaR183O1s+b2Y6SzkqdTwhXlREI2dpXWY7O19LVVIwIikiPn5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzw5YjRhZTE2MjNlZjlhODYxOTdlNzk5OGM4YTZlZWYxMD48OWI0YWUxNjIzZWY5YTg2MTk3ZTc5OThjOGE2ZWVmMTA+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjk4MgolJUVPRgo=
+        """
+
+        let data = try XCTUnwrap(
+            Data(base64Encoded: base64)
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(UUID().uuidString).pdf"
+            )
+        try data.write(to: url)
+        defer {
+            try? FileManager.default.removeItem(
+                at: url
+            )
+        }
+
+        let result = try LocalFileImporter()
+            .importFile(at: url)
+
+        XCTAssertEqual(result.documents.count, 2)
+
+        let root = result.documents[0]
+        let page = result.documents[1]
+
+        XCTAssertTrue(root.content.isEmpty)
+        XCTAssertEqual(page.hierarchyDepth, 1)
+        XCTAssertEqual(
+            page.parentExternalID,
+            root.id
+        )
+        XCTAssertEqual(
+            page.rootExternalID,
+            root.id
+        )
+        XCTAssertEqual(
+            page.sourceKeyHint,
+            root.sourceKeyHint
+        )
+        XCTAssertTrue(
+            page.content.contains(
+                "Moyashi PDF Page 1"
+            )
+        )
+        XCTAssertTrue(
+            page.sourceReference.contains(
+                "#page=1"
+            )
+        )
+    }
+    #endif
+
+
 }
