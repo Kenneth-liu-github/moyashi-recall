@@ -16,6 +16,25 @@ final class LearningDataImportValidatorTests: XCTestCase {
         XCTAssertEqual(report.reviewHistoryCount, 1)
     }
 
+    func testRejectsOversizedBackupBeforeDecoding() {
+        let data = Data(repeating: 0x20, count: 32)
+        let limits = LearningDataImportValidationLimits(
+            maximumBytes: 16
+        )
+
+        XCTAssertThrowsError(
+            try LearningDataImportValidator.decodeAndValidate(
+                data,
+                limits: limits
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? LearningDataImportValidationError,
+                .backupTooLarge(32)
+            )
+        }
+    }
+
     func testDecodeAndValidateRejectsMalformedJSON() {
         XCTAssertThrowsError(
             try LearningDataImportValidator.decodeAndValidate(
