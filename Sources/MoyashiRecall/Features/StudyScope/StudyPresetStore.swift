@@ -114,12 +114,18 @@ public struct StudyPresetStore {
             defaults: defaults
         )
 
-        return presets.first {
-            $0.name.compare(
-                trimmedName,
-                options: [.caseInsensitive, .diacriticInsensitive]
-            ) == .orderedSame
-        }!
+        guard let saved = presets.first(
+            where: {
+                $0.name.compare(
+                    trimmedName,
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) == .orderedSame
+            }
+        ) else {
+            throw StudyPresetStoreError.persistenceFailure
+        }
+
+        return saved
     }
 
     public func delete(
@@ -158,4 +164,5 @@ public struct StudyPresetStore {
 
 public enum StudyPresetStoreError: Error, Equatable {
     case emptyName
+    case persistenceFailure
 }
