@@ -320,4 +320,41 @@ final class LocalFileImporterTests: XCTestCase {
     #endif
 
 
+    #if canImport(AppKit) || canImport(UIKit)
+    func testDOCXImportExtractsText() throws {
+        let base64 = """
+        UEsDBBQAAAAIAD0pOV15bjPX6AAAAK0BAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QyU7DMBD9FWuuKHHggBCK0wPLETiUDxjZk8SqN3nc0v49Tlt6QIXjzFv1+tXeO7GjzDYGBbdtB4KCjsaGScHn+rV5AMEFg0EXAyk4EMNq6NeHRCyqNrCCuZT0KCXrmTxyGxOFiowxeyz1zJNMqDc4kbzrunupYygUSlMWDxj6Zxpx64p42df3qUcmxyCeTsQlSwGm5KzGUnG5C+ZXSnNOaKvyyOHZJr6pBJBXExbk74Cz7r0Ok60h8YG5vKGvLPkVs5Em6q2vyvZ/mys94zhaTRf94pZy1MRcF/euvSAebfjpL49zD99QSwMEFAAAAAgAPSk5XZv9N+qtAAAAKQEAAAsAAABfcmVscy8ucmVsc43POw7CMAwG4KtE3mlaBoRQ0y4IqSsqB7ASN61oHkrCo7cnAwNFDIy2f3+W6/ZpZnanECdnBVRFCYysdGqyWsClP232wGJCq3B2lgQsFKFt6jPNmPJKHCcfWTZsFDCm5A+cRzmSwVg4TzZPBhcMplwGzT3KK2ri27Lc8fBpwNpknRIQOlUB6xdP/9huGCZJRydvhmz6ceIrkWUMmpKAhwuKq3e7yCzwpuarF5sXUEsDBBQAAAAIAD0pOV3wNzbqrAAAAOUAAAARAAAAd29yZC9kb2N1bWVudC54bWxFjrsOwjAMRX8lyk5TGBCq+hhAbAiGIrGGxNBIjV3FgdK/pykDy7F8bR3dsvn4XrwhsCOs5DrLpQA0ZB0+K3ltj6udFBw1Wt0TQiUnYNnU5VhYMi8PGMUsQC7GSnYxDoVSbDrwmjMaAOfbg4LXcV7DU40U7BDIAPPs973a5PlWee1QJuWd7JTmkBASYn2iSXPnxOG8v4kWOJYqxYlh4fLMYOIlqCX4WdS/Yf0FUEsBAhQDFAAAAAgAPSk5XXluM9foAAAArQEAABMAAAAAAAAAAAAAAIABAAAAAFtDb250ZW50X1R5cGVzXS54bWxQSwECFAMUAAAACAA9KTldm/036q0AAAApAQAACwAAAAAAAAAAAAAAgAEZAQAAX3JlbHMvLnJlbHNQSwECFAMUAAAACAA9KTld8Dc26qwAAADlAAAAEQAAAAAAAAAAAAAAgAHvAQAAd29yZC9kb2N1bWVudC54bWxQSwUGAAAAAAMAAwC5AAAAygIAAAAA
+        """
+
+        let data = try XCTUnwrap(
+            Data(base64Encoded: base64)
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(UUID().uuidString).docx"
+            )
+        try data.write(to: url)
+        defer {
+            try? FileManager.default.removeItem(
+                at: url
+            )
+        }
+
+        let result = try LocalFileImporter()
+            .importFile(at: url)
+
+        XCTAssertEqual(result.documents.count, 1)
+        XCTAssertTrue(
+            result.documents[0].content.contains(
+                "Moyashi DOCX Test"
+            )
+        )
+        XCTAssertEqual(
+            result.documents[0].sourceKind,
+            "file"
+        )
+    }
+    #endif
+
+
 }
