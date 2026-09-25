@@ -87,6 +87,17 @@ public struct LearningDataRestoreService {
             package
         )
 
+        if context.hasChanges {
+            try context.save()
+        }
+
+        let previousAutosave = context.autosaveEnabled
+        context.autosaveEnabled = false
+
+        defer {
+            context.autosaveEnabled = previousAutosave
+        }
+
         do {
             let report = try mergeValidatedPackage(
                 package
