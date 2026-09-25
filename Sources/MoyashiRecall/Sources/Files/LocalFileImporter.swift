@@ -292,8 +292,7 @@ public struct LocalFileImporter {
         let identityMaterial: String
         if let resourceIdentifier = try? url.resourceValues(
             forKeys: [.fileResourceIdentifierKey]
-        ).fileResourceIdentifier,
-        let resourceIdentifier {
+        ).fileResourceIdentifier {
             identityMaterial = String(
                 describing: resourceIdentifier
             )
