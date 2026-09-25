@@ -1,0 +1,25 @@
+name: Swift Validation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: swift-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Run portable core tests
+        run: swift test
+
+  ios-simulator-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run full macOS and iOS validation
+        run: bash scripts/validate-v0.4-macos.sh

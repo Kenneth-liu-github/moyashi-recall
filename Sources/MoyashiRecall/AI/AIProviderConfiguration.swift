@@ -1,0 +1,170 @@
+import Foundation
+
+public enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case openAI = "openai"
+    case anthropic
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .openAI:
+            return "OpenAI"
+        case .anthropic:
+            return "Anthropic"
+        }
+    }
+}
+
+public struct AIProviderConfiguration: Codable, Equatable, Sendable {
+    public let provider: AIProviderKind
+    public let modelID: String
+
+    public init(
+        provider: AIProviderKind,
+        modelID: String
+    ) {
+        self.provider = provider
+        self.modelID = modelID
+    }
+}
+
+public struct AIConfigurationStore {
+    private static let key = "aiProviderConfiguration"
+    private static let modelKeyPrefix = "aiProviderModel."
+
+    public init() {}
+
+    public func load(
+        defaults: UserDefaults = .standard
+    ) -> AIProviderConfiguration {
+        guard
+            let data = defaults.data(forKey: Self.key),
+            let value = try? JSONDecoder().decode(
+                AIProviderConfiguration.self,
+                from: data
+            )
+        else {
+            return AIProviderConfiguration(
+                provider: .openAI,
+                modelID: modelID(
+                    for: .openAI,
+                    defaults: defaults
+                )
+            )
+        }
+
+        let providerModel = modelID(
+            for: value.provider,
+            defaults: defaults
+        )
+
+        return AIProviderConfiguration(
+            provider: value.provider,
+            modelID: providerModel.isEmpty
+                ? value.modelID
+                : providerModel
+        )
+    }
+
+    public func modelID(
+        for provider: AIProviderKind,
+        defaults: UserDefaults = .standard
+    ) -> String {
+        defaults.string(
+            forKey: Self.modelKeyPrefix + provider.rawValue
+        ) ?? ""
+    }
+
+    public func save(
+        _ configuration: AIProviderConfiguration,
+        defaults: UserDefaults = .standard
+    ) throws {
+        let data = try JSONEncoder().encode(configuration)
+        defaults.set(data, forKey: Self.key)
+        defaults.set(
+            configuration.modelID,
+            forKey: Self.modelKeyPrefix
+                + configuration.provider.rawValue
+        )
+    }
+}
+
+public enum AICredential {
+    public static func account(
+        for provider: AIProviderKind
+    ) -> String {
+        switch provider {
+        case .openAI:
+            return "ai-openai-api-key"
+        case .anthropic:
+            return "ai-anthropic-api-key"
+        }
+    }
+}
+
+public enum AIProviderFactory {
+    #if canImport(Security)
+    public static func makeConfiguredProvider(
+        configurationStore: AIConfigurationStore = AIConfigurationStore(),
+        credentialStore: KeychainCredentialStore = KeychainCredentialStore()
+    ) throws -> any AICompletionProvider {
+        let configuration = configurationStore.load()
+        let account = AICredential.account(
+            for: configuration.provider
+        )
+
+        guard
+            let secret = try credentialStore.read(
+                account: account
+            )
+        else {
+            throw AIProviderError.missingConfiguration(
+                "\(configuration.provider.displayName) API key"
+            )
+        }
+
+        return try makeProvider(
+            configuration: configuration,
+            secret: secret
+        )
+    }
+    #endif
+
+    public static func makeProvider(
+        configuration: AIProviderConfiguration,
+        secret: String
+    ) throws -> any AICompletionProvider {
+        let modelID = configuration.modelID
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        guard !modelID.isEmpty else {
+            throw AIProviderError.missingConfiguration(
+                "AI model ID"
+            )
+        }
+
+        let trimmedSecret = secret.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        guard !trimmedSecret.isEmpty else {
+            throw AIProviderError.missingConfiguration(
+                "\(configuration.provider.displayName) API key"
+            )
+        }
+
+        switch configuration.provider {
+        case .openAI:
+            return OpenAIResponsesProvider(
+                apiKey: trimmedSecret,
+                modelID: modelID
+            )
+        case .anthropic:
+            return AnthropicMessagesProvider(
+                apiKey: trimmedSecret,
+                modelID: modelID
+            )
+        }
+    }
+}
