@@ -1285,4 +1285,78 @@ final class DataLayerTests: XCTestCase {
     }
 
 
+    @MainActor
+    func testSourceDocumentsCanSelectTextBearingChildrenOnly() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let rootID = "local-file:lesson:abc"
+
+        let root = SourceDocumentEntity(
+            title: "lesson.pdf",
+            content: "",
+            sourceKind: "file",
+            externalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf",
+            sourceKey: "file-abc",
+            hierarchyDepth: 0,
+            sourceReference: "local-file://lesson.pdf"
+        )
+        let pageTwo = SourceDocumentEntity(
+            title: "Page 2",
+            content: "page two",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-2",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 2",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=2"
+        )
+        let pageOne = SourceDocumentEntity(
+            title: "Page 1",
+            content: "page one",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-1",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 1",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=1"
+        )
+        let emptyPage = SourceDocumentEntity(
+            title: "Page 3",
+            content: "  ",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-3",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 3",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=3"
+        )
+
+        context.insert(root)
+        context.insert(pageTwo)
+        context.insert(pageOne)
+        context.insert(emptyPage)
+        try context.save()
+
+        let textUnits = try LearningRepository(
+            context: context
+        ).sourceDocuments(
+            rootExternalID: rootID,
+            textOnly: true
+        )
+
+        XCTAssertEqual(
+            textUnits.map(\.title),
+            ["Page 1", "Page 2"]
+        )
+    }
+
+
 }
