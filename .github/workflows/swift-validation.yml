@@ -21,11 +21,5 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build iOS app for Simulator
-        run: |
-          xcodebuild -project App/MoyashiRecall.xcodeproj \
-            -scheme MoyashiRecall \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+      - name: Run full macOS and iOS validation
+        run: bash scripts/validate-v0.4-macos.sh
