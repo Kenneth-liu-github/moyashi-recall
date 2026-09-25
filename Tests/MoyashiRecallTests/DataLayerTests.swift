@@ -265,25 +265,6 @@ final class DataLayerTests: XCTestCase {
     }
 
     @MainActor
-    func testDemoSeederIsIdempotentAndMigratesSourceKey() throws {
-        let container = try makeContainer()
-        let context = container.mainContext
-
-        try DemoDataSeeder.seedIfNeeded(in: context)
-        try DemoDataSeeder.seedIfNeeded(in: context)
-
-        var cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-        XCTAssertEqual(cards.filter { $0.id == DemoDataSeeder.cardID }.count, 1)
-
-        cards.first { $0.id == DemoDataSeeder.cardID }?.sourceKey = ""
-        try context.save()
-        try DemoDataSeeder.seedIfNeeded(in: context)
-
-        cards = try context.fetch(FetchDescriptor<FlashcardEntity>())
-        XCTAssertEqual(cards.first { $0.id == DemoDataSeeder.cardID }?.sourceKey, "office-japanese")
-    }
-
-    @MainActor
     func testRepositoryBuildsHomeSnapshotFromPersistence() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -800,7 +781,7 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(snapshot.reviewedLast7Days, 4)
         XCTAssertEqual(snapshot.latestReviewAt, now)
         XCTAssertEqual(
-            snapshot.successRateLast7Days,
+            try XCTUnwrap(snapshot.successRateLast7Days),
             0.75,
             accuracy: 0.000001
         )
@@ -917,6 +898,683 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(
             history.first?.sourceDisplay,
             "Learning Home / 办公室日语学习 / 第二课"
+        )
+    }
+
+
+    @MainActor
+    func testLocalFileImportIsIdempotentAndUpdatesChangedContent() throws {
+        let container = try makeContainer()
+        let repository = LearningRepository(
+            context: container.mainContext
+        )
+        let service = LocalFileImportService(
+            repository: repository
+        )
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                UUID().uuidString,
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(
+                at: directory
+            )
+        }
+
+        let url = directory.appendingPathComponent(
+            "lesson.txt"
+        )
+        try "first".write(
+            to: url,
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let first = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_000
+            )
+        )
+        XCTAssertEqual(first.inserted, 1)
+        XCTAssertEqual(first.updated, 0)
+
+        let second = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_060
+            )
+        )
+        XCTAssertEqual(second.inserted, 0)
+        XCTAssertEqual(second.unchanged, 1)
+
+        try "second".write(
+            to: url,
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let third = try service.importFile(
+            at: url,
+            now: Date(
+                timeIntervalSince1970: 1_700_000_120
+            )
+        )
+        XCTAssertEqual(third.inserted, 0)
+        XCTAssertEqual(third.updated, 1)
+
+        let documents = try repository.importedDocuments(
+            sourceKind: "file"
+        )
+        XCTAssertEqual(documents.count, 1)
+        XCTAssertEqual(documents.first?.content, "second")
+        XCTAssertTrue(
+            documents.first?.sourceKey
+                .hasPrefix("file-") == true
+        )
+    }
+
+
+    @MainActor
+    func testArchivingLocalFilePreservesReviewHistory() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let source = SourceDocumentEntity(
+            title: "notes.txt",
+            content: "content",
+            sourceKind: "file",
+            externalSourceID: "local-file:notes:abc",
+            rootExternalSourceID: "local-file:notes:abc",
+            sourcePath: "Imported Files / notes.txt",
+            sourceKey: "file-abc",
+            sourceReference: "local-file://notes.txt"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "表現（ひょうげん）",
+            content: "content",
+            sourceKind: "file",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "card",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let event = ReviewHistoryEntity(
+            cardID: card.id,
+            reviewedAt: .now,
+            ratingRawValue: ReviewRating.good.rawValue,
+            elapsedDays: 1,
+            scheduledDays: 2,
+            stabilityBefore: 1,
+            stabilityAfter: 2,
+            difficultyBefore: 5,
+            difficultyAfter: 4
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        context.insert(event)
+        try context.save()
+
+        let archived = try repository.archiveImportedSource(
+            sourceKind: "file",
+            rootExternalID: source.rootExternalSourceID
+        )
+
+        XCTAssertEqual(archived, 1)
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "file"
+            ).count,
+            0
+        )
+        XCTAssertTrue(
+            try repository.dueSessionCards().isEmpty
+        )
+        XCTAssertEqual(
+            try repository.recentReviewHistory().count,
+            1
+        )
+    }
+
+
+    @MainActor
+    func testImportedFileUsesFilenameAsStudySourceTitle() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let source = SourceDocumentEntity(
+            title: "lesson.pdf",
+            content: "",
+            sourceKind: "file",
+            externalSourceID: "local-file:lesson:abc",
+            rootExternalSourceID: "local-file:lesson:abc",
+            sourcePath: "Imported Files / lesson.pdf",
+            sourceKey: "file-abc",
+            sourceReference: "local-file://lesson.pdf"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "表現（ひょうげん）",
+            content: "content",
+            sourceKind: "file",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "card",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "file-abc",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        let sources = try LearningRepository(
+            context: context
+        ).reviewSources()
+
+        XCTAssertEqual(sources.count, 1)
+        XCTAssertEqual(
+            sources.first?.title,
+            "lesson.pdf"
+        )
+        XCTAssertEqual(
+            sources.first?.key,
+            "file-abc"
+        )
+    }
+
+    @MainActor
+    func testImportedPDFPagesSortNaturally() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let rootID = "local-file:lesson:abc"
+
+        for page in [10, 2, 1] {
+            context.insert(
+                SourceDocumentEntity(
+                    title: "Page \(page)",
+                    content: "page \(page)",
+                    sourceKind: "file",
+                    externalSourceID:
+                        "\(rootID)#page-\(page)",
+                    parentExternalSourceID: rootID,
+                    rootExternalSourceID: rootID,
+                    sourcePath:
+                        "Imported Files / lesson.pdf / Page \(page)",
+                    sourceKey: "file-abc",
+                    hierarchyDepth: 1,
+                    sourceReference:
+                        "local-file://lesson.pdf#page=\(page)"
+                )
+            )
+        }
+
+        context.insert(
+            SourceDocumentEntity(
+                title: "lesson.pdf",
+                content: "",
+                sourceKind: "file",
+                externalSourceID: rootID,
+                rootExternalSourceID: rootID,
+                sourcePath: "Imported Files / lesson.pdf",
+                sourceKey: "file-abc",
+                hierarchyDepth: 0,
+                sourceReference: "local-file://lesson.pdf"
+            )
+        )
+        try context.save()
+
+        let items = try LearningRepository(
+            context: context
+        ).importedDocuments(
+            sourceKind: "file"
+        )
+
+        XCTAssertEqual(
+            items.map(\.title),
+            [
+                "lesson.pdf",
+                "Page 1",
+                "Page 2",
+                "Page 10"
+            ]
+        )
+    }
+
+
+    @MainActor
+    func testFileReimportDeactivatesRemovedChildDocuments() throws {
+        let container = try makeContainer()
+        let repository = LearningRepository(
+            context: container.mainContext
+        )
+        let service = LocalFileImportService(
+            repository: repository
+        )
+        let rootID = "local-file:lesson:abc"
+        let sourceKey = "file-abc"
+
+        let first = LocalFileImportResult(
+            documents: [
+                ImportedDocument(
+                    id: rootID,
+                    sourceKind: "file",
+                    title: "lesson.pdf",
+                    sourceReference: "local-file://lesson.pdf",
+                    content: "",
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf"
+                    ],
+                    sourceKeyHint: sourceKey
+                ),
+                ImportedDocument(
+                    id: "\(rootID)#page-1",
+                    sourceKind: "file",
+                    title: "Page 1",
+                    sourceReference:
+                        "local-file://lesson.pdf#page=1",
+                    content: "page one",
+                    parentExternalID: rootID,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf",
+                        "Page 1"
+                    ],
+                    hierarchyDepth: 1,
+                    sourceKeyHint: sourceKey
+                ),
+                ImportedDocument(
+                    id: "\(rootID)#page-2",
+                    sourceKind: "file",
+                    title: "Page 2",
+                    sourceReference:
+                        "local-file://lesson.pdf#page=2",
+                    content: "page two",
+                    parentExternalID: rootID,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        "lesson.pdf",
+                        "Page 2"
+                    ],
+                    hierarchyDepth: 1,
+                    sourceKeyHint: sourceKey
+                )
+            ]
+        )
+
+        let firstReport = try service.persist(first)
+        XCTAssertEqual(firstReport.inserted, 3)
+        XCTAssertEqual(firstReport.deactivated, 0)
+
+        let second = LocalFileImportResult(
+            documents: Array(
+                first.documents.prefix(2)
+            )
+        )
+        let secondReport = try service.persist(second)
+
+        XCTAssertEqual(secondReport.deactivated, 1)
+        XCTAssertEqual(
+            try repository.importedDocuments(
+                sourceKind: "file"
+            ).map(\.title),
+            [
+                "lesson.pdf",
+                "Page 1"
+            ]
+        )
+    }
+
+
+    @MainActor
+    func testSourceDocumentsCanSelectTextBearingChildrenOnly() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let rootID = "local-file:lesson:abc"
+
+        let root = SourceDocumentEntity(
+            title: "lesson.pdf",
+            content: "",
+            sourceKind: "file",
+            externalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf",
+            sourceKey: "file-abc",
+            hierarchyDepth: 0,
+            sourceReference: "local-file://lesson.pdf"
+        )
+        let pageTwo = SourceDocumentEntity(
+            title: "Page 2",
+            content: "page two",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-2",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 2",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=2"
+        )
+        let pageOne = SourceDocumentEntity(
+            title: "Page 1",
+            content: "page one",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-1",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 1",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=1"
+        )
+        let emptyPage = SourceDocumentEntity(
+            title: "Page 3",
+            content: "  ",
+            sourceKind: "file",
+            externalSourceID: "\(rootID)#page-3",
+            parentExternalSourceID: rootID,
+            rootExternalSourceID: rootID,
+            sourcePath: "Imported Files / lesson.pdf / Page 3",
+            sourceKey: "file-abc",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=3"
+        )
+
+        context.insert(root)
+        context.insert(pageTwo)
+        context.insert(pageOne)
+        context.insert(emptyPage)
+        try context.save()
+
+        let textUnits = try LearningRepository(
+            context: context
+        ).sourceDocuments(
+            rootExternalID: rootID,
+            textOnly: true
+        )
+
+        XCTAssertEqual(
+            textUnits.map(\.title),
+            ["Page 1", "Page 2"]
+        )
+    }
+
+
+    @MainActor
+    func testDueQueueFiltersBySourceDocumentID() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+
+        let firstSource = SourceDocumentEntity(
+            title: "Page 1",
+            content: "one",
+            sourceKind: "file",
+            externalSourceID: "file#page-1",
+            rootExternalSourceID: "file",
+            sourcePath: "Imported Files / lesson.pdf / Page 1",
+            sourceKey: "file-source",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=1"
+        )
+        let secondSource = SourceDocumentEntity(
+            title: "Page 2",
+            content: "two",
+            sourceKind: "file",
+            externalSourceID: "file#page-2",
+            rootExternalSourceID: "file",
+            sourcePath: "Imported Files / lesson.pdf / Page 2",
+            sourceKey: "file-source",
+            hierarchyDepth: 1,
+            sourceReference: "local-file://lesson.pdf#page=2"
+        )
+        let firstKnowledge = KnowledgeItemEntity(
+            sourceDocumentID: firstSource.id,
+            extractionKey: "one",
+            knowledgeType: "expression",
+            title: "One",
+            content: "one",
+            sourceKind: "file",
+            sourceKey: "file-source",
+            sourceDisplayPath: firstSource.sourcePath,
+            sourceReference: firstSource.sourceReference
+        )
+        let secondKnowledge = KnowledgeItemEntity(
+            sourceDocumentID: secondSource.id,
+            extractionKey: "two",
+            knowledgeType: "expression",
+            title: "Two",
+            content: "two",
+            sourceKind: "file",
+            sourceKey: "file-source",
+            sourceDisplayPath: secondSource.sourcePath,
+            sourceReference: secondSource.sourceReference
+        )
+        let firstCard = FlashcardEntity(
+            knowledgeItemID: firstKnowledge.id,
+            sourceDocumentID: firstSource.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q1",
+            answer: "A1",
+            sourceKey: "file-source",
+            sourceReference: firstSource.sourceReference
+        )
+        let secondCard = FlashcardEntity(
+            knowledgeItemID: secondKnowledge.id,
+            sourceDocumentID: secondSource.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q2",
+            answer: "A2",
+            sourceKey: "file-source",
+            sourceReference: secondSource.sourceReference
+        )
+
+        for entity in [
+            firstSource,
+            secondSource
+        ] {
+            context.insert(entity)
+        }
+        context.insert(firstKnowledge)
+        context.insert(secondKnowledge)
+        context.insert(firstCard)
+        context.insert(secondCard)
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let firstOnly = try repository.dueSessionCards(
+            now: now,
+            sourceDocumentIDs: [firstSource.id]
+        )
+        XCTAssertEqual(
+            firstOnly.map(\.id),
+            [firstCard.id]
+        )
+
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                now: now,
+                sourceDocumentIDs: [secondSource.id]
+            ),
+            1
+        )
+    }
+
+    @MainActor
+    func testReviewDocumentsReportsFilteredCardAndDueCounts() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(
+            timeIntervalSince1970: 1_700_000_000
+        )
+
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-2",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-2"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "grammar",
+            title: "Grammar",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+        let zhCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "ZH",
+            answer: "JA",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+        let applicationCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Apply",
+            answer: "Answer",
+            sourceKey: "office-japanese",
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(zhCard)
+        context.insert(applicationCard)
+        context.insert(
+            ReviewStateEntity(
+                cardID: applicationCard.id,
+                due: now.addingTimeInterval(86_400)
+            )
+        )
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        let allTypes = try repository.reviewDocuments(
+            now: now,
+            sourceKeys: ["office-japanese"]
+        )
+        XCTAssertEqual(allTypes.count, 1)
+        XCTAssertEqual(allTypes.first?.cardCount, 2)
+        XCTAssertEqual(allTypes.first?.dueCardCount, 1)
+
+        let applicationOnly = try repository.reviewDocuments(
+            now: now,
+            sourceKeys: ["office-japanese"],
+            cardTypes: [
+                ReviewCardType.application.rawValue
+            ]
+        )
+        XCTAssertEqual(
+            applicationOnly.first?.cardCount,
+            1
+        )
+        XCTAssertEqual(
+            applicationOnly.first?.dueCardCount,
+            0
+        )
+    }
+
+
+    @MainActor
+    func testEmptyDocumentScopeReturnsNoDueCards() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let knowledge = KnowledgeItemEntity(
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "Item",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: UUID(),
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://item"
+        )
+
+        context.insert(knowledge)
+        context.insert(card)
+        try context.save()
+
+        let repository = LearningRepository(
+            context: context
+        )
+
+        XCTAssertTrue(
+            try repository.dueSessionCards(
+                sourceDocumentIDs: []
+            ).isEmpty
+        )
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                sourceDocumentIDs: []
+            ),
+            0
         )
     }
 

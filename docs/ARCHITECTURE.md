@@ -33,7 +33,9 @@ MoyashiRecall/
     FSRS
   Sources/
     LearningContentSource
+    SourceKeyResolver
     Notion/
+    Files/
   AI/
     AICompletionProvider
     Provider Adapters
@@ -57,15 +59,25 @@ MoyashiRecallTests/
 
 External source integrations normalize data into `ImportedDocument`.
 
-V0.3 implements Notion:
+Implemented source adapters now include:
 
 ```
 Notion API
-  → ImportedDocument
+  → ImportedDocument tree
+  → SourceDocumentEntity
+
+Local files
+  → TXT / Markdown / CSV / TSV
+  → PDF page extraction
+  → DOCX / DOC / RTF / ODT text extraction
+  → Vision OCR for images
+  → ImportedDocument tree
   → SourceDocumentEntity
 ```
 
-Future PDF, Word, image, audio, and other importers should produce the same `ImportedDocument` contract.
+All source adapters produce the same `ImportedDocument` contract. PDF files preserve page-level traceability by representing the file as a root container and text-bearing pages as child documents. Local file paths are hashed for identity and are not stored as user-visible source references.
+
+PowerPoint/XLSX structured extraction, audio, video, and manual-entry adapters remain future source-layer work.
 
 ### AI layer
 

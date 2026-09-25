@@ -6,7 +6,9 @@ public struct StudyScopeView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var sources: [StudySource] = []
+    @State private var documents: [StudyDocument] = []
     @State private var selectedSources = Set<String>()
+    @State private var selectedDocumentIDs = Set<UUID>()
     @State private var selectedCardTypes = Set(
         ReviewCardType.allCases
     )
@@ -30,8 +32,14 @@ public struct StudyScopeView: View {
         Set(selectedCardTypes.map(\.rawValue))
     }
 
+    private var availableDocumentIDs: Set<UUID> {
+        Set(documents.map(\.id))
+    }
+
     private var effectiveSessionCount: Int {
-        min(reviewCount, filteredDueCount)
+        reviewCount == 0
+            ? filteredDueCount
+            : min(reviewCount, filteredDueCount)
     }
 
     public var body: some View {
@@ -57,8 +65,8 @@ public struct StudyScopeView: View {
 
                                     Text(
                                         language.text(
-                                            "\(preset.sourceKeys.count) 个来源 · \(preset.cardTypes.count) 种卡片 · \(preset.reviewCount) 张",
-                                            "\(preset.sourceKeys.count)ソース · \(preset.cardTypes.count)種類 · \(preset.reviewCount)枚"
+                                            "\(preset.sourceKeys.count) 个来源 · \(presetDocumentLabel(preset)) · \(preset.cardTypes.count) 种卡片 · \(presetCountLabel(preset.reviewCount))",
+                                            "\(preset.sourceKeys.count)ソース · \(presetDocumentLabel(preset)) · \(preset.cardTypes.count)種類 · \(presetCountLabel(preset.reviewCount))"
                                         )
                                     )
                                     .font(.caption)
@@ -146,6 +154,104 @@ public struct StudyScopeView: View {
                 )
             }
 
+            if !documents.isEmpty {
+                Section {
+                    HStack {
+                        Button(
+                            language.text(
+                                "全选",
+                                "すべて選択"
+                            )
+                        ) {
+                            selectedDocumentIDs = availableDocumentIDs
+                            persistPreferences()
+                            refreshFilteredDueCount()
+                        }
+
+                        Spacer()
+
+                        Button(
+                            language.text(
+                                "清空",
+                                "選択解除"
+                            )
+                        ) {
+                            selectedDocumentIDs = []
+                            persistPreferences()
+                            refreshFilteredDueCount()
+                        }
+                    }
+                    .font(.caption)
+
+                    ForEach(documents) { document in
+                        Button {
+                            toggleDocument(document.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(
+                                    systemName: selectedDocumentIDs
+                                        .contains(document.id)
+                                        ? "checkmark.circle.fill"
+                                        : "circle"
+                                )
+                                .foregroundStyle(AppTheme.accent)
+
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 3
+                                ) {
+                                    Text(document.title)
+                                        .foregroundStyle(AppTheme.ink)
+
+                                    Text(document.path)
+                                        .font(.caption)
+                                        .foregroundStyle(AppTheme.muted)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer()
+
+                                VStack(
+                                    alignment: .trailing,
+                                    spacing: 2
+                                ) {
+                                    Text("\(document.dueCardCount)")
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(
+                                            document.dueCardCount > 0
+                                                ? AppTheme.ink
+                                                : AppTheme.muted
+                                        )
+
+                                    Text(
+                                        language.text(
+                                            "到期 / 总 \(document.cardCount)",
+                                            "期限 / 合計 \(document.cardCount)"
+                                        )
+                                    )
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.muted)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text(
+                        language.text(
+                            "资料范围（可多选）",
+                            "資料範囲（複数選択可）"
+                        )
+                    )
+                } footer: {
+                    Text(
+                        language.text(
+                            "可进一步限定到具体 Notion 页面、PDF 页或导入文档。",
+                            "Notionページ、PDFページ、読み込み文書まで範囲を絞れます。"
+                        )
+                    )
+                }
+            }
+
             Section(
                 language.text(
                     "本次复习数量",
@@ -162,6 +268,13 @@ public struct StudyScopeView: View {
                     Text("10").tag(10)
                     Text("20").tag(20)
                     Text("30").tag(30)
+                    Text(
+                        language.text(
+                            "全部",
+                            "すべて"
+                        )
+                    )
+                    .tag(0)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: reviewCount) { _, _ in
@@ -208,6 +321,7 @@ public struct StudyScopeView: View {
                     ReviewView(
                         sourceKeys: selectedSourceKeys,
                         cardTypes: selectedCardTypeIDs,
+                        sourceDocumentIDs: selectedDocumentIDs,
                         sessionLimit: reviewCount
                     )
                 } label: {
@@ -231,6 +345,7 @@ public struct StudyScopeView: View {
                 .disabled(
                     selectedSources.isEmpty
                         || selectedCardTypes.isEmpty
+                        || selectedDocumentIDs.isEmpty
                         || filteredDueCount == 0
                 )
             } footer: {
@@ -246,6 +361,13 @@ public struct StudyScopeView: View {
                         language.text(
                             "请至少选择一种卡片类型。",
                             "カードタイプを1つ以上選択してください。"
+                        )
+                    )
+                } else if selectedDocumentIDs.isEmpty {
+                    Text(
+                        language.text(
+                            "请至少选择一个具体资料范围。",
+                            "資料範囲を1つ以上選択してください。"
                         )
                     )
                 } else if filteredDueCount == 0 {
@@ -279,6 +401,7 @@ public struct StudyScopeView: View {
                 .disabled(
                     selectedSources.isEmpty
                         || selectedCardTypes.isEmpty
+                        || selectedDocumentIDs.isEmpty
                 )
                 .accessibilityLabel(
                     language.text(
@@ -336,9 +459,19 @@ public struct StudyScopeView: View {
     ) {
         if selectedSources.contains(key) {
             selectedSources.remove(key)
+            selectedDocumentIDs.subtract(
+                documents
+                    .filter { $0.sourceKey == key }
+                    .map(\.id)
+            )
+            refreshDocuments()
         } else {
             selectedSources.insert(key)
+            refreshDocuments(
+                selectSourceKey: key
+            )
         }
+
         persistPreferences()
         refreshFilteredDueCount()
     }
@@ -346,14 +479,65 @@ public struct StudyScopeView: View {
     private func toggleCardType(
         _ type: ReviewCardType
     ) {
+        let hadAllDocumentsSelected =
+            !documents.isEmpty
+            && selectedDocumentIDs == availableDocumentIDs
+
         if selectedCardTypes.contains(type) {
             selectedCardTypes.remove(type)
         } else {
             selectedCardTypes.insert(type)
         }
-        persistPreferences()
+
         refreshSourceDueCounts()
+        refreshDocuments(
+            selectAllWhenUnspecified:
+                hadAllDocumentsSelected
+        )
+        persistPreferences()
         refreshFilteredDueCount()
+    }
+
+    private func toggleDocument(
+        _ id: UUID
+    ) {
+        if selectedDocumentIDs.contains(id) {
+            selectedDocumentIDs.remove(id)
+        } else {
+            selectedDocumentIDs.insert(id)
+        }
+        persistPreferences()
+        refreshFilteredDueCount()
+    }
+
+    private func presetDocumentLabel(
+        _ preset: SavedStudyPreset
+    ) -> String {
+        guard let documentIDs = preset.documentIDs else {
+            return language.text(
+                "全部资料",
+                "全資料"
+            )
+        }
+
+        return language.text(
+            "\(documentIDs.count) 个资料",
+            "\(documentIDs.count)資料"
+        )
+    }
+
+    private func presetCountLabel(
+        _ count: Int
+    ) -> String {
+        count == 0
+            ? language.text(
+                "全部到期",
+                "期限分すべて"
+            )
+            : language.text(
+                "\(count) 张",
+                "\(count)枚"
+            )
     }
 
     private func cardTypeLabel(
@@ -408,7 +592,7 @@ public struct StudyScopeView: View {
                     }
                 )
 
-                reviewCount = [10, 20, 30].contains(
+                reviewCount = [0, 10, 20, 30].contains(
                     saved.reviewCount
                 )
                     ? saved.reviewCount
@@ -421,12 +605,24 @@ public struct StudyScopeView: View {
                 reviewCount = 20
             }
 
-            persistPreferences()
             refreshSourceDueCounts()
+
+            let savedDocumentIDs = preferencesStore
+                .load()?
+                .documentIDs
+
+            refreshDocuments(
+                selectedIDs: savedDocumentIDs,
+                selectAllWhenUnspecified: true
+            )
+
+            persistPreferences()
             refreshFilteredDueCount()
         } catch {
             sources = []
+            documents = []
             selectedSources = []
+            selectedDocumentIDs = []
             filteredDueCount = 0
         }
     }
@@ -441,6 +637,7 @@ public struct StudyScopeView: View {
                 name: presetNameDraft,
                 sourceKeys: selectedSources,
                 cardTypes: selectedCardTypeIDs,
+                documentIDs: selectedDocumentIDs,
                 reviewCount: reviewCount
             )
             loadPresets()
@@ -476,21 +673,26 @@ public struct StudyScopeView: View {
             }
         )
 
-        reviewCount = [10, 20, 30].contains(
+        reviewCount = [0, 10, 20, 30].contains(
             preset.reviewCount
         )
             ? preset.reviewCount
             : 20
 
-        persistPreferences()
         refreshSourceDueCounts()
+        refreshDocuments(
+            selectedIDs: preset.documentIDs,
+            selectAllWhenUnspecified: true
+        )
+        persistPreferences()
         refreshFilteredDueCount()
 
         if selectedSources.isEmpty
-            || selectedCardTypes.isEmpty {
+            || selectedCardTypes.isEmpty
+            || selectedDocumentIDs.isEmpty {
             presetStatusMessage = language.text(
-                "方案“\(preset.name)”包含当前不可用的来源或卡片类型，请重新选择后保存。",
-                "プリセット「\(preset.name)」には現在利用できないソースまたはカード種類が含まれています。選び直して保存してください。"
+                "方案“\(preset.name)”包含当前不可用的来源、资料或卡片类型，请重新选择后保存。",
+                "プリセット「\(preset.name)」には現在利用できないソース・資料・カード種類が含まれています。選び直して保存してください。"
             )
         } else {
             presetStatusMessage = language.text(
@@ -524,6 +726,7 @@ public struct StudyScopeView: View {
                 StudyScopePreferences(
                     sourceKeys: selectedSources,
                     cardTypes: selectedCardTypeIDs,
+                    documentIDs: selectedDocumentIDs,
                     reviewCount: reviewCount
                 )
             )
@@ -545,9 +748,65 @@ public struct StudyScopeView: View {
         }
     }
 
-    private func refreshFilteredDueCount() {
+    private func refreshDocuments(
+        selectedIDs: Set<UUID>? = nil,
+        selectAllWhenUnspecified: Bool = false,
+        selectSourceKey: String? = nil
+    ) {
         guard !selectedSources.isEmpty,
               !selectedCardTypes.isEmpty
+        else {
+            documents = []
+            selectedDocumentIDs = []
+            return
+        }
+
+        do {
+            let repository = LearningRepository(
+                context: modelContext
+            )
+            let refreshed = try repository.reviewDocuments(
+                sourceKeys: selectedSourceKeys,
+                cardTypes: selectedCardTypeIDs
+            )
+            let refreshedIDs = Set(
+                refreshed.map(\.id)
+            )
+
+            if let selectedIDs {
+                selectedDocumentIDs = selectedIDs
+                    .intersection(refreshedIDs)
+            } else if selectAllWhenUnspecified {
+                selectedDocumentIDs = refreshedIDs
+            } else if let selectSourceKey {
+                let newlyAvailable = refreshed
+                    .filter {
+                        $0.sourceKey == selectSourceKey
+                    }
+                    .map(\.id)
+                selectedDocumentIDs.formUnion(
+                    newlyAvailable
+                )
+                selectedDocumentIDs.formIntersection(
+                    refreshedIDs
+                )
+            } else {
+                selectedDocumentIDs.formIntersection(
+                    refreshedIDs
+                )
+            }
+
+            documents = refreshed
+        } catch {
+            documents = []
+            selectedDocumentIDs = []
+        }
+    }
+
+    private func refreshFilteredDueCount() {
+        guard !selectedSources.isEmpty,
+              !selectedCardTypes.isEmpty,
+              !selectedDocumentIDs.isEmpty
         else {
             filteredDueCount = 0
             return
@@ -559,7 +818,8 @@ public struct StudyScopeView: View {
             )
             filteredDueCount = try repository.dueCardCount(
                 sourceKeys: selectedSourceKeys,
-                cardTypes: selectedCardTypeIDs
+                cardTypes: selectedCardTypeIDs,
+                sourceDocumentIDs: selectedDocumentIDs
             )
         } catch {
             filteredDueCount = 0

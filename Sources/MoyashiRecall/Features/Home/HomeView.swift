@@ -313,15 +313,27 @@ public struct HomeView: View {
             )
             .font(.headline)
 
-            if !readiness.notionReady {
+            if !readiness.learningSourceReady {
                 Text(
                     language.text(
-                        "先连接 Notion 并同步学习资料。",
-                        "まずNotionを接続して学習資料を同期してください。"
+                        "先导入学习资料。你可以从本地文件开始，也可以连接 Notion。",
+                        "まず学習資料を読み込んでください。ローカルファイルまたはNotionを利用できます。"
                     )
                 )
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.muted)
+
+                NavigationLink {
+                    LibraryView()
+                } label: {
+                    Label(
+                        language.text(
+                            "打开资料库",
+                            "ライブラリを開く"
+                        ),
+                        systemImage: "folder"
+                    )
+                }
 
                 NavigationLink {
                     NotionConnectionView()
@@ -336,12 +348,12 @@ public struct HomeView: View {
                 }
             }
 
-            if readiness.notionReady
+            if readiness.learningSourceReady
                 && !readiness.aiReady {
                 Text(
                     language.text(
-                        "资料已同步。下一步配置 AI Provider 和模型。",
-                        "資料は同期済みです。次にAI Providerとモデルを設定してください。"
+                        "资料已就绪。下一步配置 AI Provider 和模型。",
+                        "資料は準備済みです。次にAI Providerとモデルを設定してください。"
                     )
                 )
                 .font(.subheadline)
@@ -360,13 +372,13 @@ public struct HomeView: View {
                 }
             }
 
-            if readiness.notionReady
+            if readiness.learningSourceReady
                 && readiness.aiReady
                 && readiness.activeCardCount == 0 {
                 Text(
                     language.text(
-                        "Notion 和 AI 已就绪。进入资料库，打开同步页面并生成第一批复习卡片。",
-                        "NotionとAIの準備が完了しました。ライブラリで同期ページを開き、最初の復習カードを生成してください。"
+                        "学习资料和 AI 已就绪。进入资料库并生成第一批复习卡片。",
+                        "学習資料とAIの準備が完了しました。ライブラリで最初の復習カードを生成してください。"
                     )
                 )
                 .font(.subheadline)

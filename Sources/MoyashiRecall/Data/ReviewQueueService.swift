@@ -10,6 +10,7 @@ public struct ReviewQueueService {
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        sourceDocumentIDs: Set<UUID>? = nil,
         knowledgeItemIDs: Set<UUID>? = nil,
         limit: Int? = nil
     ) throws -> [FlashcardEntity] {
@@ -45,6 +46,14 @@ public struct ReviewQueueService {
                !cardTypes.isEmpty,
                !cardTypes.contains(card.cardType) {
                 return false
+            }
+
+            if let sourceDocumentIDs {
+                guard let sourceDocumentID = card.sourceDocumentID,
+                      sourceDocumentIDs.contains(sourceDocumentID)
+                else {
+                    return false
+                }
             }
 
             if let knowledgeItemIDs,

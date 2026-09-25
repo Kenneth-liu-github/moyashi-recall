@@ -1,70 +1,66 @@
-# V0.7 Status — Release Readiness, Diagnostics & Data Export
+# V0.7 Status — Granular Study Scope, Diagnostics & Data Export
 
 ## Goal
 
-Make the MVP easier to configure, diagnose, support, and back up without exposing credentials.
+Make review scope more precise while improving release readiness, diagnostics, onboarding, and backup capability.
 
 ## Implemented
 
-### Readiness diagnostics
+### Granular Study Scope
+- Source-level, document/page-level, and card-type filtering.
+- Stable `SourceDocumentEntity.id` scope persisted in last-used preferences and named presets.
+- Works with Notion pages, PDF pages, and imported Word/text/image documents.
+- Per-document total-card and due-card counts.
+- Explicit Select All / Clear document actions.
+- Empty document scope means no cards and never broadens silently.
+- Legacy V0.5 preferences/presets without document IDs remain backward-compatible.
+- Review-count value `0` means all currently due cards in the selected scope.
 
-- Central readiness snapshot covering:
-  - Notion credential configured
-  - Notion root page selected
-  - synced Notion page count
-  - selected AI provider
-  - AI model configured
-  - AI credential configured
-  - active knowledge count
-  - active flashcard count
-  - current due-card count
-  - Review History count
-  - latest review timestamp
-- Notion readiness is scoped specifically to Notion source documents.
-- Keychain read failures degrade to “not configured” instead of making the entire diagnostics screen unusable.
-- User-facing diagnostics screen in Settings.
-- Manual diagnostics refresh.
-- App version and build number shown in diagnostics.
-- Direct recovery links to Notion and AI configuration when incomplete.
-
-### First-run guidance
-
-- Home detects when there are no reviewable cards.
-- If Notion is incomplete, Home links directly to Notion setup.
-- If Notion is ready but AI is incomplete, Home links directly to AI setup.
-- If Notion + AI are ready but there are no cards yet, Home explains that the next step is generating cards from Library.
-- Existing users with reviewable cards do not see the onboarding card.
+### Release readiness and diagnostics
+- System Status screen with Notion, learning-source, AI, knowledge/card, due, history, and latest-review diagnostics.
+- Credential checks expose presence only; secret values are never shown.
+- App version/build reporting and manual refresh.
+- First-run guidance is source-agnostic:
+  - local files are a valid learning source,
+  - Notion is optional rather than mandatory,
+  - AI setup is requested only after learning material exists,
+  - users with generated cards do not see onboarding guidance.
+- Keychain read failures degrade to “not configured” rather than breaking diagnostics.
 
 ### Learning-data export
-
 - Native JSON file export from Settings.
-- Export includes:
-  - source documents and hierarchy metadata
-  - AI-generated knowledge
-  - flashcards
-  - FSRS review states
-  - Review History
-  - active/inactive state required for preservation
-  - provider/model provenance metadata
-- Export order is deterministic for easier diffing and support inspection.
-- Export intentionally excludes:
-  - Notion Token
-  - AI API keys
-  - Keychain credentials
-- Export uses a versioned package schema (`v1`).
-- No destructive restore/import path is introduced in V0.7.
+- Versioned schema `v1`.
+- Includes source documents, generated knowledge, flashcards, FSRS states, Review History, inactive preservation records, and AI provenance metadata.
+- ISO-8601 dates and deterministic ordering.
+- Excludes Notion tokens, AI API keys, Keychain credentials, passwords, and other secrets.
+- No destructive restore path is introduced in V0.7.
 
-## Quality work
+## Validation
 
-- No new force unwraps, TODOs, fatal errors, or out-of-palette colors in the V0.7 diff.
-- Diagnostics remain useful when credential reads fail.
-- Backup JSON has explicit ISO-8601 timestamps and sorted keys.
-- Readiness derived-state tests and export round-trip tests were added.
+Engineering validation is green:
 
-## Validation state
+- Granular Study Scope validation: run #150
+- Combined V0.7 validation: run #153
+- combined commit: `60cef505519ce1364d610d82325e08915d6938d5`
+- portable Linux core tests: passed
+- full macOS Swift package / SwiftData tests: passed
+- iOS Simulator build: passed
+- V0.6 reminders, Japanese TTS, local-file ingestion, and earlier milestones remained in the regression suite
 
-The same GitHub Actions account/runner limitation remains: jobs are created but fail before their first workflow step executes. V0.7 therefore remains a stacked Draft milestone pending a normal macOS/Xcode validation environment.
+## Quality checks
 
-## V0.7 completion state
+- Explicit `nil` vs empty document-scope semantics are covered by tests.
+- Local-file learning can satisfy readiness without Notion.
+- Export tests cover JSON round-trip, deterministic ordering, inactive-card/history preservation, and absence of credential field names.
+- No new production `try!`, `fatalError`, TODO, or FIXME markers were identified during the V0.7 audit.
+- PR #10 and PR #8 were both merge-clean before integration.
 
-V0.7 is a **feature-complete freeze candidate** pending full Apple-platform build/test validation.
+## Freeze state
+
+**V0.7 engineering freeze: PASSED.**
+
+Remaining interactive checks belong to release readiness rather than engineering freeze:
+- large Notion/PDF hierarchy UX
+- real local/iCloud document-picker flow
+- diagnostics navigation on device
+- JSON file-export UX and Files app destination handling

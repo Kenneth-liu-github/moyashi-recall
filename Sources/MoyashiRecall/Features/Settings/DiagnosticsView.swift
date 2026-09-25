@@ -110,7 +110,7 @@ public struct DiagnosticsView: View {
                             "资料源",
                             "資料ソース"
                         ),
-                        ready: snapshot.notionReady
+                        ready: snapshot.learningSourceReady
                     )
                     statusRow(
                         "AI",
@@ -147,8 +147,20 @@ public struct DiagnosticsView: View {
                     )
                 }
 
-                if !snapshot.notionReady {
+                if !snapshot.learningSourceReady {
                     Section {
+                        NavigationLink {
+                            LibraryView()
+                        } label: {
+                            Label(
+                                language.text(
+                                    "导入学习资料",
+                                    "学習資料を読み込む"
+                                ),
+                                systemImage: "folder"
+                            )
+                        }
+
                         NavigationLink {
                             NotionConnectionView()
                         } label: {

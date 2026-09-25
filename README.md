@@ -6,29 +6,86 @@ AI-powered personal Japanese learning library and spaced-repetition app for iPho
 
 - Native Swift + SwiftUI Universal App
 - Default interface language: Simplified Chinese
-- Optional interface language: Japanese (Settings)
+- Optional interface language: Japanese
 - Interface language is independent from learning-content language
 - Global UI palette: no more than 4 colors; cold blue + black/white/gray
-- Notion-first, source-agnostic content architecture
-- Every card remains traceable to its source
-- AI provider is decoupled behind an AI Gateway
-- FSRS is the review scheduler
-- V0.1 is offline-first and uses mock data; Notion/AI/backend come after UX validation
+- Source-agnostic learning-content architecture
+- Every generated card remains traceable to its source
+- AI providers are decoupled behind provider adapters
+- FSRS-6 schedules review timing
+- Local-first learning data via SwiftData
 
-## V0.1 scope
+## Current pipeline
 
-1. Home dashboard
-2. Study Scope selection
-3. Review question/answer flow
-4. Library
-5. Cards
-6. Settings with Chinese/Japanese UI switching
-7. Adaptive iPhone/iPad SwiftUI layout
+Source → Source Document → AI Knowledge Item → Flashcard → Review History → FSRS State
 
-## Canonical learning pipeline
+## Implemented milestones
 
-Source → Document → Knowledge Item → Flashcard(s) → Review History → FSRS State
+### V0.1 — App shell
+
+- Home
+- Review
+- Library
+- Cards
+- Settings
+- Chinese/Japanese UI switching
+
+### V0.2 — Persistence + FSRS
+
+- SwiftData learning/review models
+- due queue
+- FSRS-6 scheduling
+- Review History persistence
+
+### V0.3 — Notion ingestion
+
+- secure Keychain token
+- Notion page search
+- recursive page/block sync
+- source hierarchy/path traceability
+
+### V0.4 — AI extraction
+
+- provider-neutral AI contract
+- OpenAI + Anthropic adapters
+- structured knowledge extraction
+- generated flashcards
+- idempotent AI regeneration
+
+### V0.5 — Complete learning loop
+
+- Study Scope
+- saved presets
+- live dashboard analytics
+- weak-item reinforcement
+- Review History search/filter
+- session summaries
+
+### V0.6 — Engagement, speech & local file ingestion
+
+- daily local review reminders with due-aware copy
+- native Japanese text-to-speech with kana-reading normalization
+- configurable speech speed and optional answer auto-play
+- PDF page extraction
+- Word / RTF / ODT text extraction
+- TXT / Markdown
+- CSV / TSV
+- image OCR with Apple Vision
+- multi-file import
+- source archive with Review History preservation
+
+### V0.7 — Granular scope, diagnostics & export
+
+- document/page-level Study Scope
+- persisted granular scope in preferences and presets
+- all-due review sessions
+- source-agnostic first-run readiness
+- system diagnostics and recovery links
+- credential-free JSON learning-data export
+- deterministic backup schema with inactive-history preservation
 
 ## Development workflow
 
-Product feedback is reviewed in small iterations. Feature work should be developed on branches and merged through pull requests after review.
+Feature work is isolated on stacked branches and draft pull requests. A milestone is not merged until its validation gate is satisfied.
+
+Portable parser/algorithm tests are kept Linux-compatible where possible. Full SwiftData, SwiftUI, PDFKit/Vision, and iOS Simulator validation require a working macOS/Xcode runner.

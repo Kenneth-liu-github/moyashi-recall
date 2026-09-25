@@ -11,6 +11,7 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
     public let rootExternalID: String
     public let sourcePath: [String]
     public let hierarchyDepth: Int
+    public let sourceKeyHint: String?
 
     public init(
         id: String,
@@ -22,7 +23,8 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
         parentExternalID: String? = nil,
         rootExternalID: String? = nil,
         sourcePath: [String] = [],
-        hierarchyDepth: Int = 0
+        hierarchyDepth: Int = 0,
+        sourceKeyHint: String? = nil
     ) {
         self.id = id
         self.sourceKind = sourceKind
@@ -34,6 +36,7 @@ public struct ImportedDocument: Identifiable, Equatable, Sendable {
         self.rootExternalID = rootExternalID ?? id
         self.sourcePath = sourcePath.isEmpty ? [title] : sourcePath
         self.hierarchyDepth = max(0, hierarchyDepth)
+        self.sourceKeyHint = sourceKeyHint
     }
 }
 
