@@ -599,4 +599,207 @@ final class DataLayerTests: XCTestCase {
         XCTAssertEqual(cards.first?.id, card.id)
         XCTAssertEqual(cards.first?.naturalEnglish, "answer")
     }
+    @MainActor
+    func testReviewSourcesAndFilteredDueCountsUseRealQueueState() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-1"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "item",
+            knowledgeType: "expression",
+            title: "進（すす）め方（かた）について",
+            canonicalExpression: "進（すす）め方（かた）について",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let dueCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "due",
+            cardType: ReviewCardType.zhToJa.rawValue,
+            prompt: "Q1",
+            answer: "A1",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let futureCard = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "future",
+            cardType: ReviewCardType.jaToZh.rawValue,
+            prompt: "Q2",
+            answer: "A2",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(dueCard)
+        context.insert(futureCard)
+        context.insert(
+            ReviewStateEntity(
+                cardID: dueCard.id,
+                due: now.addingTimeInterval(-60)
+            )
+        )
+        context.insert(
+            ReviewStateEntity(
+                cardID: futureCard.id,
+                due: now.addingTimeInterval(86_400)
+            )
+        )
+        try context.save()
+
+        let repository = LearningRepository(context: context)
+        let sources = try repository.reviewSources(now: now)
+
+        XCTAssertEqual(sources.count, 1)
+        XCTAssertEqual(sources.first?.cardCount, 2)
+        XCTAssertEqual(sources.first?.dueCardCount, 1)
+
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                now: now,
+                sourceKeys: ["office-japanese"],
+                cardTypes: [ReviewCardType.zhToJa.rawValue]
+            ),
+            1
+        )
+        XCTAssertEqual(
+            try repository.dueCardCount(
+                now: now,
+                sourceKeys: ["office-japanese"],
+                cardTypes: [ReviewCardType.jaToZh.rawValue]
+            ),
+            0
+        )
+    }
+
+    @MainActor
+    func testHomeSnapshotUsesRealReviewHistoryAndWeakKnowledge() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(
+            from: DateComponents(
+                year: 2026,
+                month: 9,
+                day: 25,
+                hour: 12
+            )
+        )!
+
+        let source = SourceDocumentEntity(
+            title: "第二课",
+            content: "content",
+            sourceKind: "notion",
+            externalSourceID: "page-1",
+            sourcePath: "Learning Home / 办公室日语学习 / 第二课",
+            sourceKey: "office-japanese",
+            sourceReference: "notion://page-1"
+        )
+        let knowledge = KnowledgeItemEntity(
+            sourceDocumentID: source.id,
+            extractionKey: "weak-item",
+            knowledgeType: "grammar",
+            title: "使役・受身",
+            canonicalExpression: "使役（しえき）・受身（うけみ）",
+            content: "content",
+            sourceKind: "notion",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+        let card = FlashcardEntity(
+            knowledgeItemID: knowledge.id,
+            sourceDocumentID: source.id,
+            generationKey: "weak-card",
+            cardType: ReviewCardType.application.rawValue,
+            prompt: "Q",
+            answer: "A",
+            sourceKey: "office-japanese",
+            sourceDisplayPath: source.sourcePath,
+            sourceReference: source.sourceReference
+        )
+
+        context.insert(source)
+        context.insert(knowledge)
+        context.insert(card)
+        context.insert(
+            ReviewStateEntity(
+                cardID: card.id,
+                due: now.addingTimeInterval(-60)
+            )
+        )
+
+        let ratings: [(Int, Int)] = [
+            (ReviewRating.again.rawValue, 0),
+            (ReviewRating.hard.rawValue, -1),
+            (ReviewRating.good.rawValue, -2),
+            (ReviewRating.easy.rawValue, -3)
+        ]
+        for (rating, dayOffset) in ratings {
+            let reviewedAt = calendar.date(
+                byAdding: .day,
+                value: dayOffset,
+                to: now
+            )!
+            context.insert(
+                ReviewHistoryEntity(
+                    cardID: card.id,
+                    reviewedAt: reviewedAt,
+                    ratingRawValue: rating,
+                    elapsedDays: 1,
+                    scheduledDays: 2,
+                    stabilityBefore: 1,
+                    stabilityAfter: 2,
+                    difficultyBefore: 5,
+                    difficultyAfter: 4
+                )
+            )
+        }
+        try context.save()
+
+        let snapshot = try LearningRepository(
+            context: context
+        ).homeSnapshot(now: now)
+
+        XCTAssertEqual(snapshot.dueCount, 1)
+        XCTAssertEqual(snapshot.reviewedToday, 1)
+        XCTAssertEqual(snapshot.reviewedLast7Days, 4)
+        XCTAssertEqual(
+            snapshot.successRateLast7Days,
+            0.5,
+            accuracy: 0.000001
+        )
+        XCTAssertEqual(snapshot.weakKnowledge.count, 1)
+        XCTAssertEqual(
+            snapshot.weakKnowledge.first?.title,
+            "使役（しえき）・受身（うけみ）"
+        )
+        XCTAssertEqual(
+            snapshot.weakKnowledge.first?.difficultReviews,
+            2
+        )
+    }
+
+
 }
