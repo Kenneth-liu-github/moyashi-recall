@@ -268,6 +268,7 @@ public struct HomeSnapshot: Equatable, Sendable {
     public let reviewedToday: Int
     public let reviewedLast7Days: Int
     public let successRateLast7Days: Double?
+    public let latestReviewAt: Date?
     public let weakKnowledge: [WeakKnowledgeSummary]
 
     public init(
@@ -276,6 +277,7 @@ public struct HomeSnapshot: Equatable, Sendable {
         reviewedToday: Int = 0,
         reviewedLast7Days: Int = 0,
         successRateLast7Days: Double? = nil,
+        latestReviewAt: Date? = nil,
         weakKnowledge: [WeakKnowledgeSummary] = []
     ) {
         self.dueCount = dueCount
@@ -283,6 +285,7 @@ public struct HomeSnapshot: Equatable, Sendable {
         self.reviewedToday = reviewedToday
         self.reviewedLast7Days = reviewedLast7Days
         self.successRateLast7Days = successRateLast7Days
+        self.latestReviewAt = latestReviewAt
         self.weakKnowledge = weakKnowledge
     }
 }
@@ -1344,6 +1347,7 @@ public struct LearningRepository {
             reviewedToday: todayHistory.count,
             reviewedLast7Days: recentHistory.count,
             successRateLast7Days: successRate,
+            latestReviewAt: history.first?.reviewedAt,
             weakKnowledge: Array(
                 weakKnowledge.prefix(3)
             )
