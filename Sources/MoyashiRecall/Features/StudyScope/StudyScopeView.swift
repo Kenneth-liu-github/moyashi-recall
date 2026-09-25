@@ -65,8 +65,8 @@ public struct StudyScopeView: View {
 
                                     Text(
                                         language.text(
-                                            "\(preset.sourceKeys.count) 个来源 · \(preset.documentIDs?.count ?? 0) 个资料 · \(preset.cardTypes.count) 种卡片 · \(presetCountLabel(preset.reviewCount))",
-                                            "\(preset.sourceKeys.count)ソース · \(preset.documentIDs?.count ?? 0)資料 · \(preset.cardTypes.count)種類 · \(presetCountLabel(preset.reviewCount))"
+                                            "\(preset.sourceKeys.count) 个来源 · \(presetDocumentLabel(preset)) · \(preset.cardTypes.count) 种卡片 · \(presetCountLabel(preset.reviewCount))",
+                                            "\(preset.sourceKeys.count)ソース · \(presetDocumentLabel(preset)) · \(preset.cardTypes.count)種類 · \(presetCountLabel(preset.reviewCount))"
                                         )
                                     )
                                     .font(.caption)
@@ -508,6 +508,22 @@ public struct StudyScopeView: View {
         }
         persistPreferences()
         refreshFilteredDueCount()
+    }
+
+    private func presetDocumentLabel(
+        _ preset: SavedStudyPreset
+    ) -> String {
+        guard let documentIDs = preset.documentIDs else {
+            return language.text(
+                "全部资料",
+                "全資料"
+            )
+        }
+
+        return language.text(
+            "\(documentIDs.count) 个资料",
+            "\(documentIDs.count)資料"
+        )
     }
 
     private func presetCountLabel(
