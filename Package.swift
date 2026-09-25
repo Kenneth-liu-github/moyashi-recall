@@ -16,6 +16,7 @@ let package = Package(
                 "Scheduling/FSRSScheduler.swift",
                 "Models/LearningModels.swift",
                 "Core/Networking/HTTPTransport.swift",
+                "Core/Networking/AIHTTPRetryPolicy.swift",
                 "AI/AICompletionProvider.swift",
                 "AI/AIProviderConfiguration.swift",
                 "AI/KnowledgeExtractionModels.swift",
