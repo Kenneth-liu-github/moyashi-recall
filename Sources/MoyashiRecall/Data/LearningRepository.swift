@@ -524,6 +524,9 @@ public struct LearningRepository {
                     && (sourceKind == nil || item.sourceKind == sourceKind)
             }
             .map(ImportedDocumentSummary.init)
+            .sorted(
+                by: Self.importedDocumentOrder
+            )
     }
 
     @discardableResult
@@ -1152,6 +1155,28 @@ public struct LearningRepository {
             in: context,
             now: now
         )
+    }
+
+    private static func importedDocumentOrder(
+        _ lhs: ImportedDocumentSummary,
+        _ rhs: ImportedDocumentSummary
+    ) -> Bool {
+        if lhs.rootExternalSourceID
+            != rhs.rootExternalSourceID {
+            return lhs.sourcePath.localizedStandardCompare(
+                rhs.sourcePath
+            ) == .orderedAscending
+        }
+
+        if lhs.hierarchyDepth
+            != rhs.hierarchyDepth {
+            return lhs.hierarchyDepth
+                < rhs.hierarchyDepth
+        }
+
+        return lhs.sourcePath.localizedStandardCompare(
+            rhs.sourcePath
+        ) == .orderedAscending
     }
 
     private static func categoryTitle(
