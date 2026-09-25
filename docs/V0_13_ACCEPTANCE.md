@@ -9,12 +9,12 @@
 - [x] Release audit distinguishes AppIcon wiring from final artwork.
 - [x] Privacy policy draft exists.
 - [x] Distribution handoff checklist exists.
-- [ ] Portable Linux tests pass.
-- [ ] Full macOS / SwiftData tests pass.
-- [ ] Debug iOS Simulator build passes.
-- [ ] Unsigned Release archive remains green.
-- [ ] Archived PrivacyInfo.xcprivacy remains present.
-- [ ] V0.1–V0.12 regression remains green.
+- [x] Portable Linux tests pass.
+- [x] Full macOS / SwiftData tests pass.
+- [x] Debug iOS Simulator build passes.
+- [x] Unsigned Release archive remains green.
+- [x] Archived PrivacyInfo.xcprivacy remains present.
+- [x] V0.1–V0.12 regression remains green.
 
 ## External distribution
 
@@ -29,4 +29,4 @@
 
 ## Decision
 
-**V0.13 engineering freeze: PENDING VALIDATION.**
+**V0.13 engineering freeze: PASSED. Distribution remains pending external Apple/brand/device steps.**
