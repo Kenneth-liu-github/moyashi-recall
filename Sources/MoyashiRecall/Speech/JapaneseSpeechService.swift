@@ -9,7 +9,8 @@ public final class JapaneseSpeechService: ObservableObject {
     public init() {}
 
     public func speak(
-        _ text: String
+        _ text: String,
+        rate: JapaneseSpeechRate = .normal
     ) {
         let normalized = JapaneseSpeechText.normalized(
             text
@@ -32,7 +33,16 @@ public final class JapaneseSpeechService: ObservableObject {
         utterance.voice = AVSpeechSynthesisVoice(
             language: "ja-JP"
         )
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        let adjustedRate =
+            AVSpeechUtteranceDefaultSpeechRate
+            * Float(rate.multiplier)
+        utterance.rate = min(
+            max(
+                adjustedRate,
+                AVSpeechUtteranceMinimumSpeechRate
+            ),
+            AVSpeechUtteranceMaximumSpeechRate
+        )
         synthesizer.speak(utterance)
     }
 
