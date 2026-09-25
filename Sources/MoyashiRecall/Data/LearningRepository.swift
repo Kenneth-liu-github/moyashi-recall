@@ -866,6 +866,7 @@ public struct LearningRepository {
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
         cardTypes: Set<String>? = nil,
+        knowledgeItemIDs: Set<UUID>? = nil,
         limit: Int? = nil
     ) throws -> [ReviewSessionCard] {
         try queueService
@@ -874,6 +875,7 @@ public struct LearningRepository {
                 now: now,
                 sourceKeys: sourceKeys,
                 cardTypes: cardTypes,
+                knowledgeItemIDs: knowledgeItemIDs,
                 limit: limit
             )
             .map(ReviewSessionCard.init)
@@ -882,13 +884,15 @@ public struct LearningRepository {
     public func dueCardCount(
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
-        cardTypes: Set<String>? = nil
+        cardTypes: Set<String>? = nil,
+        knowledgeItemIDs: Set<UUID>? = nil
     ) throws -> Int {
         try queueService.dueCards(
             in: context,
             now: now,
             sourceKeys: sourceKeys,
             cardTypes: cardTypes,
+            knowledgeItemIDs: knowledgeItemIDs,
             limit: nil
         ).count
     }
