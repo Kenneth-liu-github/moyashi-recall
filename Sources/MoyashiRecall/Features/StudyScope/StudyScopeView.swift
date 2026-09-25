@@ -13,6 +13,8 @@ public struct StudyScopeView: View {
     @State private var reviewCount = 20
     @State private var filteredDueCount = 0
 
+    private let preferencesStore = StudyScopePreferencesStore()
+
     public init() {}
 
     private var selectedSourceKeys: Set<String> {
@@ -113,6 +115,9 @@ public struct StudyScopeView: View {
                     Text("30").tag(30)
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: reviewCount) { _, _ in
+                    persistPreferences()
+                }
             }
 
             Section(
@@ -215,6 +220,7 @@ public struct StudyScopeView: View {
         } else {
             selectedSources.insert(key)
         }
+        persistPreferences()
         refreshFilteredDueCount()
     }
 
@@ -226,6 +232,7 @@ public struct StudyScopeView: View {
         } else {
             selectedCardTypes.insert(type)
         }
+        persistPreferences()
         refreshFilteredDueCount()
     }
 
@@ -268,17 +275,54 @@ public struct StudyScopeView: View {
             let availableKeys = Set(
                 sources.map(\.key)
             )
-            selectedSources = selectedSources
-                .intersection(availableKeys)
+
+            if let saved = preferencesStore.load() {
+                selectedSources = saved.sourceKeys
+                    .intersection(availableKeys)
+
+                let savedTypes = Set(
+                    saved.cardTypes.compactMap {
+                        ReviewCardType(rawValue: $0)
+                    }
+                )
+                if !savedTypes.isEmpty {
+                    selectedCardTypes = savedTypes
+                }
+
+                if [10, 20, 30].contains(
+                    saved.reviewCount
+                ) {
+                    reviewCount = saved.reviewCount
+                }
+            } else {
+                selectedSources = selectedSources
+                    .intersection(availableKeys)
+            }
 
             if selectedSources.isEmpty {
                 selectedSources = availableKeys
             }
+
+            persistPreferences()
             refreshFilteredDueCount()
         } catch {
             sources = []
             selectedSources = []
             filteredDueCount = 0
+        }
+    }
+
+    private func persistPreferences() {
+        do {
+            try preferencesStore.save(
+                StudyScopePreferences(
+                    sourceKeys: selectedSources,
+                    cardTypes: selectedCardTypeIDs,
+                    reviewCount: reviewCount
+                )
+            )
+        } catch {
+            // Preferences are non-critical; the review flow can continue.
         }
     }
 
