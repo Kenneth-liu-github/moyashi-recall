@@ -3,6 +3,8 @@ import Foundation
 public enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case openAI = "openai"
     case anthropic
+    case deepSeek = "deepseek"
+    case kimi = "kimi"
 
     public var id: String { rawValue }
 
@@ -12,6 +14,10 @@ public enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Sendabl
             return "OpenAI"
         case .anthropic:
             return "Anthropic"
+        case .deepSeek:
+            return "DeepSeek"
+        case .kimi:
+            return "Kimi"
         }
     }
 }
@@ -99,6 +105,10 @@ public enum AICredential {
             return "ai-openai-api-key"
         case .anthropic:
             return "ai-anthropic-api-key"
+        case .deepSeek:
+            return "ai-deepseek-api-key"
+        case .kimi:
+            return "ai-kimi-api-key"
         }
     }
 }
@@ -107,8 +117,29 @@ public enum AIProviderFactory {
     #if canImport(Security)
     public static func makeConfiguredProvider(
         configurationStore: AIConfigurationStore = AIConfigurationStore(),
+        profileStore: AIConfigurationProfileStore = AIConfigurationProfileStore(),
         credentialStore: KeychainCredentialStore = KeychainCredentialStore()
     ) throws -> any AICompletionProvider {
+        if let profile = profileStore.activeProfile() {
+            guard
+                let secret = try credentialStore.read(
+                    account: profile.credentialAccount
+                )
+            else {
+                throw AIProviderError.missingConfiguration(
+                    "\(profile.provider.displayName) API key"
+                )
+            }
+
+            return try makeProvider(
+                configuration: AIProviderConfiguration(
+                    provider: profile.provider,
+                    modelID: profile.modelID
+                ),
+                secret: secret
+            )
+        }
+
         let configuration = configurationStore.load()
         let account = AICredential.account(
             for: configuration.provider
@@ -162,6 +193,17 @@ public enum AIProviderFactory {
             )
         case .anthropic:
             return AnthropicMessagesProvider(
+                apiKey: trimmedSecret,
+                modelID: modelID
+            )
+        case .deepSeek:
+            return DeepSeekResponsesProvider(
+                apiKey: trimmedSecret,
+                modelID: modelID
+            )
+
+        case .kimi:
+            return KimiChatCompletionsProvider(
                 apiKey: trimmedSecret,
                 modelID: modelID
             )
