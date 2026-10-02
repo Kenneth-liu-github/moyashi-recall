@@ -76,7 +76,16 @@ public struct LocalFileImporter {
                 sourceKey: sourceKey
             )
 
-        case "docx", "doc", "rtf", "odt":
+        case "docx":
+            return try importDOCX(
+                url: url,
+                title: title,
+                rootID: rootID,
+                lastEditedAt: lastEditedAt,
+                sourceKey: sourceKey
+            )
+
+        case "doc", "rtf", "odt":
             return try importRichDocument(
                 url: url,
                 title: title,
@@ -139,6 +148,36 @@ public struct LocalFileImporter {
         #else
         throw LocalFileImportError.pdfUnavailable
         #endif
+    }
+
+    private func importDOCX(
+        url: URL,
+        title: String,
+        rootID: String,
+        lastEditedAt: Date?,
+        sourceKey: String
+    ) throws -> LocalFileImportResult {
+        let text = try DOCXTextExtractor.extract(url: url)
+
+        return LocalFileImportResult(
+            documents: [
+                ImportedDocument(
+                    id: rootID,
+                    sourceKind: "file",
+                    title: title,
+                    sourceReference: "local-file://\(title)",
+                    content: text,
+                    lastEditedAt: lastEditedAt,
+                    rootExternalID: rootID,
+                    sourcePath: [
+                        "Imported Files",
+                        title
+                    ],
+                    hierarchyDepth: 0,
+                    sourceKeyHint: sourceKey
+                )
+            ]
+        )
     }
 
     private func importRichDocument(

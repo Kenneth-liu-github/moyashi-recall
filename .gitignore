@@ -17,3 +17,6 @@ xcuserdata/
 *.env
 .env
 Secrets.xcconfig
+
+# Xcode generated project workspace
+App/MoyashiRecall.xcodeproj/project.xcworkspace/

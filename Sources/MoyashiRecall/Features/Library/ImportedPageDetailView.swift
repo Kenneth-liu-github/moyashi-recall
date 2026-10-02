@@ -61,90 +61,7 @@ public struct ImportedPageDetailView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(item.title)
-                        .font(.title2.bold())
-
-                    Text(item.sourcePath)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.muted)
-                }
-
-                Divider()
-
-                if item.content
-                    .trimmingCharacters(
-                        in: .whitespacesAndNewlines
-                    )
-                    .isEmpty {
-                    Text(
-                        language.text(
-                            "此页面当前没有可显示的文本内容。",
-                            "このページには表示できるテキストがありません。"
-                        )
-                    )
-                    .foregroundStyle(AppTheme.muted)
-
-                    if item.sourceKind == "file",
-                       item.hierarchyDepth == 0,
-                       !batchTargets.isEmpty {
-                        Button {
-                            showingBatchConfirmation = true
-                        } label: {
-                            Label(
-                                language.text(
-                                    batchTargets.count == childTextUnits.count
-                                        ? "AI 处理全部 \(batchTargets.count) 个文本单元"
-                                        : "AI 批量处理前 \(batchTargets.count) / \(childTextUnits.count) 个单元",
-                                    batchTargets.count == childTextUnits.count
-                                        ? "AIで全 \(batchTargets.count) テキスト単位を処理"
-                                        : "AIで先頭 \(batchTargets.count) / \(childTextUnits.count) 単位を処理"
-                                ),
-                                systemImage: "sparkles.rectangle.stack"
-                            )
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.accent)
-                        .disabled(isProcessing)
-                    }
-                } else {
-                    Text(item.content)
-                        .font(.body)
-                        .textSelection(.enabled)
-
-                    Button {
-                        generationRequestID = UUID()
-                    } label: {
-                        HStack {
-                            if isProcessing {
-                                ProgressView()
-                            } else {
-                                Image(
-                                    systemName: "sparkles"
-                                )
-                            }
-
-                            Text(
-                                isAIUpToDate
-                                    ? language.text(
-                                        "重新生成 AI 知识与卡片",
-                                        "AI知識とカードを再生成"
-                                    )
-                                    : language.text(
-                                        "AI 提取知识并生成卡片",
-                                        "AIで知識とカードを生成"
-                                    )
-                            )
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
-                    .disabled(isProcessing)
-                }
+                aiTopAction
 
                 HStack(spacing: 12) {
                     Label(
@@ -202,60 +119,6 @@ public struct ImportedPageDetailView: View {
                         .foregroundStyle(AppTheme.muted)
                 }
 
-                if !generatedKnowledge.isEmpty {
-                    Divider()
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(
-                            language.text(
-                                "AI 提取的知识",
-                                "AIが抽出した知識"
-                            )
-                        )
-                        .font(.headline)
-
-                        ForEach(generatedKnowledge) { knowledge in
-                            VStack(
-                                alignment: .leading,
-                                spacing: 5
-                            ) {
-                                HStack {
-                                    Text(knowledge.title)
-                                        .font(.subheadline.bold())
-
-                                    Spacer()
-
-                                    Text(
-                                        "\(knowledge.cardCount) "
-                                            + language.text(
-                                                "卡",
-                                                "枚"
-                                            )
-                                    )
-                                    .font(.caption2)
-                                    .foregroundStyle(AppTheme.muted)
-                                }
-
-                                if !knowledge.canonicalExpression.isEmpty {
-                                    Text(
-                                        knowledge.canonicalExpression
-                                    )
-                                    .font(.subheadline)
-                                }
-
-                                if !knowledge.meaning.isEmpty {
-                                    Text(knowledge.meaning)
-                                        .font(.caption)
-                                        .foregroundStyle(
-                                            AppTheme.muted
-                                        )
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                }
-
                 Divider()
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -309,6 +172,153 @@ public struct ImportedPageDetailView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
+
+
+                if !generatedKnowledge.isEmpty {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label(
+                            language.text(
+                                "AI 提取的知识",
+                                "AIが抽出した知識"
+                            ),
+                            systemImage: "brain.head.profile"
+                        )
+                        .font(.headline)
+                        .foregroundStyle(
+                            AppTheme.accent
+                        )
+
+                        ForEach(generatedKnowledge) { knowledge in
+                            VStack(
+                                alignment: .leading,
+                                spacing: 5
+                            ) {
+                                HStack {
+                                    Text(knowledge.title)
+                                        .font(.subheadline.bold())
+
+                                    Spacer()
+
+                                    Text(
+                                        "\(knowledge.cardCount) "
+                                            + language.text(
+                                                "卡",
+                                                "枚"
+                                            )
+                                    )
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.muted)
+                                }
+
+                                if !knowledge.canonicalExpression.isEmpty {
+                                    Text(
+                                        knowledge.canonicalExpression
+                                    )
+                                    .font(.subheadline)
+                                }
+
+                                if !knowledge.meaning.isEmpty {
+                                    Text(knowledge.meaning)
+                                        .font(.caption)
+                                        .foregroundStyle(
+                                            AppTheme.muted
+                                        )
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .padding(18)
+                    .background(
+                        AppTheme.accent.opacity(0.10)
+                    )
+                    .overlay(
+                        RoundedRectangle(
+                            cornerRadius:
+                                AppTheme.cornerRadius
+                        )
+                        .stroke(
+                            AppTheme.accent.opacity(0.16),
+                            lineWidth: 1
+                        )
+                    )
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius:
+                                AppTheme.cornerRadius
+                        )
+                    )
+                }
+
+
+
+                Divider()
+
+                Text(
+                    language.text(
+                        "原始资料",
+                        "元の資料"
+                    )
+                )
+                .font(.headline)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.title)
+                        .font(.title2.bold())
+
+                    Text(item.sourcePath)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                }
+
+                Divider()
+
+                if item.content
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                    .isEmpty {
+                    Text(
+                        language.text(
+                            "此页面当前没有可显示的文本内容。",
+                            "このページには表示できるテキストがありません。"
+                        )
+                    )
+                    .foregroundStyle(AppTheme.muted)
+
+                    if item.sourceKind == "file",
+                       item.hierarchyDepth == 0,
+                       !batchTargets.isEmpty {
+                        Button {
+                            showingBatchConfirmation = true
+                        } label: {
+                            Label(
+                                language.text(
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AI 处理全部 \(batchTargets.count) 个文本单元"
+                                        : "AI 批量处理前 \(batchTargets.count) / \(childTextUnits.count) 个单元",
+                                    batchTargets.count == childTextUnits.count
+                                        ? "AIで全 \(batchTargets.count) テキスト単位を処理"
+                                        : "AIで先頭 \(batchTargets.count) / \(childTextUnits.count) 単位を処理"
+                                ),
+                                systemImage: "sparkles.rectangle.stack"
+                            )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .disabled(isProcessing)
+                    }
+                } else {
+                    Text(item.content)
+                        .font(.body)
+                        .textSelection(.enabled)
+
+                }
+
             }
             .padding()
         }
@@ -539,11 +549,57 @@ public struct ImportedPageDetailView: View {
             }
         } catch let error as KnowledgeExtractionError {
             aiStatusMessage = extractionErrorMessage(error)
-        } catch {
+        } catch let error as URLError {
             aiStatusMessage = language.text(
-                "AI 处理失败。",
-                "AI処理に失敗しました。"
+                "AI 网络请求失败（错误码 \(error.code.rawValue)）。请检查网络后重试。",
+                "AIネットワーク要求に失敗しました（エラーコード \(error.code.rawValue)）。ネットワークを確認して再試行してください。"
             )
+        } catch {
+            let errorType = String(
+                describing: type(of: error)
+            )
+
+            aiStatusMessage = language.text(
+                "AI 处理失败。失败阶段可能在结果保存或底层系统处理。错误类型：\(errorType)",
+                "AI処理に失敗しました。結果保存またはシステム処理段階の可能性があります。エラー型：\(errorType)"
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var aiTopAction: some View {
+        if item.canGenerateAI {
+            Button {
+                generationRequestID = UUID()
+            } label: {
+                HStack {
+                    if isProcessing {
+                        ProgressView()
+                    } else {
+                        Image(
+                            systemName: "sparkles"
+                        )
+                    }
+
+                    Text(
+                        isAIUpToDate
+                            ? language.text(
+                                "重新生成 AI 知识与卡片",
+                                "AI知識とカードを再生成"
+                            )
+                            : language.text(
+                                "AI 提取知识并生成卡片",
+                                "AIで知識とカードを生成"
+                            )
+                    )
+                }
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+            .disabled(isProcessing)
         }
     }
 
@@ -578,10 +634,16 @@ public struct ImportedPageDetailView: View {
                 "AI 返回了不兼容的数据版本，请重试。",
                 "AIが互換性のないデータバージョンを返しました。再試行してください。"
             )
-        case .tooManyItems, .tooManyCards:
+        case let .tooManyItems(count):
             return language.text(
-                "AI 生成内容超过安全上限，本次结果没有保存。",
-                "AI生成内容が安全上限を超えたため、結果は保存されませんでした。"
+                "AI 返回了 \(count) 个知识点，超过当前上限 \(KnowledgeExtractionService.maximumItems) 个，本次结果未保存。",
+                "AIが \(count) 件の知識を返しました。現在の上限 \(KnowledgeExtractionService.maximumItems) 件を超えたため、保存しませんでした。"
+            )
+
+        case let .tooManyCards(itemKey, count):
+            return language.text(
+                "知识点「\(itemKey)」生成了 \(count) 张卡片，超过每个知识点 \(KnowledgeExtractionService.maximumCardsPerItem) 张的上限，本次结果未保存。",
+                "知識「\(itemKey)」に \(count) 枚のカードが生成されました。1知識あたり \(KnowledgeExtractionService.maximumCardsPerItem) 枚の上限を超えたため、保存しませんでした。"
             )
         case .emptyKnowledgeKey,
              .emptyKnowledgeContent,

@@ -28,6 +28,8 @@ let package = Package(
                 "Sources/SourceKeyResolver.swift",
                 "Sources/Files/LocalFileImporter.swift",
                 "Sources/Notion/NotionAPIClient.swift",
+                "Sources/Notion/NotionConfigurationProfile.swift",
+                "Sources/Notion/NotionConfigurationProfileStore.swift",
                 "Features/StudyScope/StudyScopePreferences.swift",
                 "Features/StudyScope/StudyPresetStore.swift",
                 "Features/Review/ReviewSessionSummaryStore.swift",
@@ -45,6 +47,7 @@ let package = Package(
             sources: [
                 "FSRSSchedulerTests.swift",
                 "NotionAPIClientTests.swift",
+                "NotionConfigurationProfileTests.swift",
                 "SourceKeyResolverTests.swift",
                 "AIExtractionCoreTests.swift",
                 "DocumentChunkerTests.swift",
@@ -74,8 +77,17 @@ let package = Package(
     products: [
         .library(name: "MoyashiRecall", targets: ["MoyashiRecall"])
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/weichsel/ZIPFoundation.git",
+            from: "0.9.0"
+        )
+    ],
     targets: [
-        .target(name: "MoyashiRecall"),
+        .target(
+            name: "MoyashiRecall",
+            dependencies: ["ZIPFoundation"]
+        ),
         .testTarget(
             name: "MoyashiRecallTests",
             dependencies: ["MoyashiRecall"]

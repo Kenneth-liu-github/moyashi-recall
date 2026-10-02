@@ -10,17 +10,25 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
     private let apiKey: String
     private let transport: any HTTPTransport
     private let baseURL: URL
+    private let reasoningEffort: String?
+    private let maxOutputTokens: Int?
 
     public init(
         apiKey: String,
         modelID: String,
         transport: any HTTPTransport = URLSessionHTTPTransport(),
-        baseURL: URL = URL(string: "https://api.openai.com")!
+        baseURL: URL = URL(string: "https://api.openai.com")!,
+        reasoningEffort: String? = nil,
+        maxOutputTokens: Int? = nil
     ) {
         self.apiKey = apiKey
         self.modelID = modelID
         self.transport = transport
         self.baseURL = baseURL
+        self.reasoningEffort =
+            reasoningEffort
+        self.maxOutputTokens =
+            maxOutputTokens
     }
 
     public func complete(
@@ -55,7 +63,7 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
             throw AIProviderError.invalidResponse
         }
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": trimmedModel,
             "store": false,
             "input": [
@@ -78,11 +86,23 @@ public struct OpenAIResponsesProvider: AICompletionProvider {
             ]
         ]
 
+        if let reasoningEffort {
+            body["reasoning"] = [
+                "effort": reasoningEffort
+            ]
+        }
+
+        if let maxOutputTokens {
+            body["max_output_tokens"] =
+                maxOutputTokens
+        }
+
         let url = baseURL
             .appendingPathComponent("v1")
             .appendingPathComponent("responses")
 
         var urlRequest = URLRequest(url: url)
+        urlRequest.timeoutInterval = 180
         urlRequest.httpMethod = "POST"
         urlRequest.setValue(
             "Bearer \(trimmedKey)",

@@ -38,6 +38,7 @@ public struct StudySource: Identifiable, Hashable, Sendable {
 public struct StudyDocument: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let sourceKey: String
+    public let sourceKind: String
     public let title: String
     public let path: String
     public let cardCount: Int
@@ -46,6 +47,7 @@ public struct StudyDocument: Identifiable, Hashable, Sendable {
     public init(
         id: UUID,
         sourceKey: String,
+        sourceKind: String,
         title: String,
         path: String,
         cardCount: Int,
@@ -53,6 +55,7 @@ public struct StudyDocument: Identifiable, Hashable, Sendable {
     ) {
         self.id = id
         self.sourceKey = sourceKey
+        self.sourceKind = sourceKind
         self.title = title
         self.path = path
         self.cardCount = cardCount

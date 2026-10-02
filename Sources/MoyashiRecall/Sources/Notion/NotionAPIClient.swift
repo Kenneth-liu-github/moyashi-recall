@@ -207,6 +207,31 @@ public struct NotionAPIClient: LearningContentSource {
         return pages
     }
 
+    public func childPages(
+        parentID: String
+    ) async throws -> [NotionPageSummary] {
+        let blocks = try await retrieveAllBlockChildren(
+            parentID: parentID
+        )
+        let references = childPageReferences(in: blocks)
+
+        var seen = Set<String>()
+        return references.compactMap { reference in
+            guard seen.insert(reference.id).inserted else {
+                return nil
+            }
+
+            return NotionPageSummary(
+                id: reference.id,
+                title: reference.title.isEmpty
+                    ? "Untitled"
+                    : reference.title,
+                url: nil,
+                lastEditedAt: nil
+            )
+        }
+    }
+
     private func fetchDocumentAndBlocks(
         id: String
     ) async throws -> (
@@ -253,6 +278,76 @@ public struct NotionAPIClient: LearningContentSource {
             url: json["url"] as? String,
             lastEditedAt: Self.parseISODate(json["last_edited_time"] as? String)
         )
+    }
+
+    public func directChildPages(
+        parentID: String
+    ) async throws -> [NotionPageSummary] {
+        var pages: [NotionPageSummary] = []
+        var cursor: String?
+
+        repeat {
+            var components = URLComponents(
+                url: baseURL
+                    .appendingPathComponent("v1")
+                    .appendingPathComponent("blocks")
+                    .appendingPathComponent(parentID)
+                    .appendingPathComponent("children"),
+                resolvingAgainstBaseURL: false
+            )
+
+            var queryItems = [
+                URLQueryItem(
+                    name: "page_size",
+                    value: "100"
+                )
+            ]
+
+            if let cursor {
+                queryItems.append(
+                    URLQueryItem(
+                        name: "start_cursor",
+                        value: cursor
+                    )
+                )
+            }
+
+            components?.queryItems = queryItems
+
+            guard let url = components?.url else {
+                throw NotionAPIError.invalidURL
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            applyHeaders(to: &request)
+
+            let data = try await execute(request)
+
+            let response = try JSONDecoder().decode(
+                NotionBlockListResponse.self,
+                from: data
+            )
+
+            for block in response.results
+            where block.type == "child_page" {
+                pages.append(
+                    NotionPageSummary(
+                        id: block.id,
+                        title: block.childPage?.title
+                            ?? "Untitled",
+                        url: nil,
+                        lastEditedAt: nil
+                    )
+                )
+            }
+
+            cursor = response.hasMore
+                ? response.nextCursor
+                : nil
+        } while cursor != nil
+
+        return pages
     }
 
     public func retrieveAllBlockChildren(parentID: String) async throws -> [NotionContentBlock] {

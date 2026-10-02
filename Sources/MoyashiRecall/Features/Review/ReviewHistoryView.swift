@@ -1,7 +1,11 @@
 import SwiftUI
 import SwiftData
 
-private enum ReviewHistoryFilter: String, CaseIterable, Identifiable {
+private enum ReviewHistoryRatingFilter:
+    String,
+    CaseIterable,
+    Identifiable
+{
     case all
     case again
     case hard
@@ -26,6 +30,42 @@ private enum ReviewHistoryFilter: String, CaseIterable, Identifiable {
     }
 }
 
+private enum ReviewHistorySourceFilter:
+    String,
+    CaseIterable,
+    Identifiable
+{
+    case all
+    case local
+    case notion
+
+    var id: String { rawValue }
+}
+
+private enum ReviewHistoryTimeFilter:
+    String,
+    CaseIterable,
+    Identifiable
+{
+    case all
+    case today
+    case week
+    case month
+
+    var id: String { rawValue }
+}
+
+private enum ReviewHistorySortOrder:
+    String,
+    CaseIterable,
+    Identifiable
+{
+    case newest
+    case oldest
+
+    var id: String { rawValue }
+}
+
 private struct ReviewHistoryDaySection: Identifiable {
     let day: Date
     let items: [ReviewHistorySummary]
@@ -38,56 +78,81 @@ public struct ReviewHistoryView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var items: [ReviewHistorySummary] = []
-    @State private var filter: ReviewHistoryFilter = .all
     @State private var searchText = ""
+
+    @State private var ratingFilter:
+        ReviewHistoryRatingFilter = .all
+
+    @State private var sourceFilter:
+        ReviewHistorySourceFilter = .all
+
+    @State private var timeFilter:
+        ReviewHistoryTimeFilter = .all
+
+    @State private var sortOrder:
+        ReviewHistorySortOrder = .newest
+
     @State private var loadError: String?
 
     public init() {}
 
     public var body: some View {
-        Group {
-            if let loadError {
-                ContentUnavailableView(
-                    language.text(
-                        "无法读取复习记录",
-                        "復習履歴を読み込めません"
-                    ),
-                    systemImage: "exclamationmark.triangle",
-                    description: Text(loadError)
-                )
-            } else if items.isEmpty {
-                ContentUnavailableView(
-                    language.text(
-                        "还没有复习记录",
-                        "復習履歴はまだありません"
-                    ),
-                    systemImage: "clock.arrow.circlepath"
-                )
-            } else if filteredItems.isEmpty {
-                ContentUnavailableView(
-                    language.text(
-                        "没有符合条件的记录",
-                        "条件に一致する履歴はありません"
-                    ),
-                    systemImage: "line.3.horizontal.decrease.circle",
-                    description: Text(
+        VStack(spacing: 0) {
+            filterBar
+
+            Divider()
+
+            Group {
+                if let loadError {
+                    ContentUnavailableView(
                         language.text(
-                            "可以更改评分筛选或搜索内容。",
-                            "評価フィルターまたは検索条件を変更してください。"
+                            "无法读取复习记录",
+                            "復習履歴を読み込めません"
+                        ),
+                        systemImage:
+                            "exclamationmark.triangle",
+                        description:
+                            Text(loadError)
+                    )
+                } else if items.isEmpty {
+                    ContentUnavailableView(
+                        language.text(
+                            "还没有复习记录",
+                            "復習履歴はまだありません"
+                        ),
+                        systemImage:
+                            "clock.arrow.circlepath"
+                    )
+                } else if filteredItems.isEmpty {
+                    ContentUnavailableView(
+                        language.text(
+                            "没有符合条件的记录",
+                            "条件に一致する履歴はありません"
+                        ),
+                        systemImage:
+                            "line.3.horizontal.decrease.circle",
+                        description: Text(
+                            language.text(
+                                "可以调整搜索、来源、时间或评分条件。",
+                                "検索・ソース・期間・評価条件を変更してください。"
+                            )
                         )
                     )
-                )
-            } else {
-                List {
-                    ForEach(daySections) { section in
-                        Section(
-                            dayLabel(section.day)
-                        ) {
-                            ForEach(section.items) { item in
-                                historyRow(item)
+                } else {
+                    List {
+                        ForEach(daySections) { section in
+                            Section(
+                                dayLabel(section.day)
+                            ) {
+                                ForEach(
+                                    section.items
+                                ) { item in
+                                    historyRow(item)
+                                }
                             }
                         }
                     }
+                    .listStyle(.plain)
                 }
             }
         }
@@ -104,48 +169,220 @@ public struct ReviewHistoryView: View {
                 "問題・答え・ソースを検索"
             )
         )
-        .toolbar {
-            ToolbarItem(
-                placement: .primaryAction
-            ) {
-                Menu {
-                    Picker(
-                        language.text(
-                            "评分筛选",
-                            "評価フィルター"
-                        ),
-                        selection: $filter
-                    ) {
-                        ForEach(
-                            ReviewHistoryFilter.allCases
-                        ) { item in
-                            Text(
-                                filterLabel(item)
-                            )
-                            .tag(item)
-                        }
-                    }
-                } label: {
-                    Label(
-                        filterLabel(filter),
-                        systemImage: "line.3.horizontal.decrease.circle"
-                    )
-                }
-            }
-        }
         .onAppear {
             loadHistory()
         }
     }
 
-    private var filteredItems: [ReviewHistorySummary] {
-        let normalized = searchText.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
+    // MARK: - Filter bar
 
-        return items.filter { item in
-            if let rating = filter.rating,
+    private var filterBar: some View {
+        ScrollView(
+            .horizontal,
+            showsIndicators: false
+        ) {
+            HStack(spacing: 10) {
+                Menu {
+                    Picker(
+                        "",
+                        selection: $sourceFilter
+                    ) {
+                        ForEach(
+                            ReviewHistorySourceFilter
+                                .allCases
+                        ) { filter in
+                            Text(
+                                sourceFilterLabel(
+                                    filter
+                                )
+                            )
+                            .tag(filter)
+                        }
+                    }
+                } label: {
+                    filterChip(
+                        icon: "folder",
+                        text:
+                            sourceFilterLabel(
+                                sourceFilter
+                            )
+                    )
+                }
+
+                Menu {
+                    Picker(
+                        "",
+                        selection: $timeFilter
+                    ) {
+                        ForEach(
+                            ReviewHistoryTimeFilter
+                                .allCases
+                        ) { filter in
+                            Text(
+                                timeFilterLabel(
+                                    filter
+                                )
+                            )
+                            .tag(filter)
+                        }
+                    }
+                } label: {
+                    filterChip(
+                        icon: "calendar",
+                        text:
+                            timeFilterLabel(
+                                timeFilter
+                            )
+                    )
+                }
+
+                Menu {
+                    Picker(
+                        "",
+                        selection: $ratingFilter
+                    ) {
+                        ForEach(
+                            ReviewHistoryRatingFilter
+                                .allCases
+                        ) { filter in
+                            Text(
+                                ratingFilterLabel(
+                                    filter
+                                )
+                            )
+                            .tag(filter)
+                        }
+                    }
+                } label: {
+                    filterChip(
+                        icon:
+                            "line.3.horizontal.decrease.circle",
+                        text:
+                            ratingFilterLabel(
+                                ratingFilter
+                            )
+                    )
+                }
+
+                Menu {
+                    Picker(
+                        "",
+                        selection: $sortOrder
+                    ) {
+                        ForEach(
+                            ReviewHistorySortOrder
+                                .allCases
+                        ) { order in
+                            Text(
+                                sortOrderLabel(
+                                    order
+                                )
+                            )
+                            .tag(order)
+                        }
+                    }
+                } label: {
+                    filterChip(
+                        icon:
+                            "arrow.up.arrow.down",
+                        text:
+                            sortOrderLabel(
+                                sortOrder
+                            )
+                    )
+                }
+
+                if sourceFilter != .all
+                    || timeFilter != .all
+                    || ratingFilter != .all
+                    || sortOrder != .newest
+                {
+                    Button {
+                        sourceFilter = .all
+                        timeFilter = .all
+                        ratingFilter = .all
+                        sortOrder = .newest
+                    } label: {
+                        Label(
+                            language.text(
+                                "重置",
+                                "リセット"
+                            ),
+                            systemImage:
+                                "arrow.counterclockwise"
+                        )
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+        }
+    }
+
+    private func filterChip(
+        icon: String,
+        text: String
+    ) -> some View {
+        Label(
+            text,
+            systemImage: icon
+        )
+        .font(
+            .subheadline
+                .weight(.medium)
+        )
+        .padding(
+            .horizontal,
+            12
+        )
+        .padding(
+            .vertical,
+            7
+        )
+        .background(
+            Color.gray.opacity(0.10)
+        )
+        .clipShape(
+            Capsule()
+        )
+    }
+
+    // MARK: - Filtering
+
+    private var filteredItems: [ReviewHistorySummary] {
+        let normalized =
+            searchText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        var result = items.filter { item in
+            if let rating =
+                ratingFilter.rating,
                item.rating != rating {
+                return false
+            }
+
+            switch sourceFilter {
+            case .all:
+                break
+
+            case .local:
+                guard item.sourceKind == "file"
+                else {
+                    return false
+                }
+
+            case .notion:
+                guard item.sourceKind == "notion"
+                else {
+                    return false
+                }
+            }
+
+            if !matchesTimeFilter(
+                item.reviewedAt
+            ) {
                 return false
             }
 
@@ -153,20 +390,87 @@ public struct ReviewHistoryView: View {
                 return true
             }
 
-            return item.prompt.localizedCaseInsensitiveContains(
-                normalized
+            return item.prompt
+                .localizedCaseInsensitiveContains(
+                    normalized
+                )
+                || item.answer
+                    .localizedCaseInsensitiveContains(
+                        normalized
+                    )
+                || item.sourceDisplay
+                    .localizedCaseInsensitiveContains(
+                        normalized
+                    )
+        }
+
+        switch sortOrder {
+        case .newest:
+            result.sort {
+                $0.reviewedAt
+                    > $1.reviewedAt
+            }
+
+        case .oldest:
+            result.sort {
+                $0.reviewedAt
+                    < $1.reviewedAt
+            }
+        }
+
+        return result
+    }
+
+    private func matchesTimeFilter(
+        _ date: Date
+    ) -> Bool {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch timeFilter {
+        case .all:
+            return true
+
+        case .today:
+            return calendar.isDateInToday(
+                date
             )
-                || item.answer.localizedCaseInsensitiveContains(
-                    normalized
+
+        case .week:
+            guard let cutoff =
+                calendar.date(
+                    byAdding: .day,
+                    value: -7,
+                    to: now
                 )
-                || item.sourceDisplay.localizedCaseInsensitiveContains(
-                    normalized
+            else {
+                return true
+            }
+
+            return date >= cutoff
+
+        case .month:
+            guard let cutoff =
+                calendar.date(
+                    byAdding: .day,
+                    value: -30,
+                    to: now
                 )
+            else {
+                return true
+            }
+
+            return date >= cutoff
         }
     }
 
-    private var daySections: [ReviewHistoryDaySection] {
+    // MARK: - Sections
+
+    private var daySections:
+        [ReviewHistoryDaySection]
+    {
         let calendar = Calendar.current
+
         let groups = Dictionary(
             grouping: filteredItems
         ) {
@@ -179,15 +483,20 @@ public struct ReviewHistoryView: View {
             .map { day, entries in
                 ReviewHistoryDaySection(
                     day: day,
-                    items: entries.sorted {
-                        $0.reviewedAt > $1.reviewedAt
-                    }
+                    items: entries
                 )
             }
             .sorted {
-                $0.day > $1.day
+                switch sortOrder {
+                case .newest:
+                    return $0.day > $1.day
+                case .oldest:
+                    return $0.day < $1.day
+                }
             }
     }
+
+    // MARK: - Row
 
     @ViewBuilder
     private func historyRow(
@@ -203,60 +512,145 @@ public struct ReviewHistoryView: View {
                         item.rating
                     )
                 )
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
+                .font(
+                    .caption
+                        .weight(.semibold)
+                )
+                .foregroundStyle(
+                    AppTheme.accent
+                )
 
                 Spacer()
 
                 Text(
-                    item.reviewedAt.formatted(
-                        date: .omitted,
-                        time: .shortened
-                    )
+                    item.reviewedAt
+                        .formatted(
+                            date: .omitted,
+                            time: .shortened
+                        )
                 )
                 .font(.caption)
-                .foregroundStyle(AppTheme.muted)
+                .foregroundStyle(
+                    AppTheme.muted
+                )
             }
 
             Text(item.prompt)
                 .font(.headline)
 
             Text(item.answer)
-                .foregroundStyle(AppTheme.muted)
+                .foregroundStyle(
+                    AppTheme.muted
+                )
 
             if !item.sourceDisplay.isEmpty {
-                Text(item.sourceDisplay)
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.muted)
+                HStack(spacing: 6) {
+                    Image(
+                        systemName:
+                            item.sourceKind == "notion"
+                            ? "n.square"
+                            : "doc"
+                    )
+
+                    Text(
+                        item.sourceDisplay
+                    )
                     .lineLimit(2)
+                }
+                .font(.caption2)
+                .foregroundStyle(
+                    AppTheme.muted
+                )
             }
         }
-        .padding(.vertical, 4)
+        .padding(
+            .vertical,
+            4
+        )
     }
+
+    // MARK: - Load
 
     private func loadHistory() {
         do {
-            items = try LearningRepository(
-                context: modelContext
-            )
-            .recentReviewHistory()
+            items =
+                try LearningRepository(
+                    context:
+                        modelContext
+                )
+                .recentReviewHistory(
+                    limit: 500
+                )
+
             loadError = nil
         } catch {
-            loadError = language.text(
-                "无法读取本地复习历史。",
-                "ローカルの復習履歴を読み込めませんでした。"
+            loadError =
+                language.text(
+                    "无法读取本地复习历史。",
+                    "ローカルの復習履歴を読み込めませんでした。"
+                )
+        }
+    }
+
+    // MARK: - Labels
+
+    private func sourceFilterLabel(
+        _ filter:
+            ReviewHistorySourceFilter
+    ) -> String {
+        switch filter {
+        case .all:
+            return language.text(
+                "全部来源",
+                "全ソース"
+            )
+        case .local:
+            return language.text(
+                "本地",
+                "ローカル"
+            )
+        case .notion:
+            return "Notion"
+        }
+    }
+
+    private func timeFilterLabel(
+        _ filter:
+            ReviewHistoryTimeFilter
+    ) -> String {
+        switch filter {
+        case .all:
+            return language.text(
+                "全部时间",
+                "全期間"
+            )
+        case .today:
+            return language.text(
+                "今天",
+                "今日"
+            )
+        case .week:
+            return language.text(
+                "7天",
+                "7日"
+            )
+        case .month:
+            return language.text(
+                "30天",
+                "30日"
             )
         }
     }
 
-    private func filterLabel(
-        _ filter: ReviewHistoryFilter
+    private func ratingFilterLabel(
+        _ filter:
+            ReviewHistoryRatingFilter
     ) -> String {
         switch filter {
         case .all:
             return language.text(
                 "全部评分",
-                "すべての評価"
+                "全評価"
             )
         case .again:
             return ratingLabel(.again)
@@ -269,8 +663,27 @@ public struct ReviewHistoryView: View {
         }
     }
 
+    private func sortOrderLabel(
+        _ order:
+            ReviewHistorySortOrder
+    ) -> String {
+        switch order {
+        case .newest:
+            return language.text(
+                "最新",
+                "新しい順"
+            )
+        case .oldest:
+            return language.text(
+                "最早",
+                "古い順"
+            )
+        }
+    }
+
     private func ratingLabel(
-        _ rating: ReviewRating
+        _ rating:
+            ReviewRating
     ) -> String {
         switch rating {
         case .again:
@@ -299,16 +712,21 @@ public struct ReviewHistoryView: View {
     private func dayLabel(
         _ day: Date
     ) -> String {
-        let calendar = Calendar.current
+        let calendar =
+            Calendar.current
 
-        if calendar.isDateInToday(day) {
+        if calendar.isDateInToday(
+            day
+        ) {
             return language.text(
                 "今天",
                 "今日"
             )
         }
 
-        if calendar.isDateInYesterday(day) {
+        if calendar.isDateInYesterday(
+            day
+        ) {
             return language.text(
                 "昨天",
                 "昨日"

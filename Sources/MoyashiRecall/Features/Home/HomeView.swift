@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 public struct HomeView: View {
+    private let openReviewTab: () -> Void
     @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
 
@@ -13,7 +14,45 @@ public struct HomeView: View {
     @State private var lastSessionSummary: ReviewSessionSummary?
     @State private var readiness: AppReadinessSnapshot?
 
-    public init() {}
+    @State private var reviewScope: StudyScopePreferences?
+    @State private var scopedDueCount = 0
+
+    public init(
+        openReviewTab: @escaping () -> Void = {}
+    ) {
+        self.openReviewTab = openReviewTab
+    }
+
+    private var hasValidReviewScope: Bool {
+        guard let reviewScope else {
+            return false
+        }
+
+        guard
+            !reviewScope.cardTypes.isEmpty,
+            let documentIDs = reviewScope.documentIDs,
+            !documentIDs.isEmpty
+        else {
+            return false
+        }
+
+        return true
+    }
+
+    private var effectiveTodayReviewCount: Int {
+        guard let reviewScope else {
+            return 0
+        }
+
+        if reviewScope.reviewCount == 0 {
+            return scopedDueCount
+        }
+
+        return min(
+            reviewScope.reviewCount,
+            scopedDueCount
+        )
+    }
 
     public var body: some View {
         NavigationStack {
@@ -46,7 +85,7 @@ public struct HomeView: View {
 
                     HStack(spacing: 12) {
                         metric(
-                            "\(snapshot.dueCount)",
+                            "\(scopedDueCount)",
                             language.text(
                                 "今日到期",
                                 "今日の期限"
@@ -115,58 +154,51 @@ public struct HomeView: View {
                         } else {
                             Text(
                                 language.text(
-                                    snapshot.dueCount == 0
-                                        ? "今天没有到期卡片。"
-                                        : "\(snapshot.dueCount) 张卡片等待复习。",
-                                    snapshot.dueCount == 0
-                                        ? "今日は期限のカードがありません。"
-                                        : "\(snapshot.dueCount)枚のカードが復習待ちです。"
+                                    !hasValidReviewScope
+                                        ? "请先选择今天要复习的卡片范围。"
+                                        : scopedDueCount == 0
+                                            ? "当前选择范围没有到期卡片。"
+                                            : "\(scopedDueCount) 张卡片等待复习。",
+                                    !hasValidReviewScope
+                                        ? "まず今日復習するカード範囲を選択してください。"
+                                        : scopedDueCount == 0
+                                            ? "現在選択した範囲に期限カードはありません。"
+                                            : "\(scopedDueCount)枚のカードが復習待ちです。"
                                 )
                             )
                             .foregroundStyle(AppTheme.muted)
                         }
 
-                        NavigationLink {
-                            ReviewView(
-                                sessionLimit: min(
-                                    max(snapshot.dueCount, 1),
-                                    20
-                                )
-                            )
+                        Button {
+                            openReviewTab()
                         } label: {
                             Label(
                                 language.text(
-                                    snapshot.dueCount == 0
-                                        ? "今天没有到期卡片"
-                                        : "开始今日复习 · \(min(snapshot.dueCount, 20)) 张",
-                                    snapshot.dueCount == 0
-                                        ? "今日は期限カードがありません"
-                                        : "今日の復習を開始 · \(min(snapshot.dueCount, 20))枚"
+                                    !hasValidReviewScope
+                                        ? "请选择复习卡片"
+                                        : effectiveTodayReviewCount == 0
+                                            ? "当前范围没有到期卡片"
+                                            : "开始今日复习 · \(effectiveTodayReviewCount) 张",
+                                    !hasValidReviewScope
+                                        ? "復習カードを選択してください"
+                                        : effectiveTodayReviewCount == 0
+                                            ? "現在の範囲に期限カードはありません"
+                                            : "今日の復習を開始 · \(effectiveTodayReviewCount)枚"
                                 ),
                                 systemImage: "play.fill"
                             )
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(
-                                snapshot.dueCount == 0
-                                    ? Color.gray.opacity(0.18)
-                                    : AppTheme.accent
-                            )
-                            .foregroundStyle(
-                                snapshot.dueCount == 0
-                                    ? AppTheme.muted
-                                    : .white
-                            )
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: 14
-                                )
-                            )
                         }
-                        .disabled(snapshot.dueCount == 0)
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .disabled(
+                            !hasValidReviewScope
+                            || effectiveTodayReviewCount == 0
+                        )
 
-                        HStack {
+                        HStack(spacing: 12) {
                             NavigationLink {
                                 StudyScopeView()
                             } label: {
@@ -177,9 +209,16 @@ public struct HomeView: View {
                                     ),
                                     systemImage: "slider.horizontal.3"
                                 )
+                                .font(.body.weight(.semibold))
+                                .frame(
+                                    maxWidth: .infinity
+                                )
+                                .padding(
+                                    .vertical,
+                                    10
+                                )
                             }
-
-                            Spacer()
+                            .buttonStyle(.bordered)
 
                             NavigationLink {
                                 ReviewHistoryView()
@@ -189,12 +228,21 @@ public struct HomeView: View {
                                         "复习记录",
                                         "復習履歴"
                                     ),
-                                    systemImage: "clock.arrow.circlepath"
+                                    systemImage:
+                                        "clock.arrow.circlepath"
+                                )
+                                .font(.body.weight(.semibold))
+                                .frame(
+                                    maxWidth: .infinity
+                                )
+                                .padding(
+                                    .vertical,
+                                    10
                                 )
                             }
+                            .buttonStyle(.bordered)
                         }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accent)
+                        .tint(AppTheme.accent)
                     }
                     .padding(18)
                     .background(
@@ -275,9 +323,56 @@ public struct HomeView: View {
                             .foregroundStyle(AppTheme.muted)
                         } else {
                             ForEach(
-                                snapshot.weakKnowledge
-                            ) { item in
-                                weakness(item)
+                                weakKnowledgeGroups
+                            ) { group in
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 6
+                                ) {
+                                    HStack(spacing: 7) {
+                                        Image(
+                                            systemName:
+                                                group.systemImage
+                                        )
+                                        .foregroundStyle(
+                                            AppTheme.accent
+                                        )
+
+                                        Text(group.title)
+                                            .font(
+                                                .subheadline
+                                                    .weight(
+                                                        .semibold
+                                                    )
+                                            )
+
+                                        Spacer()
+
+                                        Text(
+                                            "\(group.items.count)"
+                                        )
+                                        .font(.caption)
+                                        .foregroundStyle(
+                                            AppTheme.muted
+                                        )
+                                    }
+                                    .padding(
+                                        .top,
+                                        6
+                                    )
+
+                                    ForEach(
+                                        group.items
+                                    ) { item in
+                                        weakness(item)
+                                    }
+                                }
+
+                                if group.id
+                                    != weakKnowledgeGroups
+                                        .last?.id {
+                                    Divider()
+                                }
                             }
                         }
                     }
@@ -289,6 +384,7 @@ public struct HomeView: View {
                 loadSnapshot()
                 loadReadiness()
                 loadLastSessionSummary()
+                loadReviewScope()
 
                 Task {
                     await refreshReviewReminder()
@@ -418,10 +514,10 @@ public struct HomeView: View {
         }
 
         let body: String
-        if snapshot.dueCount > 0 {
+        if scopedDueCount > 0 {
             body = language.text(
-                "今天有 \(snapshot.dueCount) 张日语卡片到期。",
-                "今日は\(snapshot.dueCount)枚の日本語カードが期限です。"
+                "当前复习范围有 \(scopedDueCount) 张卡片到期。",
+                "現在の復習範囲には\(scopedDueCount)枚のカードが期限です。"
             )
         } else {
             body = language.text(
@@ -436,6 +532,44 @@ public struct HomeView: View {
             title: "Moyashi Recall",
             body: body
         )
+    }
+
+    private func loadReviewScope() {
+        let preferences =
+            StudyScopePreferencesStore()
+                .load()
+
+        reviewScope = preferences
+
+        guard
+            let preferences,
+            !preferences.cardTypes.isEmpty,
+            let documentIDs =
+                preferences.documentIDs,
+            !documentIDs.isEmpty
+        else {
+            scopedDueCount = 0
+            return
+        }
+
+        do {
+            let repository =
+                LearningRepository(
+                    context: modelContext
+                )
+
+            scopedDueCount =
+                try repository.dueCardCount(
+                    sourceKeys:
+                        preferences.sourceKeys,
+                    cardTypes:
+                        preferences.cardTypes,
+                    sourceDocumentIDs:
+                        documentIDs
+                )
+        } catch {
+            scopedDueCount = 0
+        }
     }
 
     private func loadReadiness() {
@@ -506,6 +640,101 @@ public struct HomeView: View {
         )
     }
 
+    private var weakKnowledgeGroups:
+        [WeakKnowledgeGroup]
+    {
+        let grouped = Dictionary(
+            grouping: snapshot.weakKnowledge
+        ) { item in
+            weakSourceGroup(
+                from: item.sourceDisplay
+            )
+        }
+
+        return grouped
+            .map { key, items in
+                WeakKnowledgeGroup(
+                    id: key.id,
+                    title: key.title,
+                    systemImage:
+                        key.systemImage,
+                    items: items
+                )
+            }
+            .sorted {
+                $0.title.localizedStandardCompare(
+                    $1.title
+                ) == .orderedAscending
+            }
+    }
+
+    private func weakSourceGroup(
+        from sourceDisplay: String
+    ) -> WeakSourceGroupKey {
+        let components =
+            sourceDisplay
+                .components(
+                    separatedBy: " / "
+                )
+                .filter {
+                    !$0.isEmpty
+                }
+
+        guard let first =
+            components.first
+        else {
+            return WeakSourceGroupKey(
+                id: "unknown",
+                title: language.text(
+                    "其他资料",
+                    "その他の資料"
+                ),
+                systemImage: "doc"
+            )
+        }
+
+        if first == "Learning Home" {
+            let source =
+                components.count >= 2
+                ? components[1]
+                : "Learning Home"
+
+            return WeakSourceGroupKey(
+                id: "notion-\(source)",
+                title: language.text(
+                    "Notion · \(source)",
+                    "Notion · \(source)"
+                ),
+                systemImage: "n.square"
+            )
+        }
+
+        if first == "Imported Files" {
+            let source =
+                components.count >= 2
+                ? components[1]
+                : language.text(
+                    "本地资料",
+                    "ローカル資料"
+                )
+
+            return WeakSourceGroupKey(
+                id: "file-\(source)",
+                title: language.text(
+                    "本地资料 · \(source)",
+                    "ローカル資料 · \(source)"
+                ),
+                systemImage: "doc.text"
+            )
+        }
+
+        return WeakSourceGroupKey(
+            id: first,
+            title: first,
+            systemImage: "doc"
+        )
+    }
+
     private func weakness(
         _ item: WeakKnowledgeSummary
     ) -> some View {
@@ -555,4 +784,18 @@ public struct HomeView: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+
+private struct WeakSourceGroupKey: Hashable {
+    let id: String
+    let title: String
+    let systemImage: String
+}
+
+private struct WeakKnowledgeGroup: Identifiable {
+    let id: String
+    let title: String
+    let systemImage: String
+    let items: [WeakKnowledgeSummary]
 }
