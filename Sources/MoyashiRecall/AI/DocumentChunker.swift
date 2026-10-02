@@ -163,10 +163,18 @@ public enum KnowledgeBundleMerger {
             version: version,
             items: items
         )
+
+        let limited =
+            KnowledgeExtractionService
+                .limitKnowledgeItems(
+                    merged
+                )
+
         try KnowledgeExtractionService.validate(
-            merged
+            limited
         )
-        return merged
+
+        return limited
     }
 
     private static func merge(
