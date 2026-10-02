@@ -31,6 +31,56 @@ public struct ReviewSessionCard: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct CardLibraryItem:
+    Identifiable,
+    Equatable,
+    Sendable
+{
+    public let id: UUID
+    public let cardType: String
+    public let prompt: String
+    public let answer: String
+    public let explanation: String
+    public let naturalEnglish: String
+    public let sourceKey: String
+    public let sourceDisplay: String
+    public let sourceKind: String
+    public let createdAt: Date
+    public let updatedAt: Date
+    public let studyCount: Int
+    public let lastReviewedAt: Date?
+
+    public init(
+        id: UUID,
+        cardType: String,
+        prompt: String,
+        answer: String,
+        explanation: String,
+        naturalEnglish: String,
+        sourceKey: String,
+        sourceDisplay: String,
+        sourceKind: String,
+        createdAt: Date,
+        updatedAt: Date,
+        studyCount: Int,
+        lastReviewedAt: Date?
+    ) {
+        self.id = id
+        self.cardType = cardType
+        self.prompt = prompt
+        self.answer = answer
+        self.explanation = explanation
+        self.naturalEnglish = naturalEnglish
+        self.sourceKey = sourceKey
+        self.sourceDisplay = sourceDisplay
+        self.sourceKind = sourceKind
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.studyCount = studyCount
+        self.lastReviewedAt = lastReviewedAt
+    }
+}
+
 public struct ImportedDocumentSummary: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let title: String
@@ -229,6 +279,7 @@ public struct ReviewHistorySummary: Identifiable, Equatable, Sendable {
     public let prompt: String
     public let answer: String
     public let sourceDisplay: String
+    public let sourceKind: String
 
     public init(
         id: UUID,
@@ -237,7 +288,8 @@ public struct ReviewHistorySummary: Identifiable, Equatable, Sendable {
         rating: ReviewRating,
         prompt: String,
         answer: String,
-        sourceDisplay: String
+        sourceDisplay: String,
+        sourceKind: String
     ) {
         self.id = id
         self.cardID = cardID
@@ -246,6 +298,7 @@ public struct ReviewHistorySummary: Identifiable, Equatable, Sendable {
         self.prompt = prompt
         self.answer = answer
         self.sourceDisplay = sourceDisplay
+        self.sourceKind = sourceKind
     }
 }
 
@@ -593,6 +646,91 @@ public struct LearningRepository {
             activeExternalIDs: [],
             now: now
         )
+    }
+
+    @discardableResult
+    public func deleteImportedSource(
+        sourceKind: String,
+        rootExternalID: String
+    ) throws -> Int {
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter {
+            $0.sourceKind == sourceKind
+                && $0.rootExternalSourceID == rootExternalID
+        }
+
+        guard !documents.isEmpty else {
+            return 0
+        }
+
+        let documentIDs = Set(documents.map { $0.id })
+
+        let knowledgeItems = try context.fetch(
+            FetchDescriptor<KnowledgeItemEntity>()
+        )
+        .filter {
+            guard let sourceDocumentID = $0.sourceDocumentID else {
+                return false
+            }
+
+            return documentIDs.contains(sourceDocumentID)
+        }
+
+        let knowledgeIDs = Set(knowledgeItems.map { $0.id })
+
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter {
+            if let sourceDocumentID = $0.sourceDocumentID,
+               documentIDs.contains(sourceDocumentID) {
+                return true
+            }
+
+            return knowledgeIDs.contains($0.knowledgeItemID)
+        }
+
+        let cardIDs = Set(cards.map(\.id))
+
+        let reviewStates = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
+        .filter {
+            cardIDs.contains($0.cardID)
+        }
+
+        let reviewHistory = try context.fetch(
+            FetchDescriptor<ReviewHistoryEntity>()
+        )
+        .filter {
+            cardIDs.contains($0.cardID)
+        }
+
+        for history in reviewHistory {
+            context.delete(history)
+        }
+
+        for state in reviewStates {
+            context.delete(state)
+        }
+
+        for card in cards {
+            context.delete(card)
+        }
+
+        for knowledge in knowledgeItems {
+            context.delete(knowledge)
+        }
+
+        for document in documents {
+            context.delete(document)
+        }
+
+        try context.save()
+
+        return documents.count
     }
 
     public func sourceDocument(
@@ -958,6 +1096,129 @@ public struct LearningRepository {
         )
     }
 
+    public func cardLibraryItems(
+        searchText: String = ""
+    ) throws -> [CardLibraryItem] {
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter(\.isActive)
+
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+
+        let histories = try context.fetch(
+            FetchDescriptor<ReviewHistoryEntity>()
+        )
+
+        let documentByID = Dictionary(
+            uniqueKeysWithValues:
+                documents.map {
+                    ($0.id, $0)
+                }
+        )
+
+        var historyCountByCard: [UUID: Int] = [:]
+        var lastReviewByCard: [UUID: Date] = [:]
+
+        for history in histories {
+            historyCountByCard[
+                history.cardID,
+                default: 0
+            ] += 1
+
+            if let existing =
+                lastReviewByCard[history.cardID] {
+                if history.reviewedAt > existing {
+                    lastReviewByCard[
+                        history.cardID
+                    ] = history.reviewedAt
+                }
+            } else {
+                lastReviewByCard[
+                    history.cardID
+                ] = history.reviewedAt
+            }
+        }
+
+        let query = searchText
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .lowercased()
+
+        return cards.compactMap { card in
+            let sourceDisplay =
+                card.sourceDisplayPath.isEmpty
+                    ? card.sourceReference
+                    : card.sourceDisplayPath
+
+            let sourceKind: String
+
+            if let sourceDocumentID =
+                card.sourceDocumentID,
+               let document =
+                documentByID[sourceDocumentID] {
+                sourceKind = document.sourceKind
+            } else if sourceDisplay
+                .lowercased()
+                .contains("imported files") {
+                sourceKind = "file"
+            } else if sourceDisplay
+                .lowercased()
+                .contains("learning home") {
+                sourceKind = "notion"
+            } else {
+                sourceKind = "unknown"
+            }
+
+            if !query.isEmpty {
+                let searchable = [
+                    card.prompt,
+                    card.answer,
+                    card.explanation,
+                    card.naturalEnglish,
+                    sourceDisplay,
+                    card.cardType
+                ]
+                .joined(separator: "\n")
+                .lowercased()
+
+                guard searchable.contains(query)
+                else {
+                    return nil
+                }
+            }
+
+            return CardLibraryItem(
+                id: card.id,
+                cardType: card.cardType,
+                prompt: card.prompt,
+                answer: card.answer,
+                explanation: card.explanation,
+                naturalEnglish:
+                    card.naturalEnglish,
+                sourceKey: card.sourceKey,
+                sourceDisplay:
+                    sourceDisplay,
+                sourceKind: sourceKind,
+                createdAt: card.createdAt,
+                updatedAt: card.updatedAt,
+                studyCount:
+                    historyCountByCard[
+                        card.id,
+                        default: 0
+                    ],
+                lastReviewedAt:
+                    lastReviewByCard[card.id]
+            )
+        }
+        .sorted {
+            $0.createdAt > $1.createdAt
+        }
+    }
+
     public func dueSessionCards(
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
@@ -1119,6 +1380,115 @@ public struct LearningRepository {
         }
     }
 
+    public func studyMaterials(
+        now: Date = .now,
+        cardTypes: Set<String>? = nil
+    ) throws -> [StudyDocument] {
+        let cards = try context.fetch(
+            FetchDescriptor<FlashcardEntity>()
+        )
+        .filter(\.isActive)
+
+        let states = try context.fetch(
+            FetchDescriptor<ReviewStateEntity>()
+        )
+
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+        .filter(\.isSourceActive)
+
+        let stateByCard = states.reduce(
+            into: [UUID: ReviewStateEntity]()
+        ) { result, state in
+            if let existing = result[state.cardID] {
+                if state.due < existing.due {
+                    result[state.cardID] = state
+                }
+            } else {
+                result[state.cardID] = state
+            }
+        }
+
+        let documentIDs = Set(
+            documents.map(\.id)
+        )
+
+        var counts: [
+            UUID: (
+                all: Int,
+                due: Int
+            )
+        ] = [:]
+
+        for card in cards {
+            guard
+                let documentID = card.sourceDocumentID,
+                documentIDs.contains(documentID)
+            else {
+                continue
+            }
+
+            // Total active generated cards.
+            // This deliberately ignores the card-type filter:
+            // eligibility means "this material has generated cards".
+            counts[
+                documentID,
+                default: (0, 0)
+            ].all += 1
+
+            let matchesCardType =
+                cardTypes == nil
+                || cardTypes?.isEmpty == true
+                || cardTypes?.contains(
+                    card.cardType
+                ) == true
+
+            guard matchesCardType else {
+                continue
+            }
+
+            let isDue: Bool
+
+            if let state = stateByCard[card.id] {
+                isDue = state.due <= now
+            } else {
+                // New generated cards without FSRS state
+                // are immediately available for review.
+                isDue = true
+            }
+
+            if isDue {
+                counts[
+                    documentID,
+                    default: (0, 0)
+                ].due += 1
+            }
+        }
+
+        return documents.map { document in
+            let count = counts[
+                document.id,
+                default: (0, 0)
+            ]
+
+            return StudyDocument(
+                id: document.id,
+                sourceKey: document.sourceKey,
+                sourceKind: document.sourceKind,
+                title: document.title,
+                path: document.sourcePath,
+                cardCount: count.all,
+                dueCardCount: count.due
+            )
+        }
+        .sorted {
+            $0.path.localizedStandardCompare(
+                $1.path
+            ) == .orderedAscending
+        }
+    }
+
     public func reviewDocuments(
         now: Date = .now,
         sourceKeys: Set<String>? = nil,
@@ -1214,6 +1584,7 @@ public struct LearningRepository {
             return StudyDocument(
                 id: document.id,
                 sourceKey: document.sourceKey,
+                sourceKind: document.sourceKind,
                 title: document.title,
                 path: document.sourcePath,
                 cardCount: count.all,
@@ -1245,8 +1616,19 @@ public struct LearningRepository {
         let cards = try context.fetch(
             FetchDescriptor<FlashcardEntity>()
         )
+
+        let documents = try context.fetch(
+            FetchDescriptor<SourceDocumentEntity>()
+        )
+
         let cardByID = Dictionary(
             uniqueKeysWithValues: cards.map {
+                ($0.id, $0)
+            }
+        )
+
+        let documentByID = Dictionary(
+            uniqueKeysWithValues: documents.map {
                 ($0.id, $0)
             }
         )
@@ -1261,6 +1643,34 @@ public struct LearningRepository {
                 return nil
             }
 
+            let sourceDisplay =
+                card.sourceDisplayPath.isEmpty
+                    ? card.sourceReference
+                    : card.sourceDisplayPath
+
+            let sourceKind: String
+
+            if let sourceDocumentID =
+                card.sourceDocumentID,
+               let document =
+                documentByID[sourceDocumentID] {
+                sourceKind = document.sourceKind
+            } else if sourceDisplay
+                .localizedCaseInsensitiveContains(
+                    "Imported Files"
+                ) {
+                // Legacy fallback only.
+                sourceKind = "file"
+            } else if sourceDisplay
+                .localizedCaseInsensitiveContains(
+                    "Learning Home"
+                ) {
+                // Legacy fallback only.
+                sourceKind = "notion"
+            } else {
+                sourceKind = "unknown"
+            }
+
             return ReviewHistorySummary(
                 id: event.id,
                 cardID: event.cardID,
@@ -1268,9 +1678,8 @@ public struct LearningRepository {
                 rating: rating,
                 prompt: card.prompt,
                 answer: card.answer,
-                sourceDisplay: card.sourceDisplayPath.isEmpty
-                    ? card.sourceReference
-                    : card.sourceDisplayPath
+                sourceDisplay: sourceDisplay,
+                sourceKind: sourceKind
             )
         }
     }
