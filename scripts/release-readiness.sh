@@ -66,10 +66,28 @@ else
   fail "App target is not wired to the AppIcon asset set"
 fi
 
-if find "$APPICON" -maxdepth 1 -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) | grep -q .; then
+APPICON_FILE="$(find "$APPICON" -maxdepth 1 -type f -name '*.png' -print -quit)"
+
+if [[ -n "$APPICON_FILE" ]]; then
   pass "Final AppIcon image asset is present"
+
+  icon_width="$(sips -g pixelWidth "$APPICON_FILE" 2>/dev/null | awk '/pixelWidth/ {print $2}')"
+  icon_height="$(sips -g pixelHeight "$APPICON_FILE" 2>/dev/null | awk '/pixelHeight/ {print $2}')"
+  icon_alpha="$(sips -g hasAlpha "$APPICON_FILE" 2>/dev/null | awk '/hasAlpha/ {print $2}')"
+
+  if [[ "$icon_width" == "1024" && "$icon_height" == "1024" ]]; then
+    pass "Final AppIcon is exactly 1024x1024"
+  else
+    fail "Final AppIcon must be exactly 1024x1024; found ${icon_width}x${icon_height}"
+  fi
+
+  if [[ "$icon_alpha" == "no" ]]; then
+    pass "Final AppIcon has no alpha channel"
+  else
+    fail "Final AppIcon must not contain an alpha channel"
+  fi
 else
-  block "Supply the final 1024x1024 AppIcon image before distribution"
+  block "Supply the final 1024x1024 PNG AppIcon image before distribution"
 fi
 
 if grep -q "DEVELOPMENT_TEAM = " "$PROJECT"; then
